@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1169394639;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1504598804;
 
 // Section: executor
 
@@ -835,6 +835,64 @@ fn wire__crate__api__scanner__scan_root_dir_impl(
         },
     )
 }
+fn wire__crate__api__uac2_api__uac2_is_available_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_is_available",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Result::<_, ()>::Ok(crate::api::uac2_api::uac2_is_available())?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__uac2_api__uac2_list_devices_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_list_devices",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::uac2_api::uac2_list_devices()?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 
 // Section: dart2rust
 
@@ -1037,6 +1095,20 @@ impl SseDecode for Vec<(String, i64)> {
     }
 }
 
+impl SseDecode for Vec<crate::api::uac2_api::Uac2DeviceInfo> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::uac2_api::Uac2DeviceInfo>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Option<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1151,6 +1223,13 @@ impl SseDecode for crate::api::scanner::ScanResult {
     }
 }
 
+impl SseDecode for u16 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u16::<NativeEndian>().unwrap()
+    }
+}
+
 impl SseDecode for u32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1169,6 +1248,24 @@ impl SseDecode for u8 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_u8().unwrap()
+    }
+}
+
+impl SseDecode for crate::api::uac2_api::Uac2DeviceInfo {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_vendorId = <u16>::sse_decode(deserializer);
+        let mut var_productId = <u16>::sse_decode(deserializer);
+        let mut var_serial = <Option<String>>::sse_decode(deserializer);
+        let mut var_productName = <String>::sse_decode(deserializer);
+        let mut var_manufacturer = <String>::sse_decode(deserializer);
+        return crate::api::uac2_api::Uac2DeviceInfo {
+            vendor_id: var_vendorId,
+            product_id: var_productId,
+            serial: var_serial,
+            product_name: var_productName,
+            manufacturer: var_manufacturer,
+        };
     }
 }
 
@@ -1248,6 +1345,8 @@ fn pde_ffi_dispatcher_sync_impl(
         }
         12 => wire__crate__api__audio_api__audio_poll_event_impl(ptr, rust_vec_len, data_len),
         23 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__uac2_api__uac2_is_available_impl(ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__uac2_api__uac2_list_devices_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1393,6 +1492,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::scanner::ScanResult>
     for crate::api::scanner::ScanResult
 {
     fn into_into_dart(self) -> crate::api::scanner::ScanResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::uac2_api::Uac2DeviceInfo {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.vendor_id.into_into_dart().into_dart(),
+            self.product_id.into_into_dart().into_dart(),
+            self.serial.into_into_dart().into_dart(),
+            self.product_name.into_into_dart().into_dart(),
+            self.manufacturer.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::uac2_api::Uac2DeviceInfo
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::uac2_api::Uac2DeviceInfo>
+    for crate::api::uac2_api::Uac2DeviceInfo
+{
+    fn into_into_dart(self) -> crate::api::uac2_api::Uac2DeviceInfo {
         self
     }
 }
@@ -1568,6 +1691,16 @@ impl SseEncode for Vec<(String, i64)> {
     }
 }
 
+impl SseEncode for Vec<crate::api::uac2_api::Uac2DeviceInfo> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::uac2_api::Uac2DeviceInfo>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -1664,6 +1797,13 @@ impl SseEncode for crate::api::scanner::ScanResult {
     }
 }
 
+impl SseEncode for u16 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u16::<NativeEndian>(self).unwrap();
+    }
+}
+
 impl SseEncode for u32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -1682,6 +1822,17 @@ impl SseEncode for u8 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_u8(self).unwrap();
+    }
+}
+
+impl SseEncode for crate::api::uac2_api::Uac2DeviceInfo {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u16>::sse_encode(self.vendor_id, serializer);
+        <u16>::sse_encode(self.product_id, serializer);
+        <Option<String>>::sse_encode(self.serial, serializer);
+        <String>::sse_encode(self.product_name, serializer);
+        <String>::sse_encode(self.manufacturer, serializer);
     }
 }
 

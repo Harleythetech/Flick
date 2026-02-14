@@ -19,11 +19,11 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 - [x] Add serialization for device info (`serde` with derive) — already present
 
 ### 1.2 Flutter Bridge Setup
-- [ ] Create new Rust module `rust/src/uac2/mod.rs`
-- [ ] Define FFI bridge types in `rust/src/api/uac2_api.rs`
-- [ ] Generate Dart bindings using `flutter_rust_bridge_codegen`
-- [ ] Create Dart service wrapper `lib/services/uac2_service.dart`
-- [ ] Update `rust/src/lib.rs` to export UAC2 module
+- [x] Create new Rust module `rust/src/uac2/mod.rs`
+- [x] Define FFI bridge types in `rust/src/api/uac2_api.rs`
+- [x] Generate Dart bindings using `flutter_rust_bridge_codegen`
+- [x] Create Dart service wrapper `lib/services/uac2_service.dart`
+- [x] Update `rust/src/lib.rs` to export UAC2 module
 
 ### 1.3 Platform-Specific Setup
 - [ ] Configure Linux USB permissions (udev rules)

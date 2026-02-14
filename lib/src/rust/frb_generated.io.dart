@@ -6,6 +6,7 @@
 import 'api/audio_api.dart';
 import 'api/scanner.dart';
 import 'api/simple.dart';
+import 'api/uac2_api.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
@@ -87,6 +88,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<(String, PlatformInt64)> dco_decode_list_record_string_i_64(dynamic raw);
 
   @protected
+  List<Uac2DeviceInfo> dco_decode_list_uac_2_device_info(dynamic raw);
+
+  @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
@@ -117,6 +121,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanResult dco_decode_scan_result(dynamic raw);
 
   @protected
+  int dco_decode_u_16(dynamic raw);
+
+  @protected
   int dco_decode_u_32(dynamic raw);
 
   @protected
@@ -124,6 +131,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int dco_decode_u_8(dynamic raw);
+
+  @protected
+  Uac2DeviceInfo dco_decode_uac_2_device_info(dynamic raw);
 
   @protected
   void dco_decode_unit(dynamic raw);
@@ -212,6 +222,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<Uac2DeviceInfo> sse_decode_list_uac_2_device_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
@@ -248,6 +263,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanResult sse_decode_scan_result(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_u_16(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
@@ -255,6 +273,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
+
+  @protected
+  Uac2DeviceInfo sse_decode_uac_2_device_info(SseDeserializer deserializer);
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
@@ -356,6 +377,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_uac_2_device_info(
+    List<Uac2DeviceInfo> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
@@ -395,6 +422,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_scan_result(ScanResult self, SseSerializer serializer);
 
   @protected
+  void sse_encode_u_16(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
@@ -402,6 +432,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_uac_2_device_info(
+    Uac2DeviceInfo self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);

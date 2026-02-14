@@ -6,6 +6,7 @@
 import 'api/audio_api.dart';
 import 'api/scanner.dart';
 import 'api/simple.dart';
+import 'api/uac2_api.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -68,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -1169394639;
+  int get rustContentHash => -1504598804;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -136,6 +137,10 @@ abstract class RustLibApi extends BaseApi {
     required String rootPath,
     required Map<String, PlatformInt64> knownFiles,
   });
+
+  bool crateApiUac2ApiUac2IsAvailable();
+
+  List<Uac2DeviceInfo> crateApiUac2ApiUac2ListDevices();
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -796,6 +801,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     argNames: ["rootPath", "knownFiles"],
   );
 
+  @override
+  bool crateApiUac2ApiUac2IsAvailable() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiUac2ApiUac2IsAvailableConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2IsAvailableConstMeta =>
+      const TaskConstMeta(debugName: "uac2_is_available", argNames: []);
+
+  @override
+  List<Uac2DeviceInfo> crateApiUac2ApiUac2ListDevices() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_uac_2_device_info,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2ListDevicesConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2ListDevicesConstMeta =>
+      const TaskConstMeta(debugName: "uac2_list_devices", argNames: []);
+
   @protected
   Map<String, PlatformInt64> dco_decode_Map_String_i_64_None(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -973,6 +1022,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<Uac2DeviceInfo> dco_decode_list_uac_2_device_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_uac_2_device_info).toList();
+  }
+
+  @protected
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
@@ -1043,6 +1098,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int dco_decode_u_16(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
   int dco_decode_u_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
@@ -1058,6 +1119,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int dco_decode_u_8(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
+  }
+
+  @protected
+  Uac2DeviceInfo dco_decode_uac_2_device_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return Uac2DeviceInfo(
+      vendorId: dco_decode_u_16(arr[0]),
+      productId: dco_decode_u_16(arr[1]),
+      serial: dco_decode_opt_String(arr[2]),
+      productName: dco_decode_String(arr[3]),
+      manufacturer: dco_decode_String(arr[4]),
+    );
   }
 
   @protected
@@ -1296,6 +1372,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<Uac2DeviceInfo> sse_decode_list_uac_2_device_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <Uac2DeviceInfo>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_uac_2_device_info(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -1409,6 +1499,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int sse_decode_u_16(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint16();
+  }
+
+  @protected
   int sse_decode_u_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint32();
@@ -1424,6 +1520,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int sse_decode_u_8(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8();
+  }
+
+  @protected
+  Uac2DeviceInfo sse_decode_uac_2_device_info(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_vendorId = sse_decode_u_16(deserializer);
+    var var_productId = sse_decode_u_16(deserializer);
+    var var_serial = sse_decode_opt_String(deserializer);
+    var var_productName = sse_decode_String(deserializer);
+    var var_manufacturer = sse_decode_String(deserializer);
+    return Uac2DeviceInfo(
+      vendorId: var_vendorId,
+      productId: var_productId,
+      serial: var_serial,
+      productName: var_productName,
+      manufacturer: var_manufacturer,
+    );
   }
 
   @protected
@@ -1647,6 +1760,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_uac_2_device_info(
+    List<Uac2DeviceInfo> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_uac_2_device_info(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -1753,6 +1878,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_u_16(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint16(self);
+  }
+
+  @protected
   void sse_encode_u_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint32(self);
@@ -1768,6 +1899,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_u_8(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self);
+  }
+
+  @protected
+  void sse_encode_uac_2_device_info(
+    Uac2DeviceInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_16(self.vendorId, serializer);
+    sse_encode_u_16(self.productId, serializer);
+    sse_encode_opt_String(self.serial, serializer);
+    sse_encode_String(self.productName, serializer);
+    sse_encode_String(self.manufacturer, serializer);
   }
 
   @protected
