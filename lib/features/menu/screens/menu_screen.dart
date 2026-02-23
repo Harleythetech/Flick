@@ -24,35 +24,24 @@ class MenuScreen extends StatelessWidget {
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => screen,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // Swift premium swipe animation (slide from right)
-          // Uses Curves.fastOutSlowIn for a natural "physical" feel
-          final tween = Tween(
-            begin: const Offset(1.0, 0.0),
-            end: Offset.zero,
-          ).chain(CurveTween(curve: Curves.fastOutSlowIn));
+          final curvedAnimation = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
 
-          return SlideTransition(
-            position: animation.drive(tween),
-            child: DecoratedBox(
-              // Add a shadow to the incoming screen for depth separation
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 20,
-                    spreadRadius: -2,
-                    offset: const Offset(-8, 0),
-                  ),
-                ],
-              ),
-              child: child,
-            ),
+          final slideAnimation = Tween<Offset>(
+            begin: const Offset(0.06, 0.0),
+            end: Offset.zero,
+          ).animate(curvedAnimation);
+
+          return FadeTransition(
+            opacity: curvedAnimation,
+            child: SlideTransition(position: slideAnimation, child: child),
           );
         },
-        transitionDuration: const Duration(milliseconds: 350),
-        reverseTransitionDuration: const Duration(milliseconds: 350),
-        // Opaque true optimizes performance by allowing the framework to
-        // stop painting the route below once the transition completes
+        transitionDuration: AppConstants.animationNormal,
+        reverseTransitionDuration: AppConstants.animationFast,
         opaque: true,
       ),
     );
@@ -173,11 +162,11 @@ class MenuScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppConstants.spacingSm),
       child: Material(
-        color: AppColors.surface.withValues(alpha: 0.6),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppConstants.radiusLg),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-          side: const BorderSide(color: AppColors.glassBorder, width: 1),
+          side: const BorderSide(color: AppColors.surfaceDark, width: 1),
         ),
         child: InkWell(
           onTap: onTap,
@@ -191,9 +180,9 @@ class MenuScreen extends StatelessWidget {
                   width: context.scaleSize(AppConstants.containerSizeMd),
                   height: context.scaleSize(AppConstants.containerSizeMd),
                   decoration: BoxDecoration(
-                    color: AppColors.glassBackgroundStrong,
+                    color: AppColors.surfaceLight,
                     borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-                    border: Border.all(color: AppColors.glassBorder, width: 1),
+                    border: Border.all(color: AppColors.surfaceDark, width: 1),
                   ),
                   child: Icon(
                     icon,
