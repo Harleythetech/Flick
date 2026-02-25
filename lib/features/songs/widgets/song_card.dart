@@ -37,7 +37,8 @@ class SongCard extends StatelessWidget {
         ? AppConstants.songCardArtSizeLarge
         : AppConstants.songCardArtSize;
 
-    final cardWidth = MediaQuery.of(context).size.width * 0.75;
+    final cardWidth = MediaQuery.of(context).size.width * 0.68;
+    final cardHeight = 130.0;
 
     return RepaintBoundary(
       child: GestureDetector(
@@ -49,6 +50,7 @@ class SongCard extends StatelessWidget {
             scale: scale,
             child: SizedBox(
               width: cardWidth,
+              height: cardHeight,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppConstants.radiusLg),
                 child: Stack(
@@ -57,33 +59,35 @@ class SongCard extends StatelessWidget {
                     Positioned.fill(child: _buildAlbumWithGradient(artSize)),
 
                     // Text content with darkening overlay for readability
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(
-                          AppConstants.radiusLg,
-                        ),
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.75),
-                          ],
-                          stops: const [0.45, 1.0],
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(AppConstants.spacingMd),
-                      child: Row(
-                        children: [
-                          // Spacer to push text to the right
-                          SizedBox(width: artSize + AppConstants.spacingMd),
-                          Expanded(
-                            child: _buildSongInfo(
-                              context,
-                              isSelected: isSelected,
-                            ),
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusLg,
                           ),
-                        ],
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.85),
+                            ],
+                            stops: const [0.25, 0.70],
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(AppConstants.spacingMd),
+                        child: Row(
+                          children: [
+                            // Spacer to push text to the right
+                            SizedBox(width: artSize + AppConstants.spacingMd),
+                            Expanded(
+                              child: _buildSongInfo(
+                                context,
+                                isSelected: isSelected,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

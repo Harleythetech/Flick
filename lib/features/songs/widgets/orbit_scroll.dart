@@ -292,7 +292,7 @@ class _OrbitScrollState extends State<OrbitScroll>
   List<Widget> _buildSongItems(double centerX, double centerY, double radius) {
     final List<Widget> items = [];
 
-    final visibleRange = _isScrolling ? 4 : 2;
+    final visibleRange = AppConstants.orbitVisibleItems ~/ 2;
 
     final orderedIndices = List.generate(
       visibleRange * 2 + 1,
@@ -320,14 +320,22 @@ class _OrbitScrollState extends State<OrbitScroll>
         final distanceFromCenter = diff.abs();
 
         double scale;
-        if (distanceFromCenter < 0.5) {
-          scale = AppConstants.orbitSelectedScale;
-        } else if (distanceFromCenter < 1.5) {
-          scale = AppConstants.orbitAdjacentScale;
+        if (distanceFromCenter < 1.0) {
+          scale =
+              AppConstants.orbitSelectedScale -
+              (AppConstants.orbitSelectedScale -
+                      AppConstants.orbitAdjacentScale) *
+                  distanceFromCenter;
+        } else if (distanceFromCenter < 2.0) {
+          scale =
+              AppConstants.orbitAdjacentScale -
+              (AppConstants.orbitAdjacentScale -
+                      AppConstants.orbitDistantScale) *
+                  (distanceFromCenter - 1.0);
         } else {
           scale =
               AppConstants.orbitDistantScale -
-              (distanceFromCenter - 1.5) * 0.12;
+              (distanceFromCenter - 2.0) * 0.12;
         }
         scale = scale.clamp(0.0, 1.25);
 
@@ -388,7 +396,14 @@ class _OrbitScrollState extends State<OrbitScroll>
       return existing;
     }
 
-    final angle = relativeIndex * AppConstants.orbitItemSpacing;
+    // Split effect: push adjacent items away from the center highlighted item
+    double adjustedIndex = relativeIndex;
+    final double splitAmount =
+        0.55; // Determines how much the items split apart
+    adjustedIndex +=
+        relativeIndex.sign * splitAmount * math.min(relativeIndex.abs(), 1.0);
+
+    final angle = adjustedIndex * AppConstants.orbitItemSpacing;
     final x = centerX + radius * math.cos(angle);
     final y = centerY + radius * math.sin(angle);
 
