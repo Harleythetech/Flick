@@ -11,6 +11,7 @@ import 'package:flick/models/song.dart';
 import 'package:flick/data/repositories/song_repository.dart';
 import 'package:flick/services/music_folder_service.dart';
 import 'package:flick/services/player_service.dart';
+import 'package:flick/widgets/common/display_mode_wrapper.dart';
 
 /// Folders screen with directory browser.
 class FoldersScreen extends StatefulWidget {
@@ -79,22 +80,24 @@ class _FoldersScreenState extends State<FoldersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
-            Expanded(
-              child: _isLoading
-                  ? _buildLoadingState()
-                  : _folders.isEmpty
-                  ? _buildEmptyState()
-                  : _buildFoldersList(),
-            ),
-          ],
+    return DisplayModeWrapper(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
+              Expanded(
+                child: _isLoading
+                    ? _buildLoadingState()
+                    : _folders.isEmpty
+                    ? _buildEmptyState()
+                    : _buildFoldersList(),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -10,6 +10,7 @@ import 'package:flick/core/utils/navigation_helper.dart';
 import 'package:flick/models/song.dart';
 import 'package:flick/services/player_service.dart';
 import 'package:flick/services/favorites_service.dart';
+import 'package:flick/widgets/common/display_mode_wrapper.dart';
 
 /// Favorites screen showing liked songs with heart animations.
 class FavoritesScreen extends StatefulWidget {
@@ -75,22 +76,24 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
-            Expanded(
-              child: _isLoading
-                  ? _buildLoadingState()
-                  : _favorites.isEmpty
-                  ? _buildEmptyState()
-                  : _buildFavoritesList(),
-            ),
-          ],
+    return DisplayModeWrapper(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
+              Expanded(
+                child: _isLoading
+                    ? _buildLoadingState()
+                    : _favorites.isEmpty
+                    ? _buildEmptyState()
+                    : _buildFavoritesList(),
+              ),
+            ],
+          ),
         ),
       ),
     );

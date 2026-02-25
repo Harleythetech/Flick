@@ -10,6 +10,7 @@ import 'package:flick/core/utils/navigation_helper.dart';
 import 'package:flick/models/song.dart';
 import 'package:flick/data/repositories/song_repository.dart';
 import 'package:flick/services/player_service.dart';
+import 'package:flick/widgets/common/display_mode_wrapper.dart';
 
 /// Albums screen with masonry grid of album artwork.
 class AlbumsScreen extends StatefulWidget {
@@ -87,22 +88,24 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
-            Expanded(
-              child: _isLoading
-                  ? _buildLoadingState()
-                  : _albums.isEmpty
-                  ? _buildEmptyState()
-                  : _buildAlbumsGrid(),
-            ),
-          ],
+    return DisplayModeWrapper(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
+              Expanded(
+                child: _isLoading
+                    ? _buildLoadingState()
+                    : _albums.isEmpty
+                    ? _buildEmptyState()
+                    : _buildAlbumsGrid(),
+              ),
+            ],
+          ),
         ),
       ),
     );

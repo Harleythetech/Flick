@@ -11,6 +11,7 @@ import 'package:flick/services/permission_service.dart';
 import 'package:flick/data/repositories/song_repository.dart';
 import 'package:flick/widgets/common/glass_dialog.dart';
 import 'package:flick/widgets/common/glass_bottom_sheet.dart';
+import 'package:flick/widgets/common/display_mode_wrapper.dart';
 import 'package:flick/features/settings/screens/equalizer_screen.dart';
 
 /// Settings screen matching the design language.
@@ -603,142 +604,144 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          _buildHeader(context),
+    return DisplayModeWrapper(
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            _buildHeader(context),
 
-          const SizedBox(height: AppConstants.spacingMd),
+            const SizedBox(height: AppConstants.spacingMd),
 
-          // Settings sections
-          Expanded(
-            child: RepaintBoundary(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spacingMd,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Library section
-                    _buildSectionHeader(context, 'Library'),
-                    _buildLibraryCard(context),
+            // Settings sections
+            Expanded(
+              child: RepaintBoundary(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppConstants.spacingMd,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Library section
+                      _buildSectionHeader(context, 'Library'),
+                      _buildLibraryCard(context),
 
-                    const SizedBox(height: AppConstants.spacingLg),
+                      const SizedBox(height: AppConstants.spacingLg),
 
-                    // Playback section
-                    _buildSectionHeader(context, 'Playback'),
-                    _buildSettingsCard(
-                      context,
-                      children: [
-                        _buildToggleSetting(
-                          context,
-                          icon: LucideIcons.repeat,
-                          title: 'Gapless Playback',
-                          subtitle: 'Seamless transition between tracks',
-                          value: _gaplessPlayback,
-                          onChanged: (value) {
-                            setState(() => _gaplessPlayback = value);
-                          },
-                        ),
-                      ],
-                    ),
+                      // Playback section
+                      _buildSectionHeader(context, 'Playback'),
+                      _buildSettingsCard(
+                        context,
+                        children: [
+                          _buildToggleSetting(
+                            context,
+                            icon: LucideIcons.repeat,
+                            title: 'Gapless Playback',
+                            subtitle: 'Seamless transition between tracks',
+                            value: _gaplessPlayback,
+                            onChanged: (value) {
+                              setState(() => _gaplessPlayback = value);
+                            },
+                          ),
+                        ],
+                      ),
 
-                    const SizedBox(height: AppConstants.spacingLg),
+                      const SizedBox(height: AppConstants.spacingLg),
 
-                    // Display section
-                    _buildSectionHeader(context, 'Display'),
-                    _buildSettingsCard(
-                      context,
-                      children: [
-                        _buildToggleSetting(
-                          context,
-                          icon: LucideIcons.image,
-                          title: 'Show Album Art',
-                          subtitle: 'Display album artwork in player',
-                          value: _showAlbumArt,
-                          onChanged: (value) {
-                            setState(() => _showAlbumArt = value);
-                          },
-                        ),
-                        _buildDivider(),
-                        _buildNavigationSetting(
-                          context,
-                          icon: LucideIcons.palette,
-                          title: 'Theme',
-                          subtitle: 'Dark',
-                          onTap: _showThemeBottomSheet,
-                        ),
-                      ],
-                    ),
+                      // Display section
+                      _buildSectionHeader(context, 'Display'),
+                      _buildSettingsCard(
+                        context,
+                        children: [
+                          _buildToggleSetting(
+                            context,
+                            icon: LucideIcons.image,
+                            title: 'Show Album Art',
+                            subtitle: 'Display album artwork in player',
+                            value: _showAlbumArt,
+                            onChanged: (value) {
+                              setState(() => _showAlbumArt = value);
+                            },
+                          ),
+                          _buildDivider(),
+                          _buildNavigationSetting(
+                            context,
+                            icon: LucideIcons.palette,
+                            title: 'Theme',
+                            subtitle: 'Dark',
+                            onTap: _showThemeBottomSheet,
+                          ),
+                        ],
+                      ),
 
-                    const SizedBox(height: AppConstants.spacingLg),
+                      const SizedBox(height: AppConstants.spacingLg),
 
-                    // Audio section
-                    _buildSectionHeader(context, 'Audio'),
-                    _buildSettingsCard(
-                      context,
-                      children: [
-                        _buildNavigationSetting(
-                          context,
-                          icon: LucideIcons.slidersHorizontal,
-                          title: 'Equalizer',
-                          subtitle: 'Adjust audio frequencies',
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const EqualizerScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildDivider(),
-                        _buildNavigationSetting(
-                          context,
-                          icon: LucideIcons.volume2,
-                          title: 'Audio Output',
-                          subtitle: 'System default',
-                          onTap: _showAudioOutputBottomSheet,
-                        ),
-                      ],
-                    ),
+                      // Audio section
+                      _buildSectionHeader(context, 'Audio'),
+                      _buildSettingsCard(
+                        context,
+                        children: [
+                          _buildNavigationSetting(
+                            context,
+                            icon: LucideIcons.slidersHorizontal,
+                            title: 'Equalizer',
+                            subtitle: 'Adjust audio frequencies',
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const EqualizerScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDivider(),
+                          _buildNavigationSetting(
+                            context,
+                            icon: LucideIcons.volume2,
+                            title: 'Audio Output',
+                            subtitle: 'System default',
+                            onTap: _showAudioOutputBottomSheet,
+                          ),
+                        ],
+                      ),
 
-                    const SizedBox(height: AppConstants.spacingLg),
+                      const SizedBox(height: AppConstants.spacingLg),
 
-                    // About section
-                    _buildSectionHeader(context, 'About'),
-                    _buildSettingsCard(
-                      context,
-                      children: [
-                        _buildNavigationSetting(
-                          context,
-                          icon: LucideIcons.info,
-                          title: 'About Flick Player',
-                          subtitle: 'Version 1.0.0',
-                          onTap: _showAboutBottomSheet,
-                        ),
-                        _buildDivider(),
-                        _buildNavigationSetting(
-                          context,
-                          icon: LucideIcons.fileText,
-                          title: 'Licenses',
-                          subtitle: 'Open source licenses',
-                          onTap: () {},
-                        ),
-                      ],
-                    ),
+                      // About section
+                      _buildSectionHeader(context, 'About'),
+                      _buildSettingsCard(
+                        context,
+                        children: [
+                          _buildNavigationSetting(
+                            context,
+                            icon: LucideIcons.info,
+                            title: 'About Flick Player',
+                            subtitle: 'Version 1.0.0',
+                            onTap: _showAboutBottomSheet,
+                          ),
+                          _buildDivider(),
+                          _buildNavigationSetting(
+                            context,
+                            icon: LucideIcons.fileText,
+                            title: 'Licenses',
+                            subtitle: 'Open source licenses',
+                            onTap: () {},
+                          ),
+                        ],
+                      ),
 
-                    // Spacing for nav bar with mini player
-                    const SizedBox(height: AppConstants.navBarHeight + 120),
-                  ],
+                      // Spacing for nav bar with mini player
+                      const SizedBox(height: AppConstants.navBarHeight + 120),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
