@@ -13,7 +13,6 @@ import 'package:flick/features/player/widgets/waveform_seek_bar.dart';
 import 'package:flick/features/player/widgets/ambient_background.dart';
 import 'package:flick/features/player/widgets/compact_player_info_layout.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:flick/widgets/navigation/flick_nav_bar.dart';
 import 'package:flick/widgets/common/cached_image_widget.dart';
 import 'package:flick/widgets/common/display_mode_wrapper.dart';
 
@@ -1003,24 +1002,51 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                               ],
                             ),
                           ),
-                          SizedBox(height: context.responsive(40.0, 80.0)),
+                          SizedBox(height: context.responsive(16.0, 32.0)),
+                          // Bottom Directory Info
+                          if (song.filePath != null)
+                            Builder(
+                              builder: (context) {
+                                String dirText = '';
+                                final filePath = song.filePath!;
+                                final parts = filePath.split(RegExp(r'[/\\]'));
+                                if (parts.length > 1) {
+                                  parts.removeLast(); // remove the file name
+                                  final startIndex = parts.length > 2
+                                      ? parts.length - 2
+                                      : 0;
+                                  final folders = parts.sublist(startIndex);
+                                  dirText = folders.join('/');
+                                }
+                                if (dirText.isEmpty)
+                                  return const SizedBox.shrink();
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      LucideIcons.folder,
+                                      size: 14,
+                                      color: AppColors.textTertiary,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        dirText,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontFamily: 'ProductSans',
+                                          fontSize: 12,
+                                          color: AppColors.textTertiary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          SizedBox(height: context.responsive(16.0, 24.0)),
                         ],
-                      ),
-                    ),
-
-                    // Navigation Bar (without mini player)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: FlickNavBar(
-                        currentIndex:
-                            1, // Songs is always selected when in player
-                        onTap: (index) {
-                          // Pop the full player and pass the index to navigate to
-                          Navigator.of(context).pop(index);
-                        },
-                        showMiniPlayer: false,
                       ),
                     ),
                   ],
