@@ -26,8 +26,6 @@ class WaveformSeekBar extends StatefulWidget {
 class _WaveformSeekBarState extends State<WaveformSeekBar> {
   // Cache the waveform data so it doesn't jitter on rebuilds
   late List<double> _waveformData;
-  Duration? _dragStartDuration;
-  double? _dragStartX;
 
   @override
   void initState() {
@@ -54,32 +52,20 @@ class _WaveformSeekBarState extends State<WaveformSeekBar> {
   }
 
   void _onDragStart(DragStartDetails details) {
-    _dragStartDuration = widget.position;
-    _dragStartX = details.localPosition.dx;
+    // Optional: add visual feedback when dragging starts
   }
 
   void _onDragUpdate(DragUpdateDetails details, BoxConstraints constraints) {
-    if (_dragStartDuration == null || _dragStartX == null) return;
-
     final width = constraints.maxWidth;
-    final deltaX = details.localPosition.dx - _dragStartX!;
-    final progressDelta = deltaX / width;
-
-    // Inversed dragging for scrolling effect
-    final newMs =
-        _dragStartDuration!.inMilliseconds -
-        (progressDelta * widget.duration.inMilliseconds);
-
-    final clampedMs = newMs.clamp(0, widget.duration.inMilliseconds).round();
-    widget.onChanged(Duration(milliseconds: clampedMs));
+    final progress = (details.localPosition.dx / width).clamp(0.0, 1.0);
+    final ms = (progress * widget.duration.inMilliseconds).round();
+    widget.onChanged(Duration(milliseconds: ms));
   }
 
   void _onDragEnd(DragEndDetails details) {
     if (widget.onChangeEnd != null) {
       widget.onChangeEnd!(widget.position);
     }
-    _dragStartDuration = null;
-    _dragStartX = null;
   }
 
   void _onTapUp(TapUpDetails details, BoxConstraints constraints) {
@@ -103,7 +89,7 @@ class _WaveformSeekBarState extends State<WaveformSeekBar> {
           onTapUp: (details) => _onTapUp(details, constraints),
           behavior: HitTestBehavior.opaque,
           child: SizedBox(
-            height: 120, // Increased height
+            height: 60, // Decreased height for better UI and screen framing
             width: double.infinity,
             child: CustomPaint(
               painter: _WaveformPainter(
@@ -198,24 +184,26 @@ class _WaveformPainter extends CustomPainter {
     if (oldDelegate.duration != duration) {
       return true;
     }
-    
+
     // For position changes, only repaint if the visual progress (which bar is highlighted) changed
     // Calculate which bar index corresponds to the current progress
     if (duration.inMilliseconds == 0) {
       return false;
     }
-    
-    final oldProgress = oldDelegate.position.inMilliseconds / oldDelegate.duration.inMilliseconds;
+
+    final oldProgress =
+        oldDelegate.position.inMilliseconds /
+        oldDelegate.duration.inMilliseconds;
     final newProgress = position.inMilliseconds / duration.inMilliseconds;
-    
+
     // Calculate bar indices (0 to barCount-1)
     final barCount = waveformData.length;
     final oldBarIndex = (oldProgress * barCount).floor();
     final newBarIndex = (newProgress * barCount).floor();
-    
+
     // Only repaint if we've crossed a bar boundary or if the difference is significant
     // This reduces repaints from ~60fps to ~10fps for a typical song
-    return oldBarIndex != newBarIndex || 
-           (oldProgress - newProgress).abs() > (1.0 / barCount);
+    return oldBarIndex != newBarIndex ||
+        (oldProgress - newProgress).abs() > (1.0 / barCount);
   }
 }
