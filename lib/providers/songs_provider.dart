@@ -11,7 +11,7 @@ final songRepositoryProvider = Provider<SongRepository>((ref) {
 });
 
 /// Sort options for the song list.
-enum SongSortOption { title, artist, dateAdded }
+enum SongSortOption { title, artist, dateAdded, fileType }
 
 /// State for the songs list with sorting.
 class SongsState {
@@ -42,8 +42,10 @@ class SongsState {
         sorted.sort((a, b) {
           final dateA = a.dateAdded ?? DateTime.fromMillisecondsSinceEpoch(0);
           final dateB = b.dateAdded ?? DateTime.fromMillisecondsSinceEpoch(0);
-          return dateB.compareTo(dateA); // Newest first
+          return dateB.compareTo(dateA);
         });
+      case SongSortOption.fileType:
+        sorted.sort((a, b) => a.fileType.compareTo(b.fileType));
     }
     return sorted;
   }

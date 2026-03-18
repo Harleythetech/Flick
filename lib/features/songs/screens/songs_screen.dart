@@ -401,6 +401,23 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
                         ],
                       ),
                     ),
+                    PopupMenuItem<SongSortOption>(
+                      value: SongSortOption.fileType,
+                      child: Row(
+                        children: [
+                          if (currentSort == SongSortOption.fileType)
+                            const Icon(Icons.check, size: 18),
+                          if (currentSort == SongSortOption.fileType)
+                            const SizedBox(width: 8),
+                          Text(
+                            'Sort by Format',
+                            style: TextStyle(
+                              color: context.adaptiveTextPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
             ),
           ),
