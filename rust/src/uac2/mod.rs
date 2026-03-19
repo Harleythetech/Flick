@@ -28,6 +28,12 @@ mod registry;
 mod stream_config;
 #[cfg(feature = "uac2")]
 mod stream_setup;
+#[cfg(feature = "uac2")]
+mod transfer;
+#[cfg(feature = "uac2")]
+mod transfer_buffer;
+#[cfg(feature = "uac2")]
+mod transfer_manager;
 
 #[cfg(feature = "uac2")]
 pub use audio_format::{
@@ -73,3 +79,12 @@ pub use registry::{DeviceKey, DeviceRegistry};
 pub use stream_config::{FormatSelector, StreamConfig, StreamConfigBuilder};
 #[cfg(feature = "uac2")]
 pub use stream_setup::{StreamActivator, StreamSetup, StreamSetupBuilder};
+#[cfg(feature = "uac2")]
+pub use transfer::{
+    IsochronousTransfer, TransferContext, TransferError, TransferStats, TransferStatus,
+    TransferSynchronizer,
+};
+#[cfg(feature = "uac2")]
+pub use transfer_buffer::{BufferManager, BufferPool, TransferBuffer};
+#[cfg(feature = "uac2")]
+pub use transfer_manager::{TransferManager, TransferRecovery};

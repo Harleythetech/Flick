@@ -48,6 +48,18 @@ pub enum Uac2Error {
     /// Invalid endpoint configuration
     #[error("Invalid endpoint: {0}")]
     InvalidEndpoint(String),
+
+    /// Buffer overflow
+    #[error("Buffer overflow")]
+    BufferOverflow,
+
+    /// Buffer underflow
+    #[error("Buffer underflow")]
+    BufferUnderflow,
+
+    /// Transfer failed
+    #[error("Transfer failed: {0}")]
+    TransferFailed(String),
 }
 
 impl Uac2Error {
@@ -65,6 +77,9 @@ impl Uac2Error {
             Uac2Error::InvalidConfiguration(msg) => format!("Invalid configuration: {}", msg),
             Uac2Error::EndpointNotFound => "Audio endpoint not found".to_string(),
             Uac2Error::InvalidEndpoint(msg) => format!("Invalid endpoint: {}", msg),
+            Uac2Error::BufferOverflow => "Buffer overflow".to_string(),
+            Uac2Error::BufferUnderflow => "Buffer underflow".to_string(),
+            Uac2Error::TransferFailed(msg) => format!("Transfer failed: {}", msg),
         }
     }
 }
