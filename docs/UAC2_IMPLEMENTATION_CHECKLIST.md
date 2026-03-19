@@ -166,20 +166,20 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 
 ### 5.3 Audio Data Pipeline
 
-- [ ] Create `AudioPipeline` struct (Single Responsibility)
-- [ ] Implement format conversion (if needed, with minimal processing)
-- [ ] Implement sample rate conversion (only if necessary)
-- [ ] Implement bit depth conversion (only if necessary)
-- [ ] Ensure no DSP processing (bit-perfect requirement)
-- [ ] Implement direct passthrough mode for native formats
+- [X] Create `AudioPipeline` struct (Single Responsibility)
+- [X] Implement format conversion (if needed, with minimal processing)
+- [X] Implement sample rate conversion (only if necessary)
+- [X] Implement bit depth conversion (only if necessary)
+- [X] Ensure no DSP processing (bit-perfect requirement)
+- [X] Implement direct passthrough mode for native formats
 
 ### 5.4 Buffer Management
 
-- [ ] Design ring buffer for audio data
-- [ ] Implement lock-free buffer operations (if possible)
-- [ ] Add buffer underrun/overrun detection
-- [ ] Implement adaptive buffering based on device latency
-- [ ] Create `AudioBuffer` trait for abstraction (Dependency Inversion)
+- [X] Design ring buffer for audio data
+- [X] Implement lock-free buffer operations (if possible)
+- [X] Add buffer underrun/overrun detection
+- [X] Implement adaptive buffering based on device latency
+- [X] Create `AudioBuffer` trait for abstraction (Dependency Inversion)
 
 ---
 

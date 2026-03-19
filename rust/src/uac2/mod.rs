@@ -3,6 +3,8 @@
 #[cfg(feature = "uac2")]
 mod audio_format;
 #[cfg(feature = "uac2")]
+mod audio_pipeline;
+#[cfg(feature = "uac2")]
 mod capabilities;
 #[cfg(feature = "uac2")]
 pub mod constants;
@@ -25,6 +27,8 @@ mod error;
 #[cfg(feature = "uac2")]
 mod registry;
 #[cfg(feature = "uac2")]
+mod ring_buffer;
+#[cfg(feature = "uac2")]
 mod stream_config;
 #[cfg(feature = "uac2")]
 mod stream_setup;
@@ -38,6 +42,10 @@ mod transfer_manager;
 #[cfg(feature = "uac2")]
 pub use audio_format::{
     AudioFormat, BitDepth, ChannelConfig, FormatNegotiator, FormatType, SampleRate,
+};
+#[cfg(feature = "uac2")]
+pub use audio_pipeline::{
+    AudioPipeline, BitDepthConverter, FormatConverter, PassthroughConverter, SampleRateConverter,
 };
 #[cfg(feature = "uac2")]
 pub use capabilities::{
@@ -75,6 +83,8 @@ pub use endpoint::{EndpointDescriptor, EndpointManager, EndpointSelector};
 pub use error::Uac2Error;
 #[cfg(feature = "uac2")]
 pub use registry::{DeviceKey, DeviceRegistry};
+#[cfg(feature = "uac2")]
+pub use ring_buffer::{AdaptiveBuffer, AudioBuffer, LockFreeRingBuffer, RingBuffer};
 #[cfg(feature = "uac2")]
 pub use stream_config::{FormatSelector, StreamConfig, StreamConfigBuilder};
 #[cfg(feature = "uac2")]
