@@ -8,6 +8,7 @@
 // SHARED TYPES (available on all platforms, with or without `uac2` feature)
 // ============================================================================
 
+#[cfg(feature = "uac2")]
 use crate::uac2;
 
 /// Information about a detected UAC 2.0 device (DAC/AMP).

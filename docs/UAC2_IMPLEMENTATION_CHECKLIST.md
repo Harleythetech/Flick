@@ -30,10 +30,7 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 
 ### 1.3 Platform-Specific Setup
 
-- [ ] Configure Linux USB permissions (udev rules)
-- [ ] Configure Windows USB driver requirements
-- [ ] Configure macOS USB permissions (if needed)
-- [X] Add Android USB Host API integration (if targeting Android)
+- [X] Add Android USB Host API integration
 - [X] Document platform-specific setup in README
 
 ---
@@ -96,22 +93,22 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 
 ### 3.3 UAC 2.0 Control Requests
 
-- [ ] Implement GET_CUR/GET_MIN/GET_MAX/GET_RES requests
-- [ ] Implement SET_CUR requests for volume control
-- [ ] Implement SET_MUTE control
-- [ ] Implement SET_SAMPLING_FREQ control
-- [ ] Implement GET_SAMPLING_FREQ control
-- [ ] Create `ControlRequest` enum for type safety
-- [ ] Implement request builder pattern (DRY principle)
+- [X] Implement GET_CUR/GET_MIN/GET_MAX/GET_RES requests
+- [X] Implement SET_CUR requests for volume control
+- [X] Implement SET_MUTE control
+- [X] Implement SET_SAMPLING_FREQ control
+- [X] Implement GET_SAMPLING_FREQ control
+- [X] Create `ControlRequest` enum for type safety
+- [X] Implement request builder pattern (DRY principle)
 
 ### 3.4 Audio Format Support
 
-- [ ] Parse supported sample rates from descriptors
-- [ ] Parse supported bit depths (16, 24, 32-bit)
-- [ ] Parse supported channel configurations (mono, stereo, multi-channel)
-- [ ] Parse supported format types (PCM, DSD, etc.)
-- [ ] Create `AudioFormat` struct with validation
-- [ ] Implement format negotiation logic
+- [X] Parse supported sample rates from descriptors
+- [X] Parse supported bit depths (16, 24, 32-bit)
+- [X] Parse supported channel configurations (mono, stereo, multi-channel)
+- [X] Parse supported format types (PCM, DSD, etc.)
+- [X] Create `AudioFormat` struct with validation
+- [X] Implement format negotiation logic
 
 ---
 
@@ -119,28 +116,28 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 
 ### 4.1 Device Capability Detection
 
-- [ ] Detect DAC capabilities (supported formats, sample rates)
-- [ ] Detect AMP capabilities (power output, impedance)
-- [ ] Read device-specific feature units
-- [ ] Parse device-specific extension units (if present)
-- [ ] Extract device-specific control capabilities
+- [X] Detect DAC capabilities (supported formats, sample rates)
+- [X] Detect AMP capabilities (power output, impedance)
+- [X] Read device-specific feature units
+- [X] Parse device-specific extension units (if present)
+- [X] Extract device-specific control capabilities
 
 ### 4.2 Device Information Extraction
 
-- [ ] Read device manufacturer string descriptor
-- [ ] Read device product string descriptor
-- [ ] Read device serial number string descriptor
-- [ ] Extract device-specific capabilities from descriptors
-- [ ] Parse device-specific control ranges (volume, gain, etc.)
-- [ ] Create `DeviceCapabilities` struct
+- [X] Read device manufacturer string descriptor
+- [X] Read device product string descriptor
+- [X] Read device serial number string descriptor
+- [X] Extract device-specific capabilities from descriptors
+- [X] Parse device-specific control ranges (volume, gain, etc.)
+- [X] Create `DeviceCapabilities` struct
 
 ### 4.3 Device Classification
 
-- [ ] Implement device type detection (DAC-only, AMP-only, DAC/AMP combo)
-- [ ] Classify device by supported formats
-- [ ] Classify device by power capabilities
-- [ ] Create `DeviceType` enum for classification
-- [ ] Implement device matching logic for optimal format selection
+- [X] Implement device type detection (DAC-only, AMP-only, DAC/AMP combo)
+- [X] Classify device by supported formats
+- [X] Classify device by power capabilities
+- [X] Create `DeviceType` enum for classification
+- [X] Implement device matching logic for optimal format selection
 
 ---
 
@@ -148,38 +145,38 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 
 ### 5.1 Audio Stream Setup
 
-- [ ] Select optimal audio format (highest quality supported)
-- [ ] Configure sample rate (match source or device max)
-- [ ] Configure bit depth (match source or device max)
-- [ ] Configure channel layout
-- [ ] Set up isochronous transfer endpoints
-- [ ] Calculate packet size and interval
+- [X] Select optimal audio format (highest quality supported)
+- [X] Configure sample rate (match source or device max)
+- [X] Configure bit depth (match source or device max)
+- [X] Configure channel layout
+- [X] Set up isochronous transfer endpoints
+- [X] Calculate packet size and interval
 
 ### 5.2 Isochronous Transfer Management
 
-- [ ] Implement isochronous OUT endpoint setup
-- [ ] Create transfer buffer management system
-- [ ] Implement zero-copy buffer strategy where possible
-- [ ] Handle transfer completion callbacks
-- [ ] Implement transfer error recovery
-- [ ] Add transfer timing synchronization
+- [X] Implement isochronous OUT endpoint setup
+- [X] Create transfer buffer management system
+- [X] Implement zero-copy buffer strategy where possible
+- [X] Handle transfer completion callbacks
+- [X] Implement transfer error recovery
+- [X] Add transfer timing synchronization
 
 ### 5.3 Audio Data Pipeline
 
-- [ ] Create `AudioPipeline` struct (Single Responsibility)
-- [ ] Implement format conversion (if needed, with minimal processing)
-- [ ] Implement sample rate conversion (only if necessary)
-- [ ] Implement bit depth conversion (only if necessary)
-- [ ] Ensure no DSP processing (bit-perfect requirement)
-- [ ] Implement direct passthrough mode for native formats
+- [X] Create `AudioPipeline` struct (Single Responsibility)
+- [X] Implement format conversion (if needed, with minimal processing)
+- [X] Implement sample rate conversion (only if necessary)
+- [X] Implement bit depth conversion (only if necessary)
+- [X] Ensure no DSP processing (bit-perfect requirement)
+- [X] Implement direct passthrough mode for native formats
 
 ### 5.4 Buffer Management
 
-- [ ] Design ring buffer for audio data
-- [ ] Implement lock-free buffer operations (if possible)
-- [ ] Add buffer underrun/overrun detection
-- [ ] Implement adaptive buffering based on device latency
-- [ ] Create `AudioBuffer` trait for abstraction (Dependency Inversion)
+- [X] Design ring buffer for audio data
+- [X] Implement lock-free buffer operations (if possible)
+- [X] Add buffer underrun/overrun detection
+- [X] Implement adaptive buffering based on device latency
+- [X] Create `AudioBuffer` trait for abstraction (Dependency Inversion)
 
 ---
 
@@ -311,30 +308,7 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 
 ## Phase 10: Platform-Specific Considerations
 
-### 10.1 Linux
-
-- [ ] Test with libusb backend
-- [ ] Handle udev rules for device access
-- [ ] Test with different USB controllers (USB 2.0, USB 3.0)
-- [ ] Handle USB device permissions
-- [ ] Test with ALSA/PulseAudio coexistence
-
-### 10.2 Windows
-
-- [ ] Test with WinUSB backend
-- [ ] Handle driver installation requirements
-- [ ] Test with different USB controllers
-- [ ] Handle Windows audio session management
-- [ ] Test exclusive mode audio
-
-### 10.3 macOS
-
-- [ ] Test with IOKit backend (if using native)
-- [ ] Handle macOS USB permissions
-- [ ] Test with Core Audio coexistence
-- [ ] Handle macOS audio session management
-
-### 10.4 Android (if applicable)
+### 10.1 Android
 
 - [ ] Integrate Android USB Host API
 - [ ] Handle USB device permissions on Android
