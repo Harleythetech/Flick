@@ -96,22 +96,22 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 
 ### 3.3 UAC 2.0 Control Requests
 
-- [ ] Implement GET_CUR/GET_MIN/GET_MAX/GET_RES requests
-- [ ] Implement SET_CUR requests for volume control
-- [ ] Implement SET_MUTE control
-- [ ] Implement SET_SAMPLING_FREQ control
-- [ ] Implement GET_SAMPLING_FREQ control
-- [ ] Create `ControlRequest` enum for type safety
-- [ ] Implement request builder pattern (DRY principle)
+- [X] Implement GET_CUR/GET_MIN/GET_MAX/GET_RES requests
+- [X] Implement SET_CUR requests for volume control
+- [X] Implement SET_MUTE control
+- [X] Implement SET_SAMPLING_FREQ control
+- [X] Implement GET_SAMPLING_FREQ control
+- [X] Create `ControlRequest` enum for type safety
+- [X] Implement request builder pattern (DRY principle)
 
 ### 3.4 Audio Format Support
 
-- [ ] Parse supported sample rates from descriptors
-- [ ] Parse supported bit depths (16, 24, 32-bit)
-- [ ] Parse supported channel configurations (mono, stereo, multi-channel)
-- [ ] Parse supported format types (PCM, DSD, etc.)
-- [ ] Create `AudioFormat` struct with validation
-- [ ] Implement format negotiation logic
+- [X] Parse supported sample rates from descriptors
+- [X] Parse supported bit depths (16, 24, 32-bit)
+- [X] Parse supported channel configurations (mono, stereo, multi-channel)
+- [X] Parse supported format types (PCM, DSD, etc.)
+- [X] Create `AudioFormat` struct with validation
+- [X] Implement format negotiation logic
 
 ---
 

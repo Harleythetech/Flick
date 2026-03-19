@@ -1,6 +1,8 @@
 //! Custom USB Audio Class 2.0 (UAC 2.0) support for DAC/AMP detection and bit-perfect playback.
 
 #[cfg(feature = "uac2")]
+mod audio_format;
+#[cfg(feature = "uac2")]
 mod control_requests;
 #[cfg(feature = "uac2")]
 mod descriptors;
@@ -34,6 +36,10 @@ pub use device::{
 };
 #[cfg(feature = "uac2")]
 pub use device_enumeration::enumerate_uac2_devices;
+#[cfg(feature = "uac2")]
+pub use audio_format::{
+    AudioFormat, BitDepth, ChannelConfig, FormatNegotiator, FormatType, SampleRate,
+};
 #[cfg(feature = "uac2")]
 pub use error::Uac2Error;
 #[cfg(feature = "uac2")]
