@@ -8,6 +8,7 @@ use crate::uac2::device_info_extractor::DeviceInfoExtractor;
 use crate::uac2::error::Uac2Error;
 use rusb::{Device, DeviceHandle, UsbContext};
 use std::collections::HashSet;
+use tracing::{debug, info};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceType {
@@ -79,19 +80,34 @@ impl CapabilityDetector {
         device: &Device<T>,
         handle: &DeviceHandle<T>,
     ) -> Result<DeviceCapabilities, Uac2Error> {
+        info!("Detecting device capabilities");
         let mut capabilities = DeviceCapabilities::default();
 
         let device_desc = device.device_descriptor()?;
         capabilities.power = DeviceInfoExtractor::extract_power_info(&device_desc);
+        debug!(
+            max_power_ma = capabilities.power.max_power_ma,
+            self_powered = capabilities.power.self_powered,
+            "Power capabilities detected"
+        );
 
         let config_desc = device.active_config_descriptor()?;
         let descriptors = Self::parse_all_descriptors(device, handle, &config_desc)?;
+        debug!(descriptor_count = descriptors.len(), "Descriptors parsed");
 
         Self::extract_terminals(&descriptors, &mut capabilities);
         Self::extract_feature_units(&descriptors, &mut capabilities);
         Self::extract_formats(&descriptors, &mut capabilities)?;
         
         capabilities.device_type = DeviceClassifier::classify(&capabilities);
+
+        info!(
+            device_type = ?capabilities.device_type,
+            format_count = capabilities.supported_formats.len(),
+            max_sample_rate = ?capabilities.max_sample_rate,
+            max_bit_depth = ?capabilities.max_bit_depth,
+            "Device capabilities detected"
+        );
 
         Ok(capabilities)
     }
@@ -118,6 +134,12 @@ impl CapabilityDetector {
                 _ => {}
             }
         }
+
+        debug!(
+            input_terminals = capabilities.input_terminals.len(),
+            output_terminals = capabilities.output_terminals.len(),
+            "Terminals extracted"
+        );
     }
 
     fn extract_feature_units(descriptors: &[DescriptorKind], capabilities: &mut DeviceCapabilities) {
@@ -128,6 +150,13 @@ impl CapabilityDetector {
         }
         
         capabilities.controls = DeviceInfoExtractor::extract_control_capabilities(&capabilities.feature_units);
+
+        debug!(
+            feature_units = capabilities.feature_units.len(),
+            has_volume = capabilities.controls.has_volume,
+            has_mute = capabilities.controls.has_mute,
+            "Feature units extracted"
+        );
     }
 
     fn extract_formats(
@@ -203,6 +232,13 @@ impl FormatMatcher {
         preferred_rate: Option<SampleRate>,
         preferred_depth: Option<BitDepth>,
     ) -> Option<&'a AudioFormat> {
+        debug!(
+            format_count = formats.len(),
+            preferred_rate = ?preferred_rate,
+            preferred_depth = ?preferred_depth,
+            "Finding optimal format"
+        );
+
         if formats.is_empty() {
             return None;
         }
@@ -231,9 +267,20 @@ impl FormatMatcher {
             }
         }
 
-        candidates
+        let result = candidates
             .into_iter()
-            .max_by_key(|f| Self::rank_format(f))
+            .max_by_key(|f| Self::rank_format(f));
+
+        if let Some(format) = result {
+            info!(
+                sample_rate = format.sample_rates.first().map(|r| r.hz()),
+                bit_depth = format.bit_depth.bits(),
+                channels = format.channels.count(),
+                "Optimal format selected"
+            );
+        }
+
+        result
     }
 
     fn rank_format(format: &AudioFormat) -> u64 {

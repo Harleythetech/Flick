@@ -37,6 +37,8 @@ mod error_recovery;
 #[cfg(feature = "uac2")]
 mod fallback_handler;
 #[cfg(feature = "uac2")]
+mod logging;
+#[cfg(feature = "uac2")]
 mod registry;
 #[cfg(feature = "uac2")]
 mod ring_buffer;
@@ -105,6 +107,8 @@ pub use error::Uac2Error;
 pub use error_recovery::{ErrorRecovery, Recoverable, RecoveryStrategy, ReconnectionManager};
 #[cfg(feature = "uac2")]
 pub use fallback_handler::{FallbackAudioOutput, FallbackHandler};
+#[cfg(feature = "uac2")]
+pub use logging::{init_logging, LogConfig, LogContext, LogLevel};
 #[cfg(feature = "uac2")]
 pub use registry::{DeviceKey, DeviceRegistry};
 #[cfg(feature = "uac2")]

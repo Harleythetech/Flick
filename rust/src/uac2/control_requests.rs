@@ -3,6 +3,7 @@
 
 use crate::uac2::error::Uac2Error;
 use rusb::{DeviceHandle, UsbContext};
+use tracing::{debug, info, trace};
 
 const USB_DIR_IN: u8 = 0x80;
 const USB_DIR_OUT: u8 = 0x00;
@@ -157,6 +158,16 @@ impl ControlRequest {
         let w_value = self.selector.code() | (self.channel & 0xFF);
         let w_index = (self.interface as u16) | ((self.entity_id as u16) << 8);
 
+        trace!(
+            request_type = ?self.request_type,
+            selector = ?self.selector,
+            recipient = ?self.recipient,
+            interface = self.interface,
+            entity_id = self.entity_id,
+            channel = self.channel,
+            "Executing control request"
+        );
+
         let data = if self.request_type.direction() == USB_DIR_IN {
             let mut buf = vec![0u8; self.data.len()];
             let transferred = handle.read_control(
@@ -168,6 +179,10 @@ impl ControlRequest {
                 std::time::Duration::from_secs(1),
             )?;
             buf.truncate(transferred);
+            debug!(
+                bytes_read = transferred,
+                "Control request read completed"
+            );
             buf
         } else {
             handle.write_control(
@@ -178,6 +193,10 @@ impl ControlRequest {
                 &self.data,
                 std::time::Duration::from_secs(1),
             )?;
+            debug!(
+                bytes_written = self.data.len(),
+                "Control request write completed"
+            );
             self.data.clone()
         };
 
@@ -350,6 +369,12 @@ impl VolumeControl {
     }
 
     pub fn set_volume(&self, volume: i32) -> Result<(), Uac2Error> {
+        info!(
+            volume = volume,
+            channel = self.channel,
+            "Setting volume"
+        );
+
         let request = ControlRequest::builder()
             .request_type(ControlRequestType::SetCur)
             .selector(ControlSelector::Volume)
@@ -364,6 +389,11 @@ impl VolumeControl {
     }
 
     pub fn get_volume_range(&self) -> Result<(i32, i32, i32), Uac2Error> {
+        debug!(
+            channel = self.channel,
+            "Getting volume range"
+        );
+
         let min_request = ControlRequest::builder()
             .request_type(ControlRequestType::GetMin)
             .selector(ControlSelector::Volume)
@@ -395,6 +425,13 @@ impl VolumeControl {
         let min = i32::from_le_bytes([min_data[0], min_data[1], min_data[2], min_data[3]]);
         let max = i32::from_le_bytes([max_data[0], max_data[1], max_data[2], max_data[3]]);
         let res = i32::from_le_bytes([res_data[0], res_data[1], res_data[2], res_data[3]]);
+
+        info!(
+            min = min,
+            max = max,
+            resolution = res,
+            "Volume range retrieved"
+        );
 
         Ok((min, max, res))
     }
@@ -436,6 +473,12 @@ impl MuteControl {
     }
 
     pub fn set_mute(&self, mute: bool) -> Result<(), Uac2Error> {
+        info!(
+            mute = mute,
+            channel = self.channel,
+            "Setting mute"
+        );
+
         let request = ControlRequest::builder()
             .request_type(ControlRequestType::SetCur)
             .selector(ControlSelector::Mute)
@@ -479,6 +522,12 @@ impl SamplingFreqControl {
     }
 
     pub fn set_sampling_freq(&self, frequency: u32) -> Result<(), Uac2Error> {
+        info!(
+            frequency = frequency,
+            endpoint = format!("{:#04x}", self.endpoint),
+            "Setting sampling frequency"
+        );
+
         let request = ControlRequest::builder()
             .request_type(ControlRequestType::SetCur)
             .selector(ControlSelector::SamplingFreq)

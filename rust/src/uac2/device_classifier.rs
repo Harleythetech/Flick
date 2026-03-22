@@ -2,6 +2,7 @@ use crate::uac2::audio_format::{AudioFormat, BitDepth, FormatType, SampleRate};
 use crate::uac2::capabilities::{DeviceCapabilities, DeviceType};
 use crate::uac2::constants::*;
 use crate::uac2::descriptors::{InputTerminal, OutputTerminal};
+use tracing::{debug, info};
 
 pub struct DeviceClassifier;
 
@@ -10,12 +11,21 @@ impl DeviceClassifier {
         let has_dac = Self::has_dac_capability(&capabilities.input_terminals);
         let has_amp = Self::has_amp_capability(&capabilities.output_terminals);
 
-        match (has_dac, has_amp) {
+        let device_type = match (has_dac, has_amp) {
             (true, true) => DeviceType::DacAmpCombo,
             (true, false) => DeviceType::DacOnly,
             (false, true) => DeviceType::AmpOnly,
             (false, false) => DeviceType::Unknown,
-        }
+        };
+
+        info!(
+            device_type = ?device_type,
+            has_dac = has_dac,
+            has_amp = has_amp,
+            "Device classified"
+        );
+
+        device_type
     }
 
     fn has_dac_capability(input_terminals: &[InputTerminal]) -> bool {
@@ -33,6 +43,7 @@ impl DeviceClassifier {
 
     pub fn classify_by_format(formats: &[AudioFormat]) -> FormatClass {
         if formats.is_empty() {
+            debug!("No formats available for classification");
             return FormatClass::Unknown;
         }
 
@@ -44,21 +55,39 @@ impl DeviceClassifier {
             .iter()
             .any(|f| f.format_type == FormatType::Dsd);
 
-        if has_dsd {
+        let format_class = if has_dsd {
             FormatClass::Dsd
         } else if has_hi_res {
             FormatClass::HiRes
         } else {
             FormatClass::Standard
-        }
+        };
+
+        info!(
+            format_class = ?format_class,
+            format_count = formats.len(),
+            has_hi_res = has_hi_res,
+            has_dsd = has_dsd,
+            "Format classification complete"
+        );
+
+        format_class
     }
 
     pub fn classify_by_power(max_power_ma: u16) -> PowerClass {
-        match max_power_ma {
+        let power_class = match max_power_ma {
             0..=100 => PowerClass::Low,
             101..=500 => PowerClass::Medium,
             _ => PowerClass::High,
-        }
+        };
+
+        debug!(
+            power_class = ?power_class,
+            max_power_ma = max_power_ma,
+            "Power classification complete"
+        );
+
+        power_class
     }
 }
 
@@ -84,17 +113,37 @@ impl DeviceMatchingLogic {
         devices: &'a [DeviceCapabilities],
         requirements: &AudioRequirements,
     ) -> Option<&'a DeviceCapabilities> {
+        debug!(
+            device_count = devices.len(),
+            min_sample_rate = ?requirements.min_sample_rate,
+            min_bit_depth = ?requirements.min_bit_depth,
+            device_type = ?requirements.device_type,
+            "Finding best device match"
+        );
+
         let mut candidates: Vec<&DeviceCapabilities> = devices
             .iter()
             .filter(|d| Self::meets_requirements(d, requirements))
             .collect();
 
         if candidates.is_empty() {
+            info!("No devices meet requirements");
             return None;
         }
 
         candidates.sort_by(|a, b| Self::rank_device(b, requirements).cmp(&Self::rank_device(a, requirements)));
-        candidates.first().copied()
+        let best = candidates.first().copied();
+
+        if let Some(device) = best {
+            info!(
+                device_type = ?device.device_type,
+                max_sample_rate = ?device.max_sample_rate,
+                max_bit_depth = ?device.max_bit_depth,
+                "Best device match found"
+            );
+        }
+
+        best
     }
 
     fn meets_requirements(device: &DeviceCapabilities, requirements: &AudioRequirements) -> bool {

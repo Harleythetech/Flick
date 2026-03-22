@@ -4,6 +4,7 @@ use crate::uac2::transfer_buffer::{BufferManager, TransferBuffer};
 use rusb::{DeviceHandle, UsbContext};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+use tracing::{debug, info, trace, warn};
 
 const TRANSFER_TIMEOUT_MS: u64 = 1000;
 const MAX_RETRY_COUNT: usize = 3;
@@ -139,6 +140,12 @@ impl<T: UsbContext> IsochronousTransfer<T> {
         endpoint: u8,
         config: StreamConfig,
     ) -> Result<Self, Uac2Error> {
+        info!(
+            endpoint = format!("{:#04x}", endpoint),
+            packet_size = config.packet_size,
+            "Creating isochronous transfer"
+        );
+
         let buffer_manager = Arc::new(Mutex::new(BufferManager::from_config(&config)?));
         let stats = Arc::new(Mutex::new(TransferStats::new()));
         let active_transfers = Arc::new(Mutex::new(Vec::new()));
@@ -157,6 +164,7 @@ impl<T: UsbContext> IsochronousTransfer<T> {
 
         if !buffer_manager.has_available() {
             self.stats.lock().unwrap().record_overrun();
+            warn!("Buffer overrun detected - no available buffers");
             return Err(Uac2Error::BufferOverflow);
         }
 
@@ -164,10 +172,23 @@ impl<T: UsbContext> IsochronousTransfer<T> {
             .acquire_buffer()
             .ok_or(Uac2Error::BufferOverflow)?;
 
-        if data.len() > buffer.capacity() {
+        let buffer_capacity = buffer.capacity();
+
+        if data.len() > buffer_capacity {
             buffer_manager.release_buffer(buffer_index)?;
+            warn!(
+                data_size = data.len(),
+                buffer_capacity = buffer_capacity,
+                "Data exceeds buffer capacity"
+            );
             return Err(Uac2Error::BufferOverflow);
         }
+
+        trace!(
+            buffer_index = buffer_index,
+            data_size = data.len(),
+            "Submitting transfer buffer"
+        );
 
         let transfer_buffer = TransferBuffer::with_data(data);
         let context = TransferContext::new(buffer_index);
@@ -186,12 +207,22 @@ impl<T: UsbContext> IsochronousTransfer<T> {
         let result = self.handle.write_bulk(self.endpoint, data, timeout);
 
         match result {
-            Ok(_) => {
+            Ok(bytes_written) => {
+                trace!(
+                    buffer_index = buffer_index,
+                    bytes_written = bytes_written,
+                    "Transfer completed successfully"
+                );
                 self.handle_completion(buffer_index, TransferStatus::Completed)?;
                 Ok(())
             }
             Err(e) => {
                 let transfer_error = TransferError::from(e);
+                warn!(
+                    buffer_index = buffer_index,
+                    error = ?transfer_error,
+                    "Transfer failed"
+                );
                 self.handle_error(buffer_index, transfer_error)?;
                 Err(Uac2Error::TransferFailed(format!("{:?}", transfer_error)))
             }
@@ -236,6 +267,11 @@ impl<T: UsbContext> IsochronousTransfer<T> {
             if context.should_retry() && error != TransferError::NoDevice {
                 context.increment_retry();
                 self.stats.lock().unwrap().record_retry();
+                debug!(
+                    buffer_index = buffer_index,
+                    retry_count = context.retry_count,
+                    "Retrying transfer"
+                );
                 active.push(context);
                 return Ok(());
             }
@@ -260,14 +296,25 @@ impl<T: UsbContext> IsochronousTransfer<T> {
 
     pub fn stats(&self) -> TransferStats {
         let stats = self.stats.lock().unwrap();
-        TransferStats {
+        let result = TransferStats {
             total_submitted: stats.total_submitted,
             total_completed: stats.total_completed,
             total_failed: stats.total_failed,
             total_retried: stats.total_retried,
             underruns: stats.underruns,
             overruns: stats.overruns,
-        }
+        };
+
+        debug!(
+            submitted = result.total_submitted,
+            completed = result.total_completed,
+            failed = result.total_failed,
+            retried = result.total_retried,
+            success_rate = format!("{:.2}%", result.success_rate() * 100.0),
+            "Transfer statistics"
+        );
+
+        result
     }
 
     pub fn reset_stats(&self) {
