@@ -44,6 +44,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# NDK libraries (auto-copied during build)
+/android/app/src/main/jniLibs/
+
 .env
 .env.local
 target/rust-analyzer/flycheck0/stderr

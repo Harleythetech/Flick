@@ -58,7 +58,7 @@ class RustAudioService {
 
     // Check if native audio is available on this platform
     if (!rust_audio.audioIsNativeAvailable()) {
-      debugPrint('Native audio engine not available on this platform');
+      debugPrint('Native audio engine not available (expected on mobile platforms)');
       return false;
     }
 

@@ -44,6 +44,11 @@ class MainActivity: FlutterActivity() {
     // Coroutine scope for background tasks
     private val mainScope = CoroutineScope(Dispatchers.Main)
 
+    // Initialize Android NDK context for cpal/oboe before Dart loads the library
+    init {
+        System.loadLibrary("rust_lib_flick_player")
+    }
+
     override fun provideFlutterEngine(context: android.content.Context): FlutterEngine? {
         var engine = FlutterEngineCache.getInstance().get("main_engine")
         if (engine == null) {

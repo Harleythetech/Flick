@@ -5,7 +5,13 @@ mod audio_format;
 #[cfg(feature = "uac2")]
 mod audio_pipeline;
 #[cfg(feature = "uac2")]
+mod audio_sink;
+#[cfg(feature = "uac2")]
+mod backend;
+#[cfg(feature = "uac2")]
 mod capabilities;
+#[cfg(feature = "uac2")]
+mod format_negotiation;
 #[cfg(feature = "uac2")]
 pub mod constants;
 #[cfg(feature = "uac2")]
@@ -23,7 +29,15 @@ mod device_info_extractor;
 #[cfg(feature = "uac2")]
 mod endpoint;
 #[cfg(feature = "uac2")]
+mod connection_manager;
+#[cfg(feature = "uac2")]
 mod error;
+#[cfg(feature = "uac2")]
+mod error_recovery;
+#[cfg(feature = "uac2")]
+mod fallback_handler;
+#[cfg(feature = "uac2")]
+mod logging;
 #[cfg(feature = "uac2")]
 mod registry;
 #[cfg(feature = "uac2")]
@@ -39,6 +53,9 @@ mod transfer_buffer;
 #[cfg(feature = "uac2")]
 mod transfer_manager;
 
+#[cfg(all(test, feature = "uac2"))]
+mod tests;
+
 #[cfg(feature = "uac2")]
 pub use audio_format::{
     AudioFormat, BitDepth, ChannelConfig, FormatNegotiator, FormatType, SampleRate,
@@ -48,9 +65,17 @@ pub use audio_pipeline::{
     AudioPipeline, BitDepthConverter, FormatConverter, PassthroughConverter, SampleRateConverter,
 };
 #[cfg(feature = "uac2")]
+pub use audio_sink::Uac2AudioSink;
+#[cfg(feature = "uac2")]
+pub use backend::{AudioBackend, Uac2Backend};
+#[cfg(feature = "uac2")]
 pub use capabilities::{
     CapabilityDetector, ControlCapabilities, DeviceCapabilities, DeviceType, FormatMatcher,
     PowerCapabilities,
+};
+#[cfg(feature = "uac2")]
+pub use format_negotiation::{
+    FormatMismatchHandler, FormatNegotiationEngine, FormatNegotiationStrategy,
 };
 #[cfg(feature = "uac2")]
 pub use device_classifier::{
@@ -78,9 +103,15 @@ pub use device::{DeviceIdentification, DeviceInfo, DeviceMetadata, Uac2Device};
 #[cfg(feature = "uac2")]
 pub use device_enumeration::enumerate_uac2_devices;
 #[cfg(feature = "uac2")]
-pub use endpoint::{EndpointDescriptor, EndpointManager, EndpointSelector};
+pub use connection_manager::{ConnectionManager, ConnectionState};
 #[cfg(feature = "uac2")]
 pub use error::Uac2Error;
+#[cfg(feature = "uac2")]
+pub use error_recovery::{ErrorRecovery, Recoverable, RecoveryStrategy, ReconnectionManager};
+#[cfg(feature = "uac2")]
+pub use fallback_handler::{FallbackAudioOutput, FallbackHandler};
+#[cfg(feature = "uac2")]
+pub use logging::{init_logging, LogConfig, LogContext, LogLevel};
 #[cfg(feature = "uac2")]
 pub use registry::{DeviceKey, DeviceRegistry};
 #[cfg(feature = "uac2")]

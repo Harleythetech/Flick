@@ -91,6 +91,7 @@ impl<T: UsbContext> Uac2Device<T> {
             serial: self.identification.serial.clone(),
             product_name: self.metadata.product_name.clone(),
             manufacturer: self.metadata.manufacturer.clone(),
+            device_name: None, // Not used on non-Android platforms
         }
     }
 

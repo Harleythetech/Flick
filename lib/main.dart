@@ -44,14 +44,14 @@ Future<void> _initAudioEngines() async {
     // Continue anyway - the app can still function with degraded audio
   }
 
-  // Initialize Rust audio engine (used on desktop, required for equalizer)
+  // Initialize Rust audio engine (desktop only - not available on Android/iOS)
   try {
     final rustAudioService = RustAudioService();
     final initialized = await rustAudioService.init();
     if (initialized) {
       debugPrint('Rust audio engine initialized successfully');
     } else {
-      debugPrint('Rust audio engine not available on this platform');
+      debugPrint('Rust audio engine not available (expected on mobile platforms)');
     }
   } catch (e) {
     debugPrint('Failed to initialize Rust audio engine: $e');

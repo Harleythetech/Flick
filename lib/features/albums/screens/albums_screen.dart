@@ -333,7 +333,6 @@ class _AlbumCardState extends State<_AlbumCard>
                                     File(widget.albumArt!),
                                     fit: BoxFit.cover,
                                     cacheWidth: artworkTargetWidth,
-                                    cacheHeight: artworkTargetHeight,
                                     filterQuality: FilterQuality.low,
                                     gaplessPlayback: true,
                                     errorBuilder: (_, __, ___) =>

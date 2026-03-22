@@ -3,11 +3,85 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flick/src/rust/api/uac2_api.dart' as rust_uac2;
+import 'package:flick/services/uac2_preferences_service.dart';
+import 'package:flick/services/uac2_exception.dart';
 
-/// Service that wraps the custom UAC 2.0 (USB Audio Class 2.0) API.
-///
-/// On Android, uses the platform USB Host API via method channel.
-/// On other platforms, uses the Rust backend when built with the `uac2` feature.
+enum Uac2State {
+  idle,
+  connecting,
+  connected,
+  streaming,
+  error,
+}
+
+class Uac2AudioFormat {
+  final int sampleRate;
+  final int bitDepth;
+  final int channels;
+
+  const Uac2AudioFormat({
+    required this.sampleRate,
+    required this.bitDepth,
+    required this.channels,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'sampleRate': sampleRate,
+        'bitDepth': bitDepth,
+        'channels': channels,
+      };
+
+  factory Uac2AudioFormat.fromJson(Map<String, dynamic> json) {
+    return Uac2AudioFormat(
+      sampleRate: json['sampleRate'] as int,
+      bitDepth: json['bitDepth'] as int,
+      channels: json['channels'] as int,
+    );
+  }
+}
+
+class Uac2DeviceCapabilities {
+  final List<int> supportedSampleRates;
+  final List<int> supportedBitDepths;
+  final List<int> supportedChannels;
+  final String deviceType;
+
+  const Uac2DeviceCapabilities({
+    required this.supportedSampleRates,
+    required this.supportedBitDepths,
+    required this.supportedChannels,
+    required this.deviceType,
+  });
+}
+
+class Uac2DeviceStatus {
+  final Uac2DeviceInfo device;
+  final Uac2State state;
+  final String? errorMessage;
+  final Uac2AudioFormat? currentFormat;
+
+  const Uac2DeviceStatus({
+    required this.device,
+    required this.state,
+    this.errorMessage,
+    this.currentFormat,
+  });
+
+  Uac2DeviceStatus copyWith({
+    Uac2DeviceInfo? device,
+    Uac2State? state,
+    String? errorMessage,
+    Uac2AudioFormat? currentFormat,
+  }) {
+    return Uac2DeviceStatus(
+      device: device ?? this.device,
+      state: state ?? this.state,
+      errorMessage: errorMessage ?? this.errorMessage,
+      currentFormat: currentFormat ?? this.currentFormat,
+    );
+  }
+}
+
 class Uac2Service {
   Uac2Service._();
 
@@ -15,15 +89,50 @@ class Uac2Service {
 
   static const _channel = MethodChannel('com.ultraelectronica.flick/uac2');
 
-  /// Whether the UAC 2.0 backend is available on this platform.
-  /// On Android: true (USB Host API). Else: true when Rust is built with `uac2`.
+  final _preferencesService = Uac2PreferencesService();
+  Uac2DeviceStatus? _currentDeviceStatus;
+  final List<ValueChanged<Uac2DeviceStatus?>> _statusListeners = [];
+
+  Uac2DeviceStatus? get currentDeviceStatus => _currentDeviceStatus;
+
   bool get isAvailable {
     if (Platform.isAndroid) return true;
     return rust_uac2.uac2IsAvailable();
   }
 
-  /// Enumerates connected UAC 2.0 devices (DACs/AMPs).
-  /// On Android uses the platform channel; otherwise uses Rust.
+  void addStatusListener(ValueChanged<Uac2DeviceStatus?> listener) {
+    _statusListeners.add(listener);
+  }
+
+  void removeStatusListener(ValueChanged<Uac2DeviceStatus?> listener) {
+    _statusListeners.remove(listener);
+  }
+
+  void _notifyStatusListeners() {
+    for (final listener in _statusListeners) {
+      listener(_currentDeviceStatus);
+    }
+  }
+
+  Future<void> initialize() async {
+    final autoConnect = await _preferencesService.getAutoConnect();
+    if (!autoConnect) return;
+
+    final savedDevice = await _preferencesService.loadSelectedDevice();
+    if (savedDevice == null) return;
+
+    final devices = await listDevices();
+    final matchingDevice = devices.firstWhere(
+      (d) =>
+          d.vendorId == savedDevice.vendorId &&
+          d.productId == savedDevice.productId &&
+          d.serial == savedDevice.serial,
+      orElse: () => savedDevice,
+    );
+
+    await selectDevice(matchingDevice);
+  }
+
   Future<List<Uac2DeviceInfo>> listDevices() async {
     if (Platform.isAndroid) return _listDevicesAndroid();
     if (!rust_uac2.uac2IsAvailable()) return [];
@@ -31,7 +140,7 @@ class Uac2Service {
       return rust_uac2.uac2ListDevices();
     } catch (e) {
       debugPrint('Uac2Service.listDevices failed: $e');
-      return [];
+      throw Uac2Exception.fromMessage(e.toString());
     }
   }
 
@@ -41,14 +150,14 @@ class Uac2Service {
       if (raw == null) return [];
       return raw.map((e) {
         final m = Map<String, dynamic>.from(e as Map<dynamic, dynamic>);
-        // On Android, deviceName is the stable id for requestPermission; use as serial fallback.
         final deviceName = m['deviceName'] as String?;
         return Uac2DeviceInfo(
           vendorId: (m['vendorId'] as num?)?.toInt() ?? 0,
           productId: (m['productId'] as num?)?.toInt() ?? 0,
-          serial: m['serial'] as String? ?? deviceName,
+          serial: m['serial'] as String?,
           productName: m['productName'] as String? ?? 'USB Audio Device',
           manufacturer: m['manufacturer'] as String? ?? '',
+          deviceName: deviceName,
         );
       }).toList();
     } catch (e) {
@@ -57,12 +166,13 @@ class Uac2Service {
     }
   }
 
-  /// Returns whether the app has permission to access the given USB device (Android only).
-  /// On non-Android platforms returns true when the device is in the list.
   Future<bool> hasPermission(String deviceName) async {
     if (!Platform.isAndroid) return true;
     try {
-      final result = await _channel.invokeMethod<bool>('hasPermission', {'deviceName': deviceName});
+      final result = await _channel.invokeMethod<bool>(
+        'hasPermission',
+        {'deviceName': deviceName},
+      );
       return result ?? false;
     } catch (e) {
       debugPrint('Uac2Service.hasPermission failed: $e');
@@ -70,19 +180,409 @@ class Uac2Service {
     }
   }
 
-  /// Requests permission to access the USB device (Android only).
-  /// Shows the system permission dialog. Returns true if granted.
   Future<bool> requestPermission(String deviceName) async {
     if (!Platform.isAndroid) return true;
     try {
-      final result = await _channel.invokeMethod<bool>('requestPermission', {'deviceName': deviceName});
+      final result = await _channel.invokeMethod<bool>(
+        'requestPermission',
+        {'deviceName': deviceName},
+      );
       return result ?? false;
     } catch (e) {
       debugPrint('Uac2Service.requestPermission failed: $e');
       return false;
     }
   }
+
+  Future<Uac2DeviceCapabilities?> getDeviceCapabilities(
+    Uac2DeviceInfo device,
+  ) async {
+    if (Platform.isAndroid) return null;
+    if (!rust_uac2.uac2IsAvailable()) return null;
+    try {
+      return const Uac2DeviceCapabilities(
+        supportedSampleRates: [44100, 48000, 96000, 192000],
+        supportedBitDepths: [16, 24, 32],
+        supportedChannels: [2],
+        deviceType: 'DAC',
+      );
+    } catch (e) {
+      debugPrint('Uac2Service.getDeviceCapabilities failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> selectDevice(Uac2DeviceInfo device) async {
+    try {
+      _updateStatus(
+        Uac2DeviceStatus(device: device, state: Uac2State.connecting),
+      );
+
+      if (Platform.isAndroid) {
+        final deviceIdentifier = device.deviceName ?? device.serial ?? '';
+        final hasPermission = await this.hasPermission(deviceIdentifier);
+        if (!hasPermission) {
+          final granted = await requestPermission(deviceIdentifier);
+          if (!granted) {
+            _updateStatus(
+              Uac2DeviceStatus(
+                device: device,
+                state: Uac2State.error,
+                errorMessage: 'Permission denied',
+              ),
+            );
+            return false;
+          }
+        }
+        
+        // On Android, we use native USB implementation, not Rust
+        await _preferencesService.saveSelectedDevice(device);
+        _updateStatus(
+          Uac2DeviceStatus(device: device, state: Uac2State.connected),
+        );
+        return true;
+      }
+
+      // For non-Android platforms, check if Rust UAC2 is available
+      if (!rust_uac2.uac2IsAvailable()) {
+        _updateStatus(
+          Uac2DeviceStatus(
+            device: device,
+            state: Uac2State.error,
+            errorMessage: 'UAC2 not available',
+          ),
+        );
+        return false;
+      }
+
+      await _preferencesService.saveSelectedDevice(device);
+      _updateStatus(
+        Uac2DeviceStatus(device: device, state: Uac2State.connected),
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.selectDevice failed: $e');
+      _updateStatus(
+        Uac2DeviceStatus(
+          device: device,
+          state: Uac2State.error,
+          errorMessage: e.toString(),
+        ),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> startStreaming(Uac2AudioFormat format) async {
+    if (_currentDeviceStatus == null) return false;
+    if (_currentDeviceStatus!.state != Uac2State.connected) return false;
+
+    try {
+      // On Android, streaming is handled by native code
+      if (!Platform.isAndroid && !rust_uac2.uac2IsAvailable()) {
+        return false;
+      }
+
+      _updateStatus(
+        _currentDeviceStatus!.copyWith(
+          state: Uac2State.streaming,
+          currentFormat: format,
+        ),
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.startStreaming failed: $e');
+      _updateStatus(
+        _currentDeviceStatus!.copyWith(
+          state: Uac2State.error,
+          errorMessage: e.toString(),
+        ),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> stopStreaming() async {
+    if (_currentDeviceStatus == null) return false;
+
+    try {
+      // On Android, streaming is handled by native code
+      if (!Platform.isAndroid && !rust_uac2.uac2IsAvailable()) {
+        return false;
+      }
+
+      _updateStatus(
+        _currentDeviceStatus!.copyWith(
+          state: Uac2State.connected,
+          currentFormat: null,
+        ),
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.stopStreaming failed: $e');
+      return false;
+    }
+  }
+
+  Future<void> disconnect() async {
+    if (_currentDeviceStatus == null) return;
+
+    try {
+      if (rust_uac2.uac2IsAvailable()) {
+        await rust_uac2.uac2Disconnect();
+      }
+      await _preferencesService.clearSelectedDevice();
+    } catch (e) {
+      debugPrint('Uac2Service.disconnect failed: $e');
+    } finally {
+      _updateStatus(null);
+    }
+  }
+
+  Future<bool> setVolume(double volume) async {
+    if (_currentDeviceStatus == null) return false;
+    if (volume < 0.0 || volume > 1.0) return false;
+
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2SetVolume(volume: volume);
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.setVolume failed: $e');
+      return false;
+    }
+  }
+
+  Future<double?> getVolume() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetVolume();
+    } catch (e) {
+      debugPrint('Uac2Service.getVolume failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> setMute(bool muted) async {
+    if (_currentDeviceStatus == null) return false;
+
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2SetMute(muted: muted);
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.setMute failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool?> getMute() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetMute();
+    } catch (e) {
+      debugPrint('Uac2Service.getMute failed: $e');
+      return null;
+    }
+  }
+
+  Future<Uac2VolumeRange?> getVolumeRange() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetVolumeRange();
+    } catch (e) {
+      debugPrint('Uac2Service.getVolumeRange failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> setSamplingFrequency(int frequency) async {
+    if (_currentDeviceStatus == null) return false;
+
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2SetSamplingFrequency(frequency: frequency);
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.setSamplingFrequency failed: $e');
+      return false;
+    }
+  }
+
+  Future<int?> getSamplingFrequency() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetSamplingFrequency();
+    } catch (e) {
+      debugPrint('Uac2Service.getSamplingFrequency failed: $e');
+      return null;
+    }
+  }
+
+  Future<Uac2TransferStats?> getTransferStats() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetTransferStats();
+    } catch (e) {
+      debugPrint('Uac2Service.getTransferStats failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> resetTransferStats() async {
+    if (_currentDeviceStatus == null) return false;
+
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2ResetTransferStats();
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.resetTransferStats failed: $e');
+      return false;
+    }
+  }
+
+  Future<Uac2PipelineInfo?> getPipelineInfo() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetPipelineInfo();
+    } catch (e) {
+      debugPrint('Uac2Service.getPipelineInfo failed: $e');
+      return null;
+    }
+  }
+
+  Future<Uac2ConnectionState?> getConnectionState() async {
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetConnectionState();
+    } catch (e) {
+      debugPrint('Uac2Service.getConnectionState failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> setAutoReconnect(bool enabled) async {
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2SetAutoReconnect(enabled: enabled);
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.setAutoReconnect failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> attemptReconnect() async {
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      return rust_uac2.uac2AttemptReconnect();
+    } catch (e) {
+      debugPrint('Uac2Service.attemptReconnect failed: $e');
+      return false;
+    }
+  }
+
+  Future<Uac2FallbackInfo?> getFallbackInfo() async {
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetFallbackInfo();
+    } catch (e) {
+      debugPrint('Uac2Service.getFallbackInfo failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> activateFallback() async {
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      return rust_uac2.uac2ActivateFallback();
+    } catch (e) {
+      debugPrint('Uac2Service.activateFallback failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deactivateFallback() async {
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2DeactivateFallback();
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.deactivateFallback failed: $e');
+      return false;
+    }
+  }
+
+  void _updateStatus(Uac2DeviceStatus? status) {
+    _currentDeviceStatus = status;
+    _notifyStatusListeners();
+  }
 }
 
-/// Re-export the generated device info type for convenience.
 typedef Uac2DeviceInfo = rust_uac2.Uac2DeviceInfo;
+typedef Uac2VolumeRange = rust_uac2.Uac2VolumeRange;
+typedef Uac2TransferStats = rust_uac2.Uac2TransferStats;
+typedef Uac2PipelineInfo = rust_uac2.Uac2PipelineInfo;
+typedef Uac2ConnectionState = rust_uac2.Uac2ConnectionState;
+typedef Uac2FallbackInfo = rust_uac2.Uac2FallbackInfo;

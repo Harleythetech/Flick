@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flick/core/theme/app_colors.dart';
 import 'package:flick/core/utils/navigation_helper.dart';
 import 'package:flick/models/song.dart';
 import 'package:flick/services/player_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flick/widgets/common/cached_image_widget.dart';
+import 'package:flick/widgets/uac2/uac2_player_status.dart';
 
-class MiniPlayer extends StatefulWidget {
+class MiniPlayer extends ConsumerStatefulWidget {
   const MiniPlayer({super.key});
 
   @override
-  State<MiniPlayer> createState() => _MiniPlayerState();
+  ConsumerState<MiniPlayer> createState() => _MiniPlayerState();
 }
 
-class _MiniPlayerState extends State<MiniPlayer> {
+class _MiniPlayerState extends ConsumerState<MiniPlayer> {
   final PlayerService _playerService = PlayerService();
 
   @override
@@ -132,15 +134,26 @@ class _MiniPlayerState extends State<MiniPlayer> {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            Text(
-                              song.artist,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontFamily: 'ProductSans',
-                                fontSize: 13,
-                                color: AppColors.textTertiary,
-                              ),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    song.artist,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontFamily: 'ProductSans',
+                                      fontSize: 13,
+                                      color: AppColors.textTertiary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Uac2PlayerStatus(
+                                  compact: true,
+                                  showDeviceName: false,
+                                ),
+                              ],
                             ),
                           ],
                         ),

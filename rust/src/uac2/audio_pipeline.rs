@@ -2,6 +2,7 @@ use crate::uac2::audio_format::{AudioFormat, BitDepth, ChannelConfig, SampleRate
 use crate::uac2::error::Uac2Error;
 use crate::uac2::ring_buffer::{AudioBuffer, RingBuffer};
 use std::sync::{Arc, Mutex};
+use tracing::{debug, info, warn};
 
 pub trait FormatConverter: Send + Sync {
     fn convert(&self, input: &[u8], output: &mut [u8]) -> Result<usize, Uac2Error>;
@@ -188,8 +189,26 @@ impl AudioPipeline {
         target_format: AudioFormat,
         buffer_size: usize,
     ) -> Result<Self, Uac2Error> {
+        info!(
+            source_rate = source_format.sample_rates.first().map(|r| r.hz()),
+            source_depth = source_format.bit_depth.bits(),
+            source_channels = source_format.channels.count(),
+            target_rate = target_format.sample_rates.first().map(|r| r.hz()),
+            target_depth = target_format.bit_depth.bits(),
+            target_channels = target_format.channels.count(),
+            buffer_size = buffer_size,
+            "Creating audio pipeline"
+        );
+
         let converter = Self::create_converter(&source_format, &target_format)?;
         let buffer = Arc::new(Mutex::new(RingBuffer::new(buffer_size)?));
+
+        let is_passthrough = Self::is_bit_perfect(&source_format, &target_format);
+        if is_passthrough {
+            info!("Bit-perfect passthrough mode enabled");
+        } else {
+            warn!("Format conversion required - not bit-perfect");
+        }
 
         Ok(Self {
             source_format,
@@ -211,10 +230,16 @@ impl AudioPipeline {
         target: &AudioFormat,
     ) -> Result<Box<dyn FormatConverter>, Uac2Error> {
         if Self::is_bit_perfect(source, target) {
+            debug!("Using passthrough converter");
             return Ok(Box::new(PassthroughConverter));
         }
 
         if source.bit_depth != target.bit_depth {
+            info!(
+                source_depth = source.bit_depth.bits(),
+                target_depth = target.bit_depth.bits(),
+                "Using bit depth converter"
+            );
             return Ok(Box::new(BitDepthConverter::new(
                 source.bit_depth,
                 target.bit_depth,
@@ -224,6 +249,11 @@ impl AudioPipeline {
         if !source.sample_rates.iter().any(|r| target.sample_rates.contains(r)) {
             let source_rate = source.sample_rates[0];
             let target_rate = target.sample_rates[0];
+            info!(
+                source_rate = source_rate.hz(),
+                target_rate = target_rate.hz(),
+                "Using sample rate converter"
+            );
             return Ok(Box::new(SampleRateConverter::new(
                 source_rate,
                 target_rate,
@@ -232,6 +262,7 @@ impl AudioPipeline {
             )));
         }
 
+        debug!("Using passthrough converter (fallback)");
         Ok(Box::new(PassthroughConverter))
     }
 
@@ -246,7 +277,17 @@ impl AudioPipeline {
         let converted_size = self.converter.convert(input, &mut temp_buffer)?;
 
         let mut buffer = self.buffer.lock().unwrap();
-        buffer.write(&temp_buffer[..converted_size])
+        let written = buffer.write(&temp_buffer[..converted_size])?;
+
+        if written < converted_size {
+            warn!(
+                requested = converted_size,
+                written = written,
+                "Buffer overflow during audio processing"
+            );
+        }
+
+        Ok(written)
     }
 
     pub fn read(&self, output: &mut [u8]) -> Result<usize, Uac2Error> {

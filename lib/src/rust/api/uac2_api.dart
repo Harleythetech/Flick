@@ -6,31 +6,170 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `fmt`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Uac2ErrorCode`, `Uac2HotplugEvent`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
-/// Returns whether the UAC 2.0 backend is available on this build.
-/// True when built with the `uac2` feature; false otherwise.
 bool uac2IsAvailable() => RustLib.instance.api.crateApiUac2ApiUac2IsAvailable();
 
 List<Uac2DeviceInfo> uac2ListDevices() =>
     RustLib.instance.api.crateApiUac2ApiUac2ListDevices();
 
-/// Information about a detected UAC 2.0 device (DAC/AMP).
+Future<Uac2DeviceCapabilities> uac2GetDeviceCapabilities({
+  required Uac2DeviceInfo device,
+}) => RustLib.instance.api.crateApiUac2ApiUac2GetDeviceCapabilities(
+  device: device,
+);
+
+Future<bool> uac2SelectDevice({required Uac2DeviceInfo device}) =>
+    RustLib.instance.api.crateApiUac2ApiUac2SelectDevice(device: device);
+
+Future<bool> uac2StartStreaming({required Uac2AudioFormat format}) =>
+    RustLib.instance.api.crateApiUac2ApiUac2StartStreaming(format: format);
+
+Future<bool> uac2StopStreaming() =>
+    RustLib.instance.api.crateApiUac2ApiUac2StopStreaming();
+
+Future<void> uac2Disconnect() =>
+    RustLib.instance.api.crateApiUac2ApiUac2Disconnect();
+
+Future<void> uac2SetVolume({required double volume}) =>
+    RustLib.instance.api.crateApiUac2ApiUac2SetVolume(volume: volume);
+
+double uac2GetVolume() => RustLib.instance.api.crateApiUac2ApiUac2GetVolume();
+
+Future<void> uac2SetMute({required bool muted}) =>
+    RustLib.instance.api.crateApiUac2ApiUac2SetMute(muted: muted);
+
+bool uac2GetMute() => RustLib.instance.api.crateApiUac2ApiUac2GetMute();
+
+Future<Uac2VolumeRange> uac2GetVolumeRange() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetVolumeRange();
+
+Future<void> uac2SetSamplingFrequency({required int frequency}) => RustLib
+    .instance
+    .api
+    .crateApiUac2ApiUac2SetSamplingFrequency(frequency: frequency);
+
+int uac2GetSamplingFrequency() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetSamplingFrequency();
+
+Uac2TransferStats uac2GetTransferStats() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetTransferStats();
+
+Future<void> uac2ResetTransferStats() =>
+    RustLib.instance.api.crateApiUac2ApiUac2ResetTransferStats();
+
+Uac2PipelineInfo uac2GetPipelineInfo() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetPipelineInfo();
+
+Uac2ConnectionState uac2GetConnectionState() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetConnectionState();
+
+Future<void> uac2SetAutoReconnect({required bool enabled}) =>
+    RustLib.instance.api.crateApiUac2ApiUac2SetAutoReconnect(enabled: enabled);
+
+Future<bool> uac2AttemptReconnect() =>
+    RustLib.instance.api.crateApiUac2ApiUac2AttemptReconnect();
+
+Uac2FallbackInfo uac2GetFallbackInfo() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetFallbackInfo();
+
+Future<bool> uac2ActivateFallback() =>
+    RustLib.instance.api.crateApiUac2ApiUac2ActivateFallback();
+
+Future<void> uac2DeactivateFallback() =>
+    RustLib.instance.api.crateApiUac2ApiUac2DeactivateFallback();
+
+class Uac2AudioFormat {
+  final int sampleRate;
+  final int bitDepth;
+  final int channels;
+
+  const Uac2AudioFormat({
+    required this.sampleRate,
+    required this.bitDepth,
+    required this.channels,
+  });
+
+  @override
+  int get hashCode =>
+      sampleRate.hashCode ^ bitDepth.hashCode ^ channels.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2AudioFormat &&
+          runtimeType == other.runtimeType &&
+          sampleRate == other.sampleRate &&
+          bitDepth == other.bitDepth &&
+          channels == other.channels;
+}
+
+class Uac2ConnectionState {
+  final String state;
+  final int reconnectAttempts;
+  final bool autoReconnectEnabled;
+
+  const Uac2ConnectionState({
+    required this.state,
+    required this.reconnectAttempts,
+    required this.autoReconnectEnabled,
+  });
+
+  @override
+  int get hashCode =>
+      state.hashCode ^
+      reconnectAttempts.hashCode ^
+      autoReconnectEnabled.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2ConnectionState &&
+          runtimeType == other.runtimeType &&
+          state == other.state &&
+          reconnectAttempts == other.reconnectAttempts &&
+          autoReconnectEnabled == other.autoReconnectEnabled;
+}
+
+class Uac2DeviceCapabilities {
+  final Uint32List supportedSampleRates;
+  final Uint8List supportedBitDepths;
+  final Uint16List supportedChannels;
+  final String deviceType;
+
+  const Uac2DeviceCapabilities({
+    required this.supportedSampleRates,
+    required this.supportedBitDepths,
+    required this.supportedChannels,
+    required this.deviceType,
+  });
+
+  @override
+  int get hashCode =>
+      supportedSampleRates.hashCode ^
+      supportedBitDepths.hashCode ^
+      supportedChannels.hashCode ^
+      deviceType.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2DeviceCapabilities &&
+          runtimeType == other.runtimeType &&
+          supportedSampleRates == other.supportedSampleRates &&
+          supportedBitDepths == other.supportedBitDepths &&
+          supportedChannels == other.supportedChannels &&
+          deviceType == other.deviceType;
+}
+
 class Uac2DeviceInfo {
-  /// USB vendor ID
   final int vendorId;
-
-  /// USB product ID
   final int productId;
-
-  /// Device serial number (optional)
   final String? serial;
-
-  /// Product name string
   final String productName;
-
-  /// Manufacturer string
   final String manufacturer;
+  final String? deviceName;
 
   const Uac2DeviceInfo({
     required this.vendorId,
@@ -38,6 +177,7 @@ class Uac2DeviceInfo {
     this.serial,
     required this.productName,
     required this.manufacturer,
+    this.deviceName,
   });
 
   @override
@@ -46,7 +186,8 @@ class Uac2DeviceInfo {
       productId.hashCode ^
       serial.hashCode ^
       productName.hashCode ^
-      manufacturer.hashCode;
+      manufacturer.hashCode ^
+      deviceName.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -57,5 +198,118 @@ class Uac2DeviceInfo {
           productId == other.productId &&
           serial == other.serial &&
           productName == other.productName &&
-          manufacturer == other.manufacturer;
+          manufacturer == other.manufacturer &&
+          deviceName == other.deviceName;
+}
+
+class Uac2FallbackInfo {
+  final bool hasActiveFallback;
+  final String? fallbackName;
+
+  const Uac2FallbackInfo({required this.hasActiveFallback, this.fallbackName});
+
+  @override
+  int get hashCode => hasActiveFallback.hashCode ^ fallbackName.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2FallbackInfo &&
+          runtimeType == other.runtimeType &&
+          hasActiveFallback == other.hasActiveFallback &&
+          fallbackName == other.fallbackName;
+}
+
+class Uac2PipelineInfo {
+  final bool isBitPerfect;
+  final bool requiresConversion;
+  final String converterType;
+
+  const Uac2PipelineInfo({
+    required this.isBitPerfect,
+    required this.requiresConversion,
+    required this.converterType,
+  });
+
+  @override
+  int get hashCode =>
+      isBitPerfect.hashCode ^
+      requiresConversion.hashCode ^
+      converterType.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2PipelineInfo &&
+          runtimeType == other.runtimeType &&
+          isBitPerfect == other.isBitPerfect &&
+          requiresConversion == other.requiresConversion &&
+          converterType == other.converterType;
+}
+
+class Uac2TransferStats {
+  final BigInt totalSubmitted;
+  final BigInt totalCompleted;
+  final BigInt totalFailed;
+  final BigInt totalRetried;
+  final BigInt underruns;
+  final BigInt overruns;
+  final double successRate;
+
+  const Uac2TransferStats({
+    required this.totalSubmitted,
+    required this.totalCompleted,
+    required this.totalFailed,
+    required this.totalRetried,
+    required this.underruns,
+    required this.overruns,
+    required this.successRate,
+  });
+
+  @override
+  int get hashCode =>
+      totalSubmitted.hashCode ^
+      totalCompleted.hashCode ^
+      totalFailed.hashCode ^
+      totalRetried.hashCode ^
+      underruns.hashCode ^
+      overruns.hashCode ^
+      successRate.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2TransferStats &&
+          runtimeType == other.runtimeType &&
+          totalSubmitted == other.totalSubmitted &&
+          totalCompleted == other.totalCompleted &&
+          totalFailed == other.totalFailed &&
+          totalRetried == other.totalRetried &&
+          underruns == other.underruns &&
+          overruns == other.overruns &&
+          successRate == other.successRate;
+}
+
+class Uac2VolumeRange {
+  final int min;
+  final int max;
+  final int resolution;
+
+  const Uac2VolumeRange({
+    required this.min,
+    required this.max,
+    required this.resolution,
+  });
+
+  @override
+  int get hashCode => min.hashCode ^ max.hashCode ^ resolution.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2VolumeRange &&
+          runtimeType == other.runtimeType &&
+          min == other.min &&
+          max == other.max &&
+          resolution == other.resolution;
 }

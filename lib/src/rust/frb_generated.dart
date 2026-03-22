@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 885669079;
+  int get rustContentHash => 1046978320;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -143,9 +143,59 @@ abstract class RustLibApi extends BaseApi {
     required Map<String, PlatformInt64> knownFiles,
   });
 
+  Future<bool> crateApiUac2ApiUac2ActivateFallback();
+
+  Future<bool> crateApiUac2ApiUac2AttemptReconnect();
+
+  Future<void> crateApiUac2ApiUac2DeactivateFallback();
+
+  Future<void> crateApiUac2ApiUac2Disconnect();
+
+  Uac2ConnectionState crateApiUac2ApiUac2GetConnectionState();
+
+  Future<Uac2DeviceCapabilities> crateApiUac2ApiUac2GetDeviceCapabilities({
+    required Uac2DeviceInfo device,
+  });
+
+  Uac2FallbackInfo crateApiUac2ApiUac2GetFallbackInfo();
+
+  bool crateApiUac2ApiUac2GetMute();
+
+  Uac2PipelineInfo crateApiUac2ApiUac2GetPipelineInfo();
+
+  int crateApiUac2ApiUac2GetSamplingFrequency();
+
+  Uac2TransferStats crateApiUac2ApiUac2GetTransferStats();
+
+  double crateApiUac2ApiUac2GetVolume();
+
+  Future<Uac2VolumeRange> crateApiUac2ApiUac2GetVolumeRange();
+
   bool crateApiUac2ApiUac2IsAvailable();
 
   List<Uac2DeviceInfo> crateApiUac2ApiUac2ListDevices();
+
+  Future<void> crateApiUac2ApiUac2ResetTransferStats();
+
+  Future<bool> crateApiUac2ApiUac2SelectDevice({
+    required Uac2DeviceInfo device,
+  });
+
+  Future<void> crateApiUac2ApiUac2SetAutoReconnect({required bool enabled});
+
+  Future<void> crateApiUac2ApiUac2SetMute({required bool muted});
+
+  Future<void> crateApiUac2ApiUac2SetSamplingFrequency({
+    required int frequency,
+  });
+
+  Future<void> crateApiUac2ApiUac2SetVolume({required double volume});
+
+  Future<bool> crateApiUac2ApiUac2StartStreaming({
+    required Uac2AudioFormat format,
+  });
+
+  Future<bool> crateApiUac2ApiUac2StopStreaming();
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -842,12 +892,337 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<bool> crateApiUac2ApiUac2ActivateFallback() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 27,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2ActivateFallbackConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2ActivateFallbackConstMeta =>
+      const TaskConstMeta(debugName: "uac2_activate_fallback", argNames: []);
+
+  @override
+  Future<bool> crateApiUac2ApiUac2AttemptReconnect() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 28,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2AttemptReconnectConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2AttemptReconnectConstMeta =>
+      const TaskConstMeta(debugName: "uac2_attempt_reconnect", argNames: []);
+
+  @override
+  Future<void> crateApiUac2ApiUac2DeactivateFallback() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 29,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2DeactivateFallbackConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2DeactivateFallbackConstMeta =>
+      const TaskConstMeta(debugName: "uac2_deactivate_fallback", argNames: []);
+
+  @override
+  Future<void> crateApiUac2ApiUac2Disconnect() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 30,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2DisconnectConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2DisconnectConstMeta =>
+      const TaskConstMeta(debugName: "uac2_disconnect", argNames: []);
+
+  @override
+  Uac2ConnectionState crateApiUac2ApiUac2GetConnectionState() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_uac_2_connection_state,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetConnectionStateConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetConnectionStateConstMeta =>
+      const TaskConstMeta(debugName: "uac2_get_connection_state", argNames: []);
+
+  @override
+  Future<Uac2DeviceCapabilities> crateApiUac2ApiUac2GetDeviceCapabilities({
+    required Uac2DeviceInfo device,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_uac_2_device_info(device, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 32,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_uac_2_device_capabilities,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetDeviceCapabilitiesConstMeta,
+        argValues: [device],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetDeviceCapabilitiesConstMeta =>
+      const TaskConstMeta(
+        debugName: "uac2_get_device_capabilities",
+        argNames: ["device"],
+      );
+
+  @override
+  Uac2FallbackInfo crateApiUac2ApiUac2GetFallbackInfo() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_uac_2_fallback_info,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetFallbackInfoConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetFallbackInfoConstMeta =>
+      const TaskConstMeta(debugName: "uac2_get_fallback_info", argNames: []);
+
+  @override
+  bool crateApiUac2ApiUac2GetMute() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetMuteConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetMuteConstMeta =>
+      const TaskConstMeta(debugName: "uac2_get_mute", argNames: []);
+
+  @override
+  Uac2PipelineInfo crateApiUac2ApiUac2GetPipelineInfo() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_uac_2_pipeline_info,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetPipelineInfoConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetPipelineInfoConstMeta =>
+      const TaskConstMeta(debugName: "uac2_get_pipeline_info", argNames: []);
+
+  @override
+  int crateApiUac2ApiUac2GetSamplingFrequency() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetSamplingFrequencyConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetSamplingFrequencyConstMeta =>
+      const TaskConstMeta(
+        debugName: "uac2_get_sampling_frequency",
+        argNames: [],
+      );
+
+  @override
+  Uac2TransferStats crateApiUac2ApiUac2GetTransferStats() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_uac_2_transfer_stats,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetTransferStatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetTransferStatsConstMeta =>
+      const TaskConstMeta(debugName: "uac2_get_transfer_stats", argNames: []);
+
+  @override
+  double crateApiUac2ApiUac2GetVolume() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_f_64,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetVolumeConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetVolumeConstMeta =>
+      const TaskConstMeta(debugName: "uac2_get_volume", argNames: []);
+
+  @override
+  Future<Uac2VolumeRange> crateApiUac2ApiUac2GetVolumeRange() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 39,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_uac_2_volume_range,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetVolumeRangeConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetVolumeRangeConstMeta =>
+      const TaskConstMeta(debugName: "uac2_get_volume_range", argNames: []);
+
+  @override
   bool crateApiUac2ApiUac2IsAvailable() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 40)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -869,7 +1244,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 41)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_list_uac_2_device_info,
@@ -884,6 +1259,246 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiUac2ApiUac2ListDevicesConstMeta =>
       const TaskConstMeta(debugName: "uac2_list_devices", argNames: []);
+
+  @override
+  Future<void> crateApiUac2ApiUac2ResetTransferStats() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 42,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2ResetTransferStatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2ResetTransferStatsConstMeta =>
+      const TaskConstMeta(debugName: "uac2_reset_transfer_stats", argNames: []);
+
+  @override
+  Future<bool> crateApiUac2ApiUac2SelectDevice({
+    required Uac2DeviceInfo device,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_uac_2_device_info(device, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 43,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2SelectDeviceConstMeta,
+        argValues: [device],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2SelectDeviceConstMeta =>
+      const TaskConstMeta(
+        debugName: "uac2_select_device",
+        argNames: ["device"],
+      );
+
+  @override
+  Future<void> crateApiUac2ApiUac2SetAutoReconnect({required bool enabled}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_bool(enabled, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 44,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2SetAutoReconnectConstMeta,
+        argValues: [enabled],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2SetAutoReconnectConstMeta =>
+      const TaskConstMeta(
+        debugName: "uac2_set_auto_reconnect",
+        argNames: ["enabled"],
+      );
+
+  @override
+  Future<void> crateApiUac2ApiUac2SetMute({required bool muted}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_bool(muted, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 45,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2SetMuteConstMeta,
+        argValues: [muted],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2SetMuteConstMeta =>
+      const TaskConstMeta(debugName: "uac2_set_mute", argNames: ["muted"]);
+
+  @override
+  Future<void> crateApiUac2ApiUac2SetSamplingFrequency({
+    required int frequency,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(frequency, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 46,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2SetSamplingFrequencyConstMeta,
+        argValues: [frequency],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2SetSamplingFrequencyConstMeta =>
+      const TaskConstMeta(
+        debugName: "uac2_set_sampling_frequency",
+        argNames: ["frequency"],
+      );
+
+  @override
+  Future<void> crateApiUac2ApiUac2SetVolume({required double volume}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_f_64(volume, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 47,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2SetVolumeConstMeta,
+        argValues: [volume],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2SetVolumeConstMeta =>
+      const TaskConstMeta(debugName: "uac2_set_volume", argNames: ["volume"]);
+
+  @override
+  Future<bool> crateApiUac2ApiUac2StartStreaming({
+    required Uac2AudioFormat format,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_uac_2_audio_format(format, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 48,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2StartStreamingConstMeta,
+        argValues: [format],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2StartStreamingConstMeta =>
+      const TaskConstMeta(
+        debugName: "uac2_start_streaming",
+        argNames: ["format"],
+      );
+
+  @override
+  Future<bool> crateApiUac2ApiUac2StopStreaming() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 49,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2StopStreamingConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2StopStreamingConstMeta =>
+      const TaskConstMeta(debugName: "uac2_stop_streaming", argNames: []);
 
   @protected
   Map<String, PlatformInt64> dco_decode_Map_String_i_64_None(dynamic raw) {
@@ -1009,6 +1624,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Uac2AudioFormat dco_decode_box_autoadd_uac_2_audio_format(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_uac_2_audio_format(raw);
+  }
+
+  @protected
+  Uac2DeviceInfo dco_decode_box_autoadd_uac_2_device_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_uac_2_device_info(raw);
+  }
+
+  @protected
   BigInt dco_decode_box_autoadd_usize(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_usize(raw);
@@ -1066,6 +1693,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Float32List dco_decode_list_prim_f_32_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Float32List;
+  }
+
+  @protected
+  Uint16List dco_decode_list_prim_u_16_strict(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as Uint16List;
+  }
+
+  @protected
+  Uint32List dco_decode_list_prim_u_32_strict(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as Uint32List;
   }
 
   @protected
@@ -1189,17 +1828,113 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Uac2AudioFormat dco_decode_uac_2_audio_format(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return Uac2AudioFormat(
+      sampleRate: dco_decode_u_32(arr[0]),
+      bitDepth: dco_decode_u_8(arr[1]),
+      channels: dco_decode_u_16(arr[2]),
+    );
+  }
+
+  @protected
+  Uac2ConnectionState dco_decode_uac_2_connection_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return Uac2ConnectionState(
+      state: dco_decode_String(arr[0]),
+      reconnectAttempts: dco_decode_u_32(arr[1]),
+      autoReconnectEnabled: dco_decode_bool(arr[2]),
+    );
+  }
+
+  @protected
+  Uac2DeviceCapabilities dco_decode_uac_2_device_capabilities(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return Uac2DeviceCapabilities(
+      supportedSampleRates: dco_decode_list_prim_u_32_strict(arr[0]),
+      supportedBitDepths: dco_decode_list_prim_u_8_strict(arr[1]),
+      supportedChannels: dco_decode_list_prim_u_16_strict(arr[2]),
+      deviceType: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
   Uac2DeviceInfo dco_decode_uac_2_device_info(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return Uac2DeviceInfo(
       vendorId: dco_decode_u_16(arr[0]),
       productId: dco_decode_u_16(arr[1]),
       serial: dco_decode_opt_String(arr[2]),
       productName: dco_decode_String(arr[3]),
       manufacturer: dco_decode_String(arr[4]),
+      deviceName: dco_decode_opt_String(arr[5]),
+    );
+  }
+
+  @protected
+  Uac2FallbackInfo dco_decode_uac_2_fallback_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return Uac2FallbackInfo(
+      hasActiveFallback: dco_decode_bool(arr[0]),
+      fallbackName: dco_decode_opt_String(arr[1]),
+    );
+  }
+
+  @protected
+  Uac2PipelineInfo dco_decode_uac_2_pipeline_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return Uac2PipelineInfo(
+      isBitPerfect: dco_decode_bool(arr[0]),
+      requiresConversion: dco_decode_bool(arr[1]),
+      converterType: dco_decode_String(arr[2]),
+    );
+  }
+
+  @protected
+  Uac2TransferStats dco_decode_uac_2_transfer_stats(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return Uac2TransferStats(
+      totalSubmitted: dco_decode_u_64(arr[0]),
+      totalCompleted: dco_decode_u_64(arr[1]),
+      totalFailed: dco_decode_u_64(arr[2]),
+      totalRetried: dco_decode_u_64(arr[3]),
+      underruns: dco_decode_u_64(arr[4]),
+      overruns: dco_decode_u_64(arr[5]),
+      successRate: dco_decode_f_64(arr[6]),
+    );
+  }
+
+  @protected
+  Uac2VolumeRange dco_decode_uac_2_volume_range(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return Uac2VolumeRange(
+      min: dco_decode_i_32(arr[0]),
+      max: dco_decode_i_32(arr[1]),
+      resolution: dco_decode_i_32(arr[2]),
     );
   }
 
@@ -1365,6 +2100,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Uac2AudioFormat sse_decode_box_autoadd_uac_2_audio_format(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_uac_2_audio_format(deserializer));
+  }
+
+  @protected
+  Uac2DeviceInfo sse_decode_box_autoadd_uac_2_device_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_uac_2_device_info(deserializer));
+  }
+
+  @protected
   BigInt sse_decode_box_autoadd_usize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_usize(deserializer));
@@ -1441,6 +2192,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getFloat32List(len_);
+  }
+
+  @protected
+  Uint16List sse_decode_list_prim_u_16_strict(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var len_ = sse_decode_i_32(deserializer);
+    return deserializer.buffer.getUint16List(len_);
+  }
+
+  @protected
+  Uint32List sse_decode_list_prim_u_32_strict(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var len_ = sse_decode_i_32(deserializer);
+    return deserializer.buffer.getUint32List(len_);
   }
 
   @protected
@@ -1627,6 +2392,53 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Uac2AudioFormat sse_decode_uac_2_audio_format(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_sampleRate = sse_decode_u_32(deserializer);
+    var var_bitDepth = sse_decode_u_8(deserializer);
+    var var_channels = sse_decode_u_16(deserializer);
+    return Uac2AudioFormat(
+      sampleRate: var_sampleRate,
+      bitDepth: var_bitDepth,
+      channels: var_channels,
+    );
+  }
+
+  @protected
+  Uac2ConnectionState sse_decode_uac_2_connection_state(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_state = sse_decode_String(deserializer);
+    var var_reconnectAttempts = sse_decode_u_32(deserializer);
+    var var_autoReconnectEnabled = sse_decode_bool(deserializer);
+    return Uac2ConnectionState(
+      state: var_state,
+      reconnectAttempts: var_reconnectAttempts,
+      autoReconnectEnabled: var_autoReconnectEnabled,
+    );
+  }
+
+  @protected
+  Uac2DeviceCapabilities sse_decode_uac_2_device_capabilities(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_supportedSampleRates = sse_decode_list_prim_u_32_strict(
+      deserializer,
+    );
+    var var_supportedBitDepths = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_supportedChannels = sse_decode_list_prim_u_16_strict(deserializer);
+    var var_deviceType = sse_decode_String(deserializer);
+    return Uac2DeviceCapabilities(
+      supportedSampleRates: var_supportedSampleRates,
+      supportedBitDepths: var_supportedBitDepths,
+      supportedChannels: var_supportedChannels,
+      deviceType: var_deviceType,
+    );
+  }
+
+  @protected
   Uac2DeviceInfo sse_decode_uac_2_device_info(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_vendorId = sse_decode_u_16(deserializer);
@@ -1634,12 +2446,78 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_serial = sse_decode_opt_String(deserializer);
     var var_productName = sse_decode_String(deserializer);
     var var_manufacturer = sse_decode_String(deserializer);
+    var var_deviceName = sse_decode_opt_String(deserializer);
     return Uac2DeviceInfo(
       vendorId: var_vendorId,
       productId: var_productId,
       serial: var_serial,
       productName: var_productName,
       manufacturer: var_manufacturer,
+      deviceName: var_deviceName,
+    );
+  }
+
+  @protected
+  Uac2FallbackInfo sse_decode_uac_2_fallback_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_hasActiveFallback = sse_decode_bool(deserializer);
+    var var_fallbackName = sse_decode_opt_String(deserializer);
+    return Uac2FallbackInfo(
+      hasActiveFallback: var_hasActiveFallback,
+      fallbackName: var_fallbackName,
+    );
+  }
+
+  @protected
+  Uac2PipelineInfo sse_decode_uac_2_pipeline_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_isBitPerfect = sse_decode_bool(deserializer);
+    var var_requiresConversion = sse_decode_bool(deserializer);
+    var var_converterType = sse_decode_String(deserializer);
+    return Uac2PipelineInfo(
+      isBitPerfect: var_isBitPerfect,
+      requiresConversion: var_requiresConversion,
+      converterType: var_converterType,
+    );
+  }
+
+  @protected
+  Uac2TransferStats sse_decode_uac_2_transfer_stats(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_totalSubmitted = sse_decode_u_64(deserializer);
+    var var_totalCompleted = sse_decode_u_64(deserializer);
+    var var_totalFailed = sse_decode_u_64(deserializer);
+    var var_totalRetried = sse_decode_u_64(deserializer);
+    var var_underruns = sse_decode_u_64(deserializer);
+    var var_overruns = sse_decode_u_64(deserializer);
+    var var_successRate = sse_decode_f_64(deserializer);
+    return Uac2TransferStats(
+      totalSubmitted: var_totalSubmitted,
+      totalCompleted: var_totalCompleted,
+      totalFailed: var_totalFailed,
+      totalRetried: var_totalRetried,
+      underruns: var_underruns,
+      overruns: var_overruns,
+      successRate: var_successRate,
+    );
+  }
+
+  @protected
+  Uac2VolumeRange sse_decode_uac_2_volume_range(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_min = sse_decode_i_32(deserializer);
+    var var_max = sse_decode_i_32(deserializer);
+    var var_resolution = sse_decode_i_32(deserializer);
+    return Uac2VolumeRange(
+      min: var_min,
+      max: var_max,
+      resolution: var_resolution,
     );
   }
 
@@ -1791,6 +2669,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_uac_2_audio_format(
+    Uac2AudioFormat self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_uac_2_audio_format(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_uac_2_device_info(
+    Uac2DeviceInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_uac_2_device_info(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_usize(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(self, serializer);
@@ -1870,6 +2766,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putFloat32List(self);
+  }
+
+  @protected
+  void sse_encode_list_prim_u_16_strict(
+    Uint16List self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    serializer.buffer.putUint16List(self);
+  }
+
+  @protected
+  void sse_encode_list_prim_u_32_strict(
+    Uint32List self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    serializer.buffer.putUint32List(self);
   }
 
   @protected
@@ -2047,6 +2963,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_uac_2_audio_format(
+    Uac2AudioFormat self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self.sampleRate, serializer);
+    sse_encode_u_8(self.bitDepth, serializer);
+    sse_encode_u_16(self.channels, serializer);
+  }
+
+  @protected
+  void sse_encode_uac_2_connection_state(
+    Uac2ConnectionState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.state, serializer);
+    sse_encode_u_32(self.reconnectAttempts, serializer);
+    sse_encode_bool(self.autoReconnectEnabled, serializer);
+  }
+
+  @protected
+  void sse_encode_uac_2_device_capabilities(
+    Uac2DeviceCapabilities self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_prim_u_32_strict(self.supportedSampleRates, serializer);
+    sse_encode_list_prim_u_8_strict(self.supportedBitDepths, serializer);
+    sse_encode_list_prim_u_16_strict(self.supportedChannels, serializer);
+    sse_encode_String(self.deviceType, serializer);
+  }
+
+  @protected
   void sse_encode_uac_2_device_info(
     Uac2DeviceInfo self,
     SseSerializer serializer,
@@ -2057,6 +3007,54 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.serial, serializer);
     sse_encode_String(self.productName, serializer);
     sse_encode_String(self.manufacturer, serializer);
+    sse_encode_opt_String(self.deviceName, serializer);
+  }
+
+  @protected
+  void sse_encode_uac_2_fallback_info(
+    Uac2FallbackInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.hasActiveFallback, serializer);
+    sse_encode_opt_String(self.fallbackName, serializer);
+  }
+
+  @protected
+  void sse_encode_uac_2_pipeline_info(
+    Uac2PipelineInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.isBitPerfect, serializer);
+    sse_encode_bool(self.requiresConversion, serializer);
+    sse_encode_String(self.converterType, serializer);
+  }
+
+  @protected
+  void sse_encode_uac_2_transfer_stats(
+    Uac2TransferStats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.totalSubmitted, serializer);
+    sse_encode_u_64(self.totalCompleted, serializer);
+    sse_encode_u_64(self.totalFailed, serializer);
+    sse_encode_u_64(self.totalRetried, serializer);
+    sse_encode_u_64(self.underruns, serializer);
+    sse_encode_u_64(self.overruns, serializer);
+    sse_encode_f_64(self.successRate, serializer);
+  }
+
+  @protected
+  void sse_encode_uac_2_volume_range(
+    Uac2VolumeRange self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.min, serializer);
+    sse_encode_i_32(self.max, serializer);
+    sse_encode_i_32(self.resolution, serializer);
   }
 
   @protected

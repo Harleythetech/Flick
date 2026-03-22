@@ -311,7 +311,11 @@ class _RecentlyPlayedScreenState extends State<RecentlyPlayedScreen> {
       });
 
     return ListView.builder(
-      padding: EdgeInsets.only(bottom: AppConstants.navBarHeight + 120),
+      padding: EdgeInsets.only(
+        left: AppConstants.spacingMd,
+        right: AppConstants.spacingMd,
+        bottom: AppConstants.navBarHeight + 120,
+      ),
       itemCount: sortedSections.length,
       itemBuilder: (context, sectionIndex) {
         final section = sortedSections[sectionIndex];
@@ -327,8 +331,8 @@ class _RecentlyPlayedScreenState extends State<RecentlyPlayedScreen> {
         // Section header
         Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.spacingLg,
-            vertical: AppConstants.spacingSm,
+            horizontal: AppConstants.spacingSm,
+            vertical: AppConstants.spacingMd,
           ),
           child: Row(
             children: [
@@ -343,7 +347,7 @@ class _RecentlyPlayedScreenState extends State<RecentlyPlayedScreen> {
               const SizedBox(width: AppConstants.spacingSm),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: context.adaptiveTextSecondary,
                   fontWeight: FontWeight.w600,
                 ),
@@ -351,47 +355,49 @@ class _RecentlyPlayedScreenState extends State<RecentlyPlayedScreen> {
               const Spacer(),
               Text(
                 '${entries.length} ${entries.length == 1 ? 'song' : 'songs'}',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: context.adaptiveTextTertiary,
                 ),
               ),
             ],
           ),
         ),
-        // Horizontal scrollable cards
-        SizedBox(
-          height: context.scaleSize(AppConstants.cardHeightMd),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppConstants.spacingMd,
-            ),
-            itemCount: entries.length,
-            itemBuilder: (context, index) {
-              final entry = entries[index];
-              return _RecentlyPlayedCard(
-                song: entry.song,
-                playedAt: entry.playedAt,
-                onTap: () async {
-                  await _playerService.play(entry.song);
-                  if (context.mounted) {
-                    await NavigationHelper.navigateToFullPlayer(
-                      context,
-                      heroTag: 'recent_song_${entry.song.id}',
-                    );
-                  }
-                },
-              );
-            },
+        // 2-column grid
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.85,
+            crossAxisSpacing: AppConstants.spacingMd,
+            mainAxisSpacing: AppConstants.spacingMd,
           ),
+          itemCount: entries.length,
+          itemBuilder: (context, index) {
+            final entry = entries[index];
+            return _RecentlyPlayedCard(
+              song: entry.song,
+              playedAt: entry.playedAt,
+              onTap: () async {
+                await _playerService.play(entry.song);
+                if (context.mounted) {
+                  await NavigationHelper.navigateToFullPlayer(
+                    context,
+                    heroTag: 'recent_song_${entry.song.id}',
+                  );
+                }
+              },
+            );
+          },
         ),
-        const SizedBox(height: AppConstants.spacingMd),
+        const SizedBox(height: AppConstants.spacingLg),
       ],
     );
   }
 }
 
-class _RecentlyPlayedCard extends StatelessWidget {
+class _RecentlyPlayedCard extends StatefulWidget {
   final Song song;
   final DateTime playedAt;
   final VoidCallback onTap;
@@ -401,6 +407,39 @@ class _RecentlyPlayedCard extends StatelessWidget {
     required this.playedAt,
     required this.onTap,
   });
+
+  @override
+  State<_RecentlyPlayedCard> createState() => _RecentlyPlayedCardState();
+}
+
+class _RecentlyPlayedCardState extends State<_RecentlyPlayedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _tiltAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _tiltAnimation = Tween<double>(
+      begin: 0.0,
+      end: 0.02,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   String _formatTime(DateTime time) {
     final now = DateTime.now();
@@ -419,23 +458,37 @@ class _RecentlyPlayedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
     final cardWidth = context.scaleSize(AppConstants.cardWidthMd);
-    final cardHeight = context.scaleSize(AppConstants.cardHeightMd);
     final artworkTargetWidth = (cardWidth * devicePixelRatio).round();
-    final artworkTargetHeight = (cardHeight * devicePixelRatio).round();
 
-    return Padding(
-      padding: const EdgeInsets.only(right: AppConstants.spacingSm),
-      child: RepaintBoundary(
-        child: Material(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-          child: InkWell(
-            onTap: onTap,
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.diagonal3Values(
+              _scaleAnimation.value,
+              _scaleAnimation.value,
+              1.0,
+            )..rotateZ(_tiltAnimation.value),
+            child: child,
+          );
+        },
+        child: RepaintBoundary(
+          child: Material(
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-            child: ClipRRect(
+            child: InkWell(
+              onTap: widget.onTap,
               borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-              child: SizedBox(
-                width: cardWidth,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppConstants.radiusLg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -449,17 +502,15 @@ class _RecentlyPlayedCard extends StatelessWidget {
                             top: Radius.circular(AppConstants.radiusLg),
                           ),
                         ),
-                        child: song.albumArt != null
+                        child: widget.song.albumArt != null
                             ? ClipRRect(
                                 borderRadius: const BorderRadius.vertical(
                                   top: Radius.circular(AppConstants.radiusLg),
                                 ),
                                 child: Image.file(
-                                  File(song.albumArt!),
+                                  File(widget.song.albumArt!),
                                   fit: BoxFit.cover,
-                                  // Downscale decode to what we actually render.
                                   cacheWidth: artworkTargetWidth,
-                                  cacheHeight: artworkTargetHeight,
                                   filterQuality: FilterQuality.low,
                                   gaplessPlayback: true,
                                   errorBuilder: (_, _, _) =>
@@ -471,13 +522,13 @@ class _RecentlyPlayedCard extends StatelessWidget {
                     ),
                     // Song info
                     Padding(
-                      padding: const EdgeInsets.all(AppConstants.spacingXs),
+                      padding: const EdgeInsets.all(AppConstants.spacingSm),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            song.title,
-                            style: Theme.of(context).textTheme.labelMedium
+                            widget.song.title,
+                            style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(
                                   color: context.adaptiveTextPrimary,
                                   fontWeight: FontWeight.w600,
@@ -496,12 +547,16 @@ class _RecentlyPlayedCard extends StatelessWidget {
                                 color: context.adaptiveTextTertiary,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                _formatTime(playedAt),
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(
-                                      color: context.adaptiveTextTertiary,
-                                    ),
+                              Expanded(
+                                child: Text(
+                                  _formatTime(widget.playedAt),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: context.adaptiveTextTertiary,
+                                      ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
@@ -522,8 +577,8 @@ class _RecentlyPlayedCard extends StatelessWidget {
     return Center(
       child: Icon(
         LucideIcons.music,
+        size: context.responsiveIcon(AppConstants.containerSizeSm),
         color: context.adaptiveTextTertiary.withValues(alpha: 0.5),
-        size: context.responsiveIcon(AppConstants.iconSizeLg),
       ),
     );
   }

@@ -39,6 +39,14 @@ android {
     packaging {  // fixed deprecation: renamed from packagingOptions
         jniLibs {
             useLegacyPackaging = true
+            // Keep libc++_shared.so for Rust library
+            pickFirsts += listOf("**/libc++_shared.so")
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
         }
     }
 
@@ -51,6 +59,17 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// Copy libc++_shared.so from NDK before building
+tasks.register<Exec>("copyNdkLibs") {
+    description = "Copy libc++_shared.so from Android NDK to jniLibs"
+    commandLine("bash", "${projectDir}/../copy_ndk_libs.sh")
+}
+
+// Make preBuild depend on copyNdkLibs
+tasks.named("preBuild") {
+    dependsOn("copyNdkLibs")
 }
 
 dependencies {
