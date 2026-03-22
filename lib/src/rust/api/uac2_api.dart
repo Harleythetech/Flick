@@ -6,7 +6,8 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Uac2ErrorCode`, `Uac2HotplugEvent`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 bool uac2IsAvailable() => RustLib.instance.api.crateApiUac2ApiUac2IsAvailable();
 
@@ -30,6 +31,16 @@ Future<bool> uac2StopStreaming() =>
 
 Future<void> uac2Disconnect() =>
     RustLib.instance.api.crateApiUac2ApiUac2Disconnect();
+
+Future<void> uac2SetVolume({required double volume}) =>
+    RustLib.instance.api.crateApiUac2ApiUac2SetVolume(volume: volume);
+
+double uac2GetVolume() => RustLib.instance.api.crateApiUac2ApiUac2GetVolume();
+
+Future<void> uac2SetMute({required bool muted}) =>
+    RustLib.instance.api.crateApiUac2ApiUac2SetMute(muted: muted);
+
+bool uac2GetMute() => RustLib.instance.api.crateApiUac2ApiUac2GetMute();
 
 class Uac2AudioFormat {
   final int sampleRate;

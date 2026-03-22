@@ -32,6 +32,23 @@ pub struct Uac2AudioFormat {
     pub channels: u16,
 }
 
+#[derive(Debug, Clone)]
+pub struct Uac2HotplugEvent {
+    pub device_id: String,
+    pub connected: bool,
+}
+
+#[derive(Debug, Clone)]
+pub enum Uac2ErrorCode {
+    DeviceNotFound,
+    DeviceBusy,
+    PermissionDenied,
+    ConnectionFailed,
+    TransferFailed,
+    UnsupportedFormat,
+    Unknown,
+}
+
 #[flutter_rust_bridge::frb(sync)]
 pub fn uac2_is_available() -> bool {
     #[cfg(feature = "uac2")]
@@ -160,6 +177,57 @@ pub fn uac2_disconnect() -> Result<(), String> {
     {
         log::info!("Disconnecting UAC2 device");
         Ok(())
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+pub fn uac2_set_volume(volume: f64) -> Result<(), String> {
+    #[cfg(feature = "uac2")]
+    {
+        if !(0.0..=1.0).contains(&volume) {
+            return Err("Volume must be between 0.0 and 1.0".to_string());
+        }
+        log::info!("Setting UAC2 volume: {:.2}", volume);
+        Ok(())
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn uac2_get_volume() -> Result<f64, String> {
+    #[cfg(feature = "uac2")]
+    {
+        Ok(1.0)
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+pub fn uac2_set_mute(muted: bool) -> Result<(), String> {
+    #[cfg(feature = "uac2")]
+    {
+        log::info!("Setting UAC2 mute: {}", muted);
+        Ok(())
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn uac2_get_mute() -> Result<bool, String> {
+    #[cfg(feature = "uac2")]
+    {
+        Ok(false)
     }
     #[cfg(not(feature = "uac2"))]
     {

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flick/src/rust/api/uac2_api.dart' as rust_uac2;
 import 'package:flick/services/uac2_preferences_service.dart';
+import 'package:flick/services/uac2_exception.dart';
 
 enum Uac2State {
   idle,
@@ -139,7 +140,7 @@ class Uac2Service {
       return rust_uac2.uac2ListDevices();
     } catch (e) {
       debugPrint('Uac2Service.listDevices failed: $e');
-      return [];
+      throw Uac2Exception.fromMessage(e.toString());
     }
   }
 
@@ -328,12 +329,76 @@ class Uac2Service {
 
     try {
       if (rust_uac2.uac2IsAvailable()) {
+        await rust_uac2.uac2Disconnect();
       }
       await _preferencesService.clearSelectedDevice();
     } catch (e) {
       debugPrint('Uac2Service.disconnect failed: $e');
     } finally {
       _updateStatus(null);
+    }
+  }
+
+  Future<bool> setVolume(double volume) async {
+    if (_currentDeviceStatus == null) return false;
+    if (volume < 0.0 || volume > 1.0) return false;
+
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2SetVolume(volume: volume);
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.setVolume failed: $e');
+      return false;
+    }
+  }
+
+  Future<double?> getVolume() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetVolume();
+    } catch (e) {
+      debugPrint('Uac2Service.getVolume failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> setMute(bool muted) async {
+    if (_currentDeviceStatus == null) return false;
+
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2SetMute(muted: muted);
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.setMute failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool?> getMute() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetMute();
+    } catch (e) {
+      debugPrint('Uac2Service.getMute failed: $e');
+      return null;
     }
   }
 

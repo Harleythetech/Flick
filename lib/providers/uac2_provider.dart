@@ -49,6 +49,22 @@ class Uac2DeviceStatusNotifier extends ChangeNotifier {
     await _service.disconnect();
   }
 
+  Future<bool> setVolume(double volume) async {
+    return _service.setVolume(volume);
+  }
+
+  Future<double?> getVolume() async {
+    return _service.getVolume();
+  }
+
+  Future<bool> setMute(bool muted) async {
+    return _service.setMute(muted);
+  }
+
+  Future<bool?> getMute() async {
+    return _service.getMute();
+  }
+
   @override
   void dispose() {
     _service.removeStatusListener(_onStatusChanged);

@@ -9,6 +9,9 @@ import 'package:flick/providers/providers.dart';
 import 'package:flick/services/uac2_service.dart';
 import 'package:flick/widgets/common/display_mode_wrapper.dart';
 import 'package:flick/features/settings/screens/uac2_preferences_screen.dart';
+import 'package:flick/widgets/uac2/uac2_volume_control.dart';
+import 'package:flick/widgets/uac2/uac2_stream_config.dart';
+import 'package:flick/widgets/uac2/uac2_hotplug_monitor.dart';
 
 class Uac2SettingsScreen extends ConsumerStatefulWidget {
   const Uac2SettingsScreen({super.key});
@@ -46,6 +49,7 @@ class _Uac2SettingsScreenState extends ConsumerState<Uac2SettingsScreen> {
                     children: [
                       if (!isAvailable) _buildUnavailableCard(context),
                       if (isAvailable) ...[
+                        const Uac2HotplugMonitor(),
                         _buildSectionHeader(context, 'USB Audio Devices'),
                         devicesAsync.when(
                           data: (devices) => _buildDevicesList(
@@ -64,11 +68,19 @@ class _Uac2SettingsScreenState extends ConsumerState<Uac2SettingsScreen> {
                           const SizedBox(height: AppConstants.spacingLg),
                           _buildSectionHeader(context, 'Capabilities'),
                           _buildCapabilitiesCard(context, selectedDevice),
+                          const SizedBox(height: AppConstants.spacingLg),
+                          _buildSectionHeader(context, 'Stream Configuration'),
+                          Uac2StreamConfig(device: selectedDevice),
                         ],
                         if (deviceStatus != null) ...[
                           const SizedBox(height: AppConstants.spacingLg),
                           _buildSectionHeader(context, 'Status'),
                           _buildStatusCard(context, deviceStatus),
+                        ],
+                        if (deviceStatus?.state == Uac2State.streaming) ...[
+                          const SizedBox(height: AppConstants.spacingLg),
+                          _buildSectionHeader(context, 'Volume Control'),
+                          const Uac2VolumeControl(),
                         ],
                       ],
                       const SizedBox(height: AppConstants.navBarHeight + 120),
