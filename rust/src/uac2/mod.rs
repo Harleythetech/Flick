@@ -5,7 +5,13 @@ mod audio_format;
 #[cfg(feature = "uac2")]
 mod audio_pipeline;
 #[cfg(feature = "uac2")]
+mod audio_sink;
+#[cfg(feature = "uac2")]
+mod backend;
+#[cfg(feature = "uac2")]
 mod capabilities;
+#[cfg(feature = "uac2")]
+mod format_negotiation;
 #[cfg(feature = "uac2")]
 pub mod constants;
 #[cfg(feature = "uac2")]
@@ -48,9 +54,17 @@ pub use audio_pipeline::{
     AudioPipeline, BitDepthConverter, FormatConverter, PassthroughConverter, SampleRateConverter,
 };
 #[cfg(feature = "uac2")]
+pub use audio_sink::Uac2AudioSink;
+#[cfg(feature = "uac2")]
+pub use backend::{AudioBackend, Uac2Backend};
+#[cfg(feature = "uac2")]
 pub use capabilities::{
     CapabilityDetector, ControlCapabilities, DeviceCapabilities, DeviceType, FormatMatcher,
     PowerCapabilities,
+};
+#[cfg(feature = "uac2")]
+pub use format_negotiation::{
+    FormatMismatchHandler, FormatNegotiationEngine, FormatNegotiationStrategy,
 };
 #[cfg(feature = "uac2")]
 pub use device_classifier::{

@@ -184,12 +184,12 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 
 ### 6.1 Rust Audio Engine Integration
 
-- [ ] Create `Uac2AudioSink` struct implementing audio sink trait
-- [ ] Integrate with existing `rust/src/audio/engine.rs`
-- [ ] Add UAC2 as optional audio backend
-- [ ] Implement audio format negotiation between engine and UAC2
-- [ ] Handle format mismatches gracefully
-- [ ] Maintain compatibility with existing audio pipeline
+- [X] Create `Uac2AudioSink` struct implementing audio sink trait
+- [X] Integrate with existing `rust/src/audio/engine.rs`
+- [X] Add UAC2 as optional audio backend
+- [X] Implement audio format negotiation between engine and UAC2
+- [X] Handle format mismatches gracefully
+- [X] Maintain compatibility with existing audio pipeline
 
 ### 6.2 Flutter Service Integration
 

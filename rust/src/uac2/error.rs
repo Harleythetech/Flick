@@ -60,6 +60,18 @@ pub enum Uac2Error {
     /// Transfer failed
     #[error("Transfer failed: {0}")]
     TransferFailed(String),
+
+    /// Thread spawn error
+    #[error("Failed to spawn thread: {0}")]
+    ThreadSpawn(String),
+
+    /// Thread join error
+    #[error("Failed to join thread")]
+    ThreadJoin,
+
+    /// No supported format
+    #[error("No supported format")]
+    NoSupportedFormat,
 }
 
 impl Uac2Error {
@@ -80,6 +92,9 @@ impl Uac2Error {
             Uac2Error::BufferOverflow => "Buffer overflow".to_string(),
             Uac2Error::BufferUnderflow => "Buffer underflow".to_string(),
             Uac2Error::TransferFailed(msg) => format!("Transfer failed: {}", msg),
+            Uac2Error::ThreadSpawn(msg) => format!("Thread spawn failed: {}", msg),
+            Uac2Error::ThreadJoin => "Thread join failed".to_string(),
+            Uac2Error::NoSupportedFormat => "No supported format found".to_string(),
         }
     }
 }
