@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Uac2ErrorCode`, `Uac2HotplugEvent`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 bool uac2IsAvailable() => RustLib.instance.api.crateApiUac2ApiUac2IsAvailable();
 
@@ -41,6 +41,26 @@ Future<void> uac2SetMute({required bool muted}) =>
     RustLib.instance.api.crateApiUac2ApiUac2SetMute(muted: muted);
 
 bool uac2GetMute() => RustLib.instance.api.crateApiUac2ApiUac2GetMute();
+
+Future<Uac2VolumeRange> uac2GetVolumeRange() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetVolumeRange();
+
+Future<void> uac2SetSamplingFrequency({required int frequency}) => RustLib
+    .instance
+    .api
+    .crateApiUac2ApiUac2SetSamplingFrequency(frequency: frequency);
+
+int uac2GetSamplingFrequency() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetSamplingFrequency();
+
+Uac2TransferStats uac2GetTransferStats() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetTransferStats();
+
+Future<void> uac2ResetTransferStats() =>
+    RustLib.instance.api.crateApiUac2ApiUac2ResetTransferStats();
+
+Uac2PipelineInfo uac2GetPipelineInfo() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetPipelineInfo();
 
 class Uac2AudioFormat {
   final int sampleRate;
@@ -135,4 +155,98 @@ class Uac2DeviceInfo {
           productName == other.productName &&
           manufacturer == other.manufacturer &&
           deviceName == other.deviceName;
+}
+
+class Uac2PipelineInfo {
+  final bool isBitPerfect;
+  final bool requiresConversion;
+  final String converterType;
+
+  const Uac2PipelineInfo({
+    required this.isBitPerfect,
+    required this.requiresConversion,
+    required this.converterType,
+  });
+
+  @override
+  int get hashCode =>
+      isBitPerfect.hashCode ^
+      requiresConversion.hashCode ^
+      converterType.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2PipelineInfo &&
+          runtimeType == other.runtimeType &&
+          isBitPerfect == other.isBitPerfect &&
+          requiresConversion == other.requiresConversion &&
+          converterType == other.converterType;
+}
+
+class Uac2TransferStats {
+  final BigInt totalSubmitted;
+  final BigInt totalCompleted;
+  final BigInt totalFailed;
+  final BigInt totalRetried;
+  final BigInt underruns;
+  final BigInt overruns;
+  final double successRate;
+
+  const Uac2TransferStats({
+    required this.totalSubmitted,
+    required this.totalCompleted,
+    required this.totalFailed,
+    required this.totalRetried,
+    required this.underruns,
+    required this.overruns,
+    required this.successRate,
+  });
+
+  @override
+  int get hashCode =>
+      totalSubmitted.hashCode ^
+      totalCompleted.hashCode ^
+      totalFailed.hashCode ^
+      totalRetried.hashCode ^
+      underruns.hashCode ^
+      overruns.hashCode ^
+      successRate.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2TransferStats &&
+          runtimeType == other.runtimeType &&
+          totalSubmitted == other.totalSubmitted &&
+          totalCompleted == other.totalCompleted &&
+          totalFailed == other.totalFailed &&
+          totalRetried == other.totalRetried &&
+          underruns == other.underruns &&
+          overruns == other.overruns &&
+          successRate == other.successRate;
+}
+
+class Uac2VolumeRange {
+  final int min;
+  final int max;
+  final int resolution;
+
+  const Uac2VolumeRange({
+    required this.min,
+    required this.max,
+    required this.resolution,
+  });
+
+  @override
+  int get hashCode => min.hashCode ^ max.hashCode ^ resolution.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2VolumeRange &&
+          runtimeType == other.runtimeType &&
+          min == other.min &&
+          max == other.max &&
+          resolution == other.resolution;
 }

@@ -402,6 +402,98 @@ class Uac2Service {
     }
   }
 
+  Future<Uac2VolumeRange?> getVolumeRange() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetVolumeRange();
+    } catch (e) {
+      debugPrint('Uac2Service.getVolumeRange failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> setSamplingFrequency(int frequency) async {
+    if (_currentDeviceStatus == null) return false;
+
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2SetSamplingFrequency(frequency: frequency);
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.setSamplingFrequency failed: $e');
+      return false;
+    }
+  }
+
+  Future<int?> getSamplingFrequency() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetSamplingFrequency();
+    } catch (e) {
+      debugPrint('Uac2Service.getSamplingFrequency failed: $e');
+      return null;
+    }
+  }
+
+  Future<Uac2TransferStats?> getTransferStats() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetTransferStats();
+    } catch (e) {
+      debugPrint('Uac2Service.getTransferStats failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> resetTransferStats() async {
+    if (_currentDeviceStatus == null) return false;
+
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2ResetTransferStats();
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.resetTransferStats failed: $e');
+      return false;
+    }
+  }
+
+  Future<Uac2PipelineInfo?> getPipelineInfo() async {
+    if (_currentDeviceStatus == null) return null;
+
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetPipelineInfo();
+    } catch (e) {
+      debugPrint('Uac2Service.getPipelineInfo failed: $e');
+      return null;
+    }
+  }
+
   void _updateStatus(Uac2DeviceStatus? status) {
     _currentDeviceStatus = status;
     _notifyStatusListeners();
@@ -409,3 +501,6 @@ class Uac2Service {
 }
 
 typedef Uac2DeviceInfo = rust_uac2.Uac2DeviceInfo;
+typedef Uac2VolumeRange = rust_uac2.Uac2VolumeRange;
+typedef Uac2TransferStats = rust_uac2.Uac2TransferStats;
+typedef Uac2PipelineInfo = rust_uac2.Uac2PipelineInfo;

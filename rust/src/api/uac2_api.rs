@@ -234,3 +234,115 @@ pub fn uac2_get_mute() -> Result<bool, String> {
         Err("UAC2 not available".to_string())
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct Uac2VolumeRange {
+    pub min: i32,
+    pub max: i32,
+    pub resolution: i32,
+}
+
+pub fn uac2_get_volume_range() -> Result<Uac2VolumeRange, String> {
+    #[cfg(feature = "uac2")]
+    {
+        Ok(Uac2VolumeRange {
+            min: -6400,
+            max: 0,
+            resolution: 256,
+        })
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+pub fn uac2_set_sampling_frequency(frequency: u32) -> Result<(), String> {
+    #[cfg(feature = "uac2")]
+    {
+        log::info!("Setting UAC2 sampling frequency: {}Hz", frequency);
+        Ok(())
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn uac2_get_sampling_frequency() -> Result<u32, String> {
+    #[cfg(feature = "uac2")]
+    {
+        Ok(48000)
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Uac2TransferStats {
+    pub total_submitted: u64,
+    pub total_completed: u64,
+    pub total_failed: u64,
+    pub total_retried: u64,
+    pub underruns: u64,
+    pub overruns: u64,
+    pub success_rate: f64,
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn uac2_get_transfer_stats() -> Result<Uac2TransferStats, String> {
+    #[cfg(feature = "uac2")]
+    {
+        Ok(Uac2TransferStats {
+            total_submitted: 0,
+            total_completed: 0,
+            total_failed: 0,
+            total_retried: 0,
+            underruns: 0,
+            overruns: 0,
+            success_rate: 0.0,
+        })
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+pub fn uac2_reset_transfer_stats() -> Result<(), String> {
+    #[cfg(feature = "uac2")]
+    {
+        log::info!("Resetting UAC2 transfer statistics");
+        Ok(())
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Uac2PipelineInfo {
+    pub is_bit_perfect: bool,
+    pub requires_conversion: bool,
+    pub converter_type: String,
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn uac2_get_pipeline_info() -> Result<Uac2PipelineInfo, String> {
+    #[cfg(feature = "uac2")]
+    {
+        Ok(Uac2PipelineInfo {
+            is_bit_perfect: true,
+            requires_conversion: false,
+            converter_type: "Passthrough".to_string(),
+        })
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}

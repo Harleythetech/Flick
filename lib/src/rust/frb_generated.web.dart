@@ -168,6 +168,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uac2DeviceInfo dco_decode_uac_2_device_info(dynamic raw);
 
   @protected
+  Uac2PipelineInfo dco_decode_uac_2_pipeline_info(dynamic raw);
+
+  @protected
+  Uac2TransferStats dco_decode_uac_2_transfer_stats(dynamic raw);
+
+  @protected
+  Uac2VolumeRange dco_decode_uac_2_volume_range(dynamic raw);
+
+  @protected
   void dco_decode_unit(dynamic raw);
 
   @protected
@@ -344,6 +353,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uac2DeviceInfo sse_decode_uac_2_device_info(SseDeserializer deserializer);
+
+  @protected
+  Uac2PipelineInfo sse_decode_uac_2_pipeline_info(SseDeserializer deserializer);
+
+  @protected
+  Uac2TransferStats sse_decode_uac_2_transfer_stats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Uac2VolumeRange sse_decode_uac_2_volume_range(SseDeserializer deserializer);
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
@@ -558,6 +578,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_uac_2_device_info(
     Uac2DeviceInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_uac_2_pipeline_info(
+    Uac2PipelineInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_uac_2_transfer_stats(
+    Uac2TransferStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_uac_2_volume_range(
+    Uac2VolumeRange self,
     SseSerializer serializer,
   );
 
