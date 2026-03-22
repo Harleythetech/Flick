@@ -50,13 +50,7 @@ pub fn uac2_list_devices() -> Result<Vec<Uac2DeviceInfo>, String> {
         match uac2::enumerate_uac2_devices() {
             Ok(devices) => Ok(devices
                 .into_iter()
-                .map(|d| Uac2DeviceInfo {
-                    vendor_id: d.identification.vendor_id,
-                    product_id: d.identification.product_id,
-                    serial: d.identification.serial,
-                    product_name: d.metadata.product_name,
-                    manufacturer: d.metadata.manufacturer,
-                })
+                .map(|d| d.to_device_info())
                 .collect()),
             Err(err) => {
                 log::error!("UAC2 enumeration failed: {}", err);
@@ -75,11 +69,8 @@ pub fn uac2_get_device_capabilities(
 ) -> Result<Uac2DeviceCapabilities, String> {
     #[cfg(feature = "uac2")]
     {
-        use crate::uac2::DeviceRegistry;
-        
-        let registry = DeviceRegistry::global();
         let devices = uac2::enumerate_uac2_devices().map_err(|e| e.user_message())?;
-        
+
         let found = devices.into_iter().find(|d| {
             d.identification.vendor_id == device.vendor_id
                 && d.identification.product_id == device.product_id
@@ -88,22 +79,23 @@ pub fn uac2_get_device_capabilities(
 
         if let Some(dev) = found {
             let caps = dev.capabilities();
+            
+            let mut all_sample_rates = std::collections::HashSet::new();
+            let mut all_bit_depths = std::collections::HashSet::new();
+            let mut all_channels = std::collections::HashSet::new();
+            
+            for format in &caps.supported_formats {
+                for rate in &format.sample_rates {
+                    all_sample_rates.insert(rate.hz());
+                }
+                all_bit_depths.insert(format.bit_depth.bits());
+                all_channels.insert(format.channels.count());
+            }
+            
             Ok(Uac2DeviceCapabilities {
-                supported_sample_rates: caps
-                    .supported_sample_rates
-                    .iter()
-                    .map(|r| r.hz())
-                    .collect(),
-                supported_bit_depths: caps
-                    .supported_bit_depths
-                    .iter()
-                    .map(|d| d.bits())
-                    .collect(),
-                supported_channels: caps
-                    .supported_channels
-                    .iter()
-                    .map(|&c| c as u16)
-                    .collect(),
+                supported_sample_rates: all_sample_rates.into_iter().collect(),
+                supported_bit_depths: all_bit_depths.into_iter().collect(),
+                supported_channels: all_channels.into_iter().collect(),
                 device_type: format!("{:?}", caps.device_type),
             })
         } else {

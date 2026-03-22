@@ -6,30 +6,92 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`
 
-/// Returns whether the UAC 2.0 backend is available on this build.
-/// True when built with the `uac2` feature; false otherwise.
 bool uac2IsAvailable() => RustLib.instance.api.crateApiUac2ApiUac2IsAvailable();
 
 List<Uac2DeviceInfo> uac2ListDevices() =>
     RustLib.instance.api.crateApiUac2ApiUac2ListDevices();
 
-/// Information about a detected UAC 2.0 device (DAC/AMP).
+Future<Uac2DeviceCapabilities> uac2GetDeviceCapabilities({
+  required Uac2DeviceInfo device,
+}) => RustLib.instance.api.crateApiUac2ApiUac2GetDeviceCapabilities(
+  device: device,
+);
+
+Future<bool> uac2SelectDevice({required Uac2DeviceInfo device}) =>
+    RustLib.instance.api.crateApiUac2ApiUac2SelectDevice(device: device);
+
+Future<bool> uac2StartStreaming({required Uac2AudioFormat format}) =>
+    RustLib.instance.api.crateApiUac2ApiUac2StartStreaming(format: format);
+
+Future<bool> uac2StopStreaming() =>
+    RustLib.instance.api.crateApiUac2ApiUac2StopStreaming();
+
+Future<void> uac2Disconnect() =>
+    RustLib.instance.api.crateApiUac2ApiUac2Disconnect();
+
+class Uac2AudioFormat {
+  final int sampleRate;
+  final int bitDepth;
+  final int channels;
+
+  const Uac2AudioFormat({
+    required this.sampleRate,
+    required this.bitDepth,
+    required this.channels,
+  });
+
+  @override
+  int get hashCode =>
+      sampleRate.hashCode ^ bitDepth.hashCode ^ channels.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2AudioFormat &&
+          runtimeType == other.runtimeType &&
+          sampleRate == other.sampleRate &&
+          bitDepth == other.bitDepth &&
+          channels == other.channels;
+}
+
+class Uac2DeviceCapabilities {
+  final Uint32List supportedSampleRates;
+  final Uint8List supportedBitDepths;
+  final Uint16List supportedChannels;
+  final String deviceType;
+
+  const Uac2DeviceCapabilities({
+    required this.supportedSampleRates,
+    required this.supportedBitDepths,
+    required this.supportedChannels,
+    required this.deviceType,
+  });
+
+  @override
+  int get hashCode =>
+      supportedSampleRates.hashCode ^
+      supportedBitDepths.hashCode ^
+      supportedChannels.hashCode ^
+      deviceType.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2DeviceCapabilities &&
+          runtimeType == other.runtimeType &&
+          supportedSampleRates == other.supportedSampleRates &&
+          supportedBitDepths == other.supportedBitDepths &&
+          supportedChannels == other.supportedChannels &&
+          deviceType == other.deviceType;
+}
+
 class Uac2DeviceInfo {
-  /// USB vendor ID
   final int vendorId;
-
-  /// USB product ID
   final int productId;
-
-  /// Device serial number (optional)
   final String? serial;
-
-  /// Product name string
   final String productName;
-
-  /// Manufacturer string
   final String manufacturer;
 
   const Uac2DeviceInfo({

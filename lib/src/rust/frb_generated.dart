@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 885669079;
+  int get rustContentHash => 1075954249;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -143,9 +143,25 @@ abstract class RustLibApi extends BaseApi {
     required Map<String, PlatformInt64> knownFiles,
   });
 
+  Future<void> crateApiUac2ApiUac2Disconnect();
+
+  Future<Uac2DeviceCapabilities> crateApiUac2ApiUac2GetDeviceCapabilities({
+    required Uac2DeviceInfo device,
+  });
+
   bool crateApiUac2ApiUac2IsAvailable();
 
   List<Uac2DeviceInfo> crateApiUac2ApiUac2ListDevices();
+
+  Future<bool> crateApiUac2ApiUac2SelectDevice({
+    required Uac2DeviceInfo device,
+  });
+
+  Future<bool> crateApiUac2ApiUac2StartStreaming({
+    required Uac2AudioFormat format,
+  });
+
+  Future<bool> crateApiUac2ApiUac2StopStreaming();
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -842,12 +858,72 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<void> crateApiUac2ApiUac2Disconnect() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 27,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2DisconnectConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2DisconnectConstMeta =>
+      const TaskConstMeta(debugName: "uac2_disconnect", argNames: []);
+
+  @override
+  Future<Uac2DeviceCapabilities> crateApiUac2ApiUac2GetDeviceCapabilities({
+    required Uac2DeviceInfo device,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_uac_2_device_info(device, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 28,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_uac_2_device_capabilities,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetDeviceCapabilitiesConstMeta,
+        argValues: [device],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetDeviceCapabilitiesConstMeta =>
+      const TaskConstMeta(
+        debugName: "uac2_get_device_capabilities",
+        argNames: ["device"],
+      );
+
+  @override
   bool crateApiUac2ApiUac2IsAvailable() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -869,7 +945,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_list_uac_2_device_info,
@@ -884,6 +960,99 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiUac2ApiUac2ListDevicesConstMeta =>
       const TaskConstMeta(debugName: "uac2_list_devices", argNames: []);
+
+  @override
+  Future<bool> crateApiUac2ApiUac2SelectDevice({
+    required Uac2DeviceInfo device,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_uac_2_device_info(device, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 31,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2SelectDeviceConstMeta,
+        argValues: [device],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2SelectDeviceConstMeta =>
+      const TaskConstMeta(
+        debugName: "uac2_select_device",
+        argNames: ["device"],
+      );
+
+  @override
+  Future<bool> crateApiUac2ApiUac2StartStreaming({
+    required Uac2AudioFormat format,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_uac_2_audio_format(format, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 32,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2StartStreamingConstMeta,
+        argValues: [format],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2StartStreamingConstMeta =>
+      const TaskConstMeta(
+        debugName: "uac2_start_streaming",
+        argNames: ["format"],
+      );
+
+  @override
+  Future<bool> crateApiUac2ApiUac2StopStreaming() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 33,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2StopStreamingConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2StopStreamingConstMeta =>
+      const TaskConstMeta(debugName: "uac2_stop_streaming", argNames: []);
 
   @protected
   Map<String, PlatformInt64> dco_decode_Map_String_i_64_None(dynamic raw) {
@@ -1009,6 +1178,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Uac2AudioFormat dco_decode_box_autoadd_uac_2_audio_format(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_uac_2_audio_format(raw);
+  }
+
+  @protected
+  Uac2DeviceInfo dco_decode_box_autoadd_uac_2_device_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_uac_2_device_info(raw);
+  }
+
+  @protected
   BigInt dco_decode_box_autoadd_usize(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_usize(raw);
@@ -1066,6 +1247,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Float32List dco_decode_list_prim_f_32_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Float32List;
+  }
+
+  @protected
+  Uint16List dco_decode_list_prim_u_16_strict(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as Uint16List;
+  }
+
+  @protected
+  Uint32List dco_decode_list_prim_u_32_strict(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as Uint32List;
   }
 
   @protected
@@ -1186,6 +1379,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int dco_decode_u_8(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
+  }
+
+  @protected
+  Uac2AudioFormat dco_decode_uac_2_audio_format(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return Uac2AudioFormat(
+      sampleRate: dco_decode_u_32(arr[0]),
+      bitDepth: dco_decode_u_8(arr[1]),
+      channels: dco_decode_u_16(arr[2]),
+    );
+  }
+
+  @protected
+  Uac2DeviceCapabilities dco_decode_uac_2_device_capabilities(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return Uac2DeviceCapabilities(
+      supportedSampleRates: dco_decode_list_prim_u_32_strict(arr[0]),
+      supportedBitDepths: dco_decode_list_prim_u_8_strict(arr[1]),
+      supportedChannels: dco_decode_list_prim_u_16_strict(arr[2]),
+      deviceType: dco_decode_String(arr[3]),
+    );
   }
 
   @protected
@@ -1365,6 +1585,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Uac2AudioFormat sse_decode_box_autoadd_uac_2_audio_format(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_uac_2_audio_format(deserializer));
+  }
+
+  @protected
+  Uac2DeviceInfo sse_decode_box_autoadd_uac_2_device_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_uac_2_device_info(deserializer));
+  }
+
+  @protected
   BigInt sse_decode_box_autoadd_usize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_usize(deserializer));
@@ -1441,6 +1677,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getFloat32List(len_);
+  }
+
+  @protected
+  Uint16List sse_decode_list_prim_u_16_strict(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var len_ = sse_decode_i_32(deserializer);
+    return deserializer.buffer.getUint16List(len_);
+  }
+
+  @protected
+  Uint32List sse_decode_list_prim_u_32_strict(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var len_ = sse_decode_i_32(deserializer);
+    return deserializer.buffer.getUint32List(len_);
   }
 
   @protected
@@ -1627,6 +1877,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Uac2AudioFormat sse_decode_uac_2_audio_format(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_sampleRate = sse_decode_u_32(deserializer);
+    var var_bitDepth = sse_decode_u_8(deserializer);
+    var var_channels = sse_decode_u_16(deserializer);
+    return Uac2AudioFormat(
+      sampleRate: var_sampleRate,
+      bitDepth: var_bitDepth,
+      channels: var_channels,
+    );
+  }
+
+  @protected
+  Uac2DeviceCapabilities sse_decode_uac_2_device_capabilities(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_supportedSampleRates = sse_decode_list_prim_u_32_strict(
+      deserializer,
+    );
+    var var_supportedBitDepths = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_supportedChannels = sse_decode_list_prim_u_16_strict(deserializer);
+    var var_deviceType = sse_decode_String(deserializer);
+    return Uac2DeviceCapabilities(
+      supportedSampleRates: var_supportedSampleRates,
+      supportedBitDepths: var_supportedBitDepths,
+      supportedChannels: var_supportedChannels,
+      deviceType: var_deviceType,
+    );
+  }
+
+  @protected
   Uac2DeviceInfo sse_decode_uac_2_device_info(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_vendorId = sse_decode_u_16(deserializer);
@@ -1791,6 +2073,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_uac_2_audio_format(
+    Uac2AudioFormat self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_uac_2_audio_format(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_uac_2_device_info(
+    Uac2DeviceInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_uac_2_device_info(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_usize(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(self, serializer);
@@ -1870,6 +2170,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putFloat32List(self);
+  }
+
+  @protected
+  void sse_encode_list_prim_u_16_strict(
+    Uint16List self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    serializer.buffer.putUint16List(self);
+  }
+
+  @protected
+  void sse_encode_list_prim_u_32_strict(
+    Uint32List self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    serializer.buffer.putUint32List(self);
   }
 
   @protected
@@ -2044,6 +2364,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_u_8(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self);
+  }
+
+  @protected
+  void sse_encode_uac_2_audio_format(
+    Uac2AudioFormat self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self.sampleRate, serializer);
+    sse_encode_u_8(self.bitDepth, serializer);
+    sse_encode_u_16(self.channels, serializer);
+  }
+
+  @protected
+  void sse_encode_uac_2_device_capabilities(
+    Uac2DeviceCapabilities self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_prim_u_32_strict(self.supportedSampleRates, serializer);
+    sse_encode_list_prim_u_8_strict(self.supportedBitDepths, serializer);
+    sse_encode_list_prim_u_16_strict(self.supportedChannels, serializer);
+    sse_encode_String(self.deviceType, serializer);
   }
 
   @protected

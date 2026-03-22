@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 885669079;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1075954249;
 
 // Section: executor
 
@@ -870,6 +870,71 @@ fn wire__crate__api__scanner__scan_root_dir_impl(
         },
     )
 }
+fn wire__crate__api__uac2_api__uac2_disconnect_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_disconnect",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::uac2_api::uac2_disconnect()?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__uac2_api__uac2_get_device_capabilities_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_get_device_capabilities",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_device = <crate::api::uac2_api::Uac2DeviceInfo>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::uac2_api::uac2_get_device_capabilities(api_device)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__uac2_api__uac2_is_available_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -925,6 +990,104 @@ fn wire__crate__api__uac2_api__uac2_list_devices_impl(
                 let output_ok = crate::api::uac2_api::uac2_list_devices()?;
                 Ok(output_ok)
             })())
+        },
+    )
+}
+fn wire__crate__api__uac2_api__uac2_select_device_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_select_device",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_device = <crate::api::uac2_api::Uac2DeviceInfo>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::uac2_api::uac2_select_device(api_device)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__uac2_api__uac2_start_streaming_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_start_streaming",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_format = <crate::api::uac2_api::Uac2AudioFormat>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::uac2_api::uac2_start_streaming(api_format)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__uac2_api__uac2_stop_streaming_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_stop_streaming",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::uac2_api::uac2_stop_streaming()?;
+                    Ok(output_ok)
+                })())
+            }
         },
     )
 }
@@ -1124,6 +1287,30 @@ impl SseDecode for Vec<f32> {
     }
 }
 
+impl SseDecode for Vec<u16> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<u16>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<u32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<u32>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<u8> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1315,6 +1502,36 @@ impl SseDecode for u8 {
     }
 }
 
+impl SseDecode for crate::api::uac2_api::Uac2AudioFormat {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_sampleRate = <u32>::sse_decode(deserializer);
+        let mut var_bitDepth = <u8>::sse_decode(deserializer);
+        let mut var_channels = <u16>::sse_decode(deserializer);
+        return crate::api::uac2_api::Uac2AudioFormat {
+            sample_rate: var_sampleRate,
+            bit_depth: var_bitDepth,
+            channels: var_channels,
+        };
+    }
+}
+
+impl SseDecode for crate::api::uac2_api::Uac2DeviceCapabilities {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_supportedSampleRates = <Vec<u32>>::sse_decode(deserializer);
+        let mut var_supportedBitDepths = <Vec<u8>>::sse_decode(deserializer);
+        let mut var_supportedChannels = <Vec<u16>>::sse_decode(deserializer);
+        let mut var_deviceType = <String>::sse_decode(deserializer);
+        return crate::api::uac2_api::Uac2DeviceCapabilities {
+            supported_sample_rates: var_supportedSampleRates,
+            supported_bit_depths: var_supportedBitDepths,
+            supported_channels: var_supportedChannels,
+            device_type: var_deviceType,
+        };
+    }
+}
+
 impl SseDecode for crate::api::uac2_api::Uac2DeviceInfo {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1385,6 +1602,22 @@ fn pde_ffi_dispatcher_primary_impl(
         23 => wire__crate__api__audio_api__audio_stop_impl(port, ptr, rust_vec_len, data_len),
         25 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
         26 => wire__crate__api__scanner__scan_root_dir_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__uac2_api__uac2_disconnect_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__uac2_api__uac2_get_device_capabilities_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        31 => {
+            wire__crate__api__uac2_api__uac2_select_device_impl(port, ptr, rust_vec_len, data_len)
+        }
+        32 => {
+            wire__crate__api__uac2_api__uac2_start_streaming_impl(port, ptr, rust_vec_len, data_len)
+        }
+        33 => {
+            wire__crate__api__uac2_api__uac2_stop_streaming_impl(port, ptr, rust_vec_len, data_len)
+        }
         _ => unreachable!(),
     }
 }
@@ -1412,8 +1645,8 @@ fn pde_ffi_dispatcher_sync_impl(
         }
         12 => wire__crate__api__audio_api__audio_poll_event_impl(ptr, rust_vec_len, data_len),
         24 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__uac2_api__uac2_is_available_impl(ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__uac2_api__uac2_list_devices_impl(ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__uac2_api__uac2_is_available_impl(ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__uac2_api__uac2_list_devices_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1562,6 +1795,51 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::scanner::ScanResult>
     for crate::api::scanner::ScanResult
 {
     fn into_into_dart(self) -> crate::api::scanner::ScanResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::uac2_api::Uac2AudioFormat {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.sample_rate.into_into_dart().into_dart(),
+            self.bit_depth.into_into_dart().into_dart(),
+            self.channels.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::uac2_api::Uac2AudioFormat
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::uac2_api::Uac2AudioFormat>
+    for crate::api::uac2_api::Uac2AudioFormat
+{
+    fn into_into_dart(self) -> crate::api::uac2_api::Uac2AudioFormat {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::uac2_api::Uac2DeviceCapabilities {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.supported_sample_rates.into_into_dart().into_dart(),
+            self.supported_bit_depths.into_into_dart().into_dart(),
+            self.supported_channels.into_into_dart().into_dart(),
+            self.device_type.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::uac2_api::Uac2DeviceCapabilities
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::uac2_api::Uac2DeviceCapabilities>
+    for crate::api::uac2_api::Uac2DeviceCapabilities
+{
+    fn into_into_dart(self) -> crate::api::uac2_api::Uac2DeviceCapabilities {
         self
     }
 }
@@ -1754,6 +2032,26 @@ impl SseEncode for Vec<f32> {
     }
 }
 
+impl SseEncode for Vec<u16> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <u16>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<u32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <u32>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<u8> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -1915,6 +2213,25 @@ impl SseEncode for u8 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_u8(self).unwrap();
+    }
+}
+
+impl SseEncode for crate::api::uac2_api::Uac2AudioFormat {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u32>::sse_encode(self.sample_rate, serializer);
+        <u8>::sse_encode(self.bit_depth, serializer);
+        <u16>::sse_encode(self.channels, serializer);
+    }
+}
+
+impl SseEncode for crate::api::uac2_api::Uac2DeviceCapabilities {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<u32>>::sse_encode(self.supported_sample_rates, serializer);
+        <Vec<u8>>::sse_encode(self.supported_bit_depths, serializer);
+        <Vec<u16>>::sse_encode(self.supported_channels, serializer);
+        <String>::sse_encode(self.device_type, serializer);
     }
 }
 
