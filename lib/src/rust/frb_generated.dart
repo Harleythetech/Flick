@@ -1412,14 +1412,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Uac2DeviceInfo dco_decode_uac_2_device_info(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return Uac2DeviceInfo(
       vendorId: dco_decode_u_16(arr[0]),
       productId: dco_decode_u_16(arr[1]),
       serial: dco_decode_opt_String(arr[2]),
       productName: dco_decode_String(arr[3]),
       manufacturer: dco_decode_String(arr[4]),
+      deviceName: dco_decode_opt_String(arr[5]),
     );
   }
 
@@ -1916,12 +1917,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_serial = sse_decode_opt_String(deserializer);
     var var_productName = sse_decode_String(deserializer);
     var var_manufacturer = sse_decode_String(deserializer);
+    var var_deviceName = sse_decode_opt_String(deserializer);
     return Uac2DeviceInfo(
       vendorId: var_vendorId,
       productId: var_productId,
       serial: var_serial,
       productName: var_productName,
       manufacturer: var_manufacturer,
+      deviceName: var_deviceName,
     );
   }
 
@@ -2400,6 +2403,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.serial, serializer);
     sse_encode_String(self.productName, serializer);
     sse_encode_String(self.manufacturer, serializer);
+    sse_encode_opt_String(self.deviceName, serializer);
   }
 
   @protected

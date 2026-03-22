@@ -14,6 +14,7 @@ pub struct Uac2DeviceInfo {
     pub serial: Option<String>,
     pub product_name: String,
     pub manufacturer: String,
+    pub device_name: Option<String>,
 }
 
 #[derive(Debug, Clone)]

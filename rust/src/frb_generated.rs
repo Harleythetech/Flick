@@ -1540,12 +1540,14 @@ impl SseDecode for crate::api::uac2_api::Uac2DeviceInfo {
         let mut var_serial = <Option<String>>::sse_decode(deserializer);
         let mut var_productName = <String>::sse_decode(deserializer);
         let mut var_manufacturer = <String>::sse_decode(deserializer);
+        let mut var_deviceName = <Option<String>>::sse_decode(deserializer);
         return crate::api::uac2_api::Uac2DeviceInfo {
             vendor_id: var_vendorId,
             product_id: var_productId,
             serial: var_serial,
             product_name: var_productName,
             manufacturer: var_manufacturer,
+            device_name: var_deviceName,
         };
     }
 }
@@ -1852,6 +1854,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::uac2_api::Uac2DeviceInfo {
             self.serial.into_into_dart().into_dart(),
             self.product_name.into_into_dart().into_dart(),
             self.manufacturer.into_into_dart().into_dart(),
+            self.device_name.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -2243,6 +2246,7 @@ impl SseEncode for crate::api::uac2_api::Uac2DeviceInfo {
         <Option<String>>::sse_encode(self.serial, serializer);
         <String>::sse_encode(self.product_name, serializer);
         <String>::sse_encode(self.manufacturer, serializer);
+        <Option<String>>::sse_encode(self.device_name, serializer);
     }
 }
 

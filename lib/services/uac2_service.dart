@@ -153,9 +153,10 @@ class Uac2Service {
         return Uac2DeviceInfo(
           vendorId: (m['vendorId'] as num?)?.toInt() ?? 0,
           productId: (m['productId'] as num?)?.toInt() ?? 0,
-          serial: m['serial'] as String? ?? deviceName,
+          serial: m['serial'] as String?,
           productName: m['productName'] as String? ?? 'USB Audio Device',
           manufacturer: m['manufacturer'] as String? ?? '',
+          deviceName: deviceName,
         );
       }).toList();
     } catch (e) {
@@ -217,9 +218,10 @@ class Uac2Service {
       );
 
       if (Platform.isAndroid) {
-        final hasPermission = await this.hasPermission(device.serial ?? '');
+        final deviceIdentifier = device.deviceName ?? device.serial ?? '';
+        final hasPermission = await this.hasPermission(deviceIdentifier);
         if (!hasPermission) {
-          final granted = await requestPermission(device.serial ?? '');
+          final granted = await requestPermission(deviceIdentifier);
           if (!granted) {
             _updateStatus(
               Uac2DeviceStatus(
@@ -231,8 +233,16 @@ class Uac2Service {
             return false;
           }
         }
+        
+        // On Android, we use native USB implementation, not Rust
+        await _preferencesService.saveSelectedDevice(device);
+        _updateStatus(
+          Uac2DeviceStatus(device: device, state: Uac2State.connected),
+        );
+        return true;
       }
 
+      // For non-Android platforms, check if Rust UAC2 is available
       if (!rust_uac2.uac2IsAvailable()) {
         _updateStatus(
           Uac2DeviceStatus(
@@ -267,7 +277,10 @@ class Uac2Service {
     if (_currentDeviceStatus!.state != Uac2State.connected) return false;
 
     try {
-      if (!rust_uac2.uac2IsAvailable()) return false;
+      // On Android, streaming is handled by native code
+      if (!Platform.isAndroid && !rust_uac2.uac2IsAvailable()) {
+        return false;
+      }
 
       _updateStatus(
         _currentDeviceStatus!.copyWith(
@@ -292,7 +305,10 @@ class Uac2Service {
     if (_currentDeviceStatus == null) return false;
 
     try {
-      if (!rust_uac2.uac2IsAvailable()) return false;
+      // On Android, streaming is handled by native code
+      if (!Platform.isAndroid && !rust_uac2.uac2IsAvailable()) {
+        return false;
+      }
 
       _updateStatus(
         _currentDeviceStatus!.copyWith(

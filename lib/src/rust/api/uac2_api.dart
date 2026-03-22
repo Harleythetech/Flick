@@ -93,6 +93,7 @@ class Uac2DeviceInfo {
   final String? serial;
   final String productName;
   final String manufacturer;
+  final String? deviceName;
 
   const Uac2DeviceInfo({
     required this.vendorId,
@@ -100,6 +101,7 @@ class Uac2DeviceInfo {
     this.serial,
     required this.productName,
     required this.manufacturer,
+    this.deviceName,
   });
 
   @override
@@ -108,7 +110,8 @@ class Uac2DeviceInfo {
       productId.hashCode ^
       serial.hashCode ^
       productName.hashCode ^
-      manufacturer.hashCode;
+      manufacturer.hashCode ^
+      deviceName.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -119,5 +122,6 @@ class Uac2DeviceInfo {
           productId == other.productId &&
           serial == other.serial &&
           productName == other.productName &&
-          manufacturer == other.manufacturer;
+          manufacturer == other.manufacturer &&
+          deviceName == other.deviceName;
 }
