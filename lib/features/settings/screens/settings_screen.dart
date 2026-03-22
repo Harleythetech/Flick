@@ -320,79 +320,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showThemeBottomSheet() {
-    GlassBottomSheet.show(
-      context: context,
-      title: 'Theme',
-      maxHeightRatio: 0.4,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildThemeOption('Dark', 'Current theme', true),
-          _buildThemeOption('Light', 'Coming soon', false),
-          _buildThemeOption('System', 'Follow system settings', false),
-          _buildThemeOption('AMOLED', 'Pure black background', false),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildThemeOption(String title, String subtitle, bool isSelected) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          if (title == 'Dark') {
-            Navigator.pop(context);
-          }
-        },
-        borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.spacingMd,
-            vertical: AppConstants.spacingSm,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontFamily: 'ProductSans',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: isSelected
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontFamily: 'ProductSans',
-                        fontSize: 13,
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isSelected)
-                const Icon(
-                  LucideIcons.check,
-                  color: AppColors.textPrimary,
-                  size: 20,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   void _showAboutBottomSheet() {
     GlassBottomSheet.show(
@@ -553,14 +481,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onChanged: (value) {
                               setState(() => _showAlbumArt = value);
                             },
-                          ),
-                          _buildDivider(),
-                          _buildNavigationSetting(
-                            context,
-                            icon: LucideIcons.palette,
-                            title: 'Theme',
-                            subtitle: 'Dark',
-                            onTap: _showThemeBottomSheet,
                           ),
                         ],
                       ),

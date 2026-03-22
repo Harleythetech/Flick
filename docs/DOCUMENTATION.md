@@ -16,9 +16,19 @@ Located in `rust/src/audio`, this is the heart of the application. It bypasses s
 
 - **Engine (`engine.rs`)**: The central coordinator. It runs on a designated high-priority thread to ensure music never stutters, managing the flow of data from the file to the speakers.
 - **Decoder (`decoder.rs`)**: Uses `symphonia` to read various audio formats (MP3, FLAC, WAV, OGG) and decode them into raw sound waves (PCM).
+  - **TODO**: ALAC and M4A files are not yet supported. These formats will not play any sound.
 - **Resampler (`resampler.rs`)**: Uses `rubato` to change the audio quality on-the-fly. If a song is 44.1kHz but your speakers are 48kHz, this module smooths out the difference without losing quality.
 - **Crossfader (`crossfader.rs`)**: Handles the smooth blending between songs, so there is no silence when one track ends and the next begins.
 - **Source Provider (`source.rs`)**: Manages the queue for **Gapless Playback**, ensuring there are no awkward pauses between tracks by pre-loading the next song before the current one finishes.
+
+### 3. The Interface (Flutter)
+
+The visual layer that interacts with the user:
+
+- **State Management (Riverpod)**: Keeps the UI in sync with the actual player state. If the song changes in the Rust engine, Riverpod updates the screen immediately.
+- **Database (Isar)**: Stores the library information locally. Instead of re-scanning files every time, the app loads them instantly from this fast, local database.
+- **Visuals**: Uses `Rive` for complex animations and `Skeletonizer` for loading states, ensuring the app feels "alive".
+  - **TODO**: Theme selection (Light, System, AMOLED) is not yet implemented. Only Dark theme is currently available.
 
 ### 2. The Librarian (Scanner & Metadata)
 
