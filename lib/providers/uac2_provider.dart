@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flick/services/uac2_service.dart';
+import 'package:flick/services/uac2_preferences_service.dart';
 
 final uac2ServiceProvider = Provider<Uac2Service>((ref) {
   return Uac2Service.instance;
@@ -107,4 +108,30 @@ final uac2BitPerfectIndicatorProvider = Provider<bool>((ref) {
     return false;
   }
   return true;
+});
+
+final uac2PreferencesServiceProvider = Provider((ref) {
+  return Uac2PreferencesService();
+});
+
+final uac2AutoConnectProvider = FutureProvider<bool>((ref) async {
+  final service = ref.watch(uac2PreferencesServiceProvider);
+  return service.getAutoConnect();
+});
+
+final uac2AutoSelectDeviceProvider = FutureProvider<bool>((ref) async {
+  final service = ref.watch(uac2PreferencesServiceProvider);
+  return service.getAutoSelectDevice();
+});
+
+final uac2FormatPreferenceProvider =
+    FutureProvider<Uac2FormatPreference>((ref) async {
+  final service = ref.watch(uac2PreferencesServiceProvider);
+  return service.getFormatPreference();
+});
+
+final uac2PreferredFormatProvider =
+    FutureProvider<Uac2AudioFormat?>((ref) async {
+  final service = ref.watch(uac2PreferencesServiceProvider);
+  return service.loadPreferredFormat();
 });

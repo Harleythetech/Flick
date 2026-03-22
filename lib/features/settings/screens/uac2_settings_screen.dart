@@ -8,6 +8,7 @@ import 'package:flick/core/utils/responsive.dart';
 import 'package:flick/providers/providers.dart';
 import 'package:flick/services/uac2_service.dart';
 import 'package:flick/widgets/common/display_mode_wrapper.dart';
+import 'package:flick/features/settings/screens/uac2_preferences_screen.dart';
 
 class Uac2SettingsScreen extends ConsumerStatefulWidget {
   const Uac2SettingsScreen({super.key});
@@ -96,12 +97,26 @@ class _Uac2SettingsScreenState extends ConsumerState<Uac2SettingsScreen> {
             color: context.adaptiveTextPrimary,
           ),
           const SizedBox(width: AppConstants.spacingSm),
-          Text(
-            'USB Audio (UAC2)',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: context.adaptiveTextPrimary,
+          Expanded(
+            child: Text(
+              'USB Audio (UAC2)',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: context.adaptiveTextPrimary,
+                  ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(LucideIcons.settings),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const Uac2PreferencesScreen(),
                 ),
+              );
+            },
+            color: context.adaptiveTextPrimary,
+            tooltip: 'Preferences',
           ),
         ],
       ),

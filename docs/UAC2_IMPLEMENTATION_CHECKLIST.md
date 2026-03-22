@@ -267,10 +267,10 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 
 ### 8.3 User Preferences
 
-- [ ] Save selected UAC2 device preference
-- [ ] Save preferred audio format
-- [ ] Add auto-select device option
-- [ ] Add format preference (highest quality vs. compatibility)
+- [X] Save selected UAC2 device preference
+- [X] Save preferred audio format
+- [X] Add auto-select device option
+- [X] Add format preference (highest quality vs. compatibility)
 
 ---
 
