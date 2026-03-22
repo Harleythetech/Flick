@@ -15,6 +15,8 @@ import 'package:flick/features/player/widgets/compact_player_info_layout.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flick/widgets/common/cached_image_widget.dart';
 import 'package:flick/widgets/common/display_mode_wrapper.dart';
+import 'package:flick/widgets/uac2/uac2_player_status.dart';
+import 'package:flick/widgets/uac2/uac2_error_notification.dart';
 
 class FullPlayerScreen extends StatefulWidget {
   final Object heroTag;
@@ -549,6 +551,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                     SafeArea(
                       child: Column(
                         children: [
+                          const Uac2ErrorNotification(),
                           // Top Bar
                           Padding(
                             padding: const EdgeInsets.symmetric(
@@ -827,6 +830,8 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                                     .adaptiveTextSecondary,
                                               ),
                                             ),
+                                            const SizedBox(height: 12),
+                                            const Uac2PlayerStatus(compact: true),
                                           ],
                                         ),
                                       ),

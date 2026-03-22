@@ -258,12 +258,12 @@ This checklist outlines the implementation of a custom USB Audio Class 2.0 (UAC 
 
 ### 8.2 Status Indicators
 
-- [ ] Add UAC2 device indicator in player UI
-- [ ] Show active device name
-- [ ] Display current audio format
-- [ ] Show connection status
-- [ ] Add error notifications
-- [ ] Display device capabilities
+- [X] Add UAC2 device indicator in player UI
+- [X] Show active device name
+- [X] Display current audio format
+- [X] Show connection status
+- [X] Add error notifications
+- [X] Display device capabilities
 
 ### 8.3 User Preferences
 
