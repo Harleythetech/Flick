@@ -494,6 +494,86 @@ class Uac2Service {
     }
   }
 
+  Future<Uac2ConnectionState?> getConnectionState() async {
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetConnectionState();
+    } catch (e) {
+      debugPrint('Uac2Service.getConnectionState failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> setAutoReconnect(bool enabled) async {
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2SetAutoReconnect(enabled: enabled);
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.setAutoReconnect failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> attemptReconnect() async {
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      return rust_uac2.uac2AttemptReconnect();
+    } catch (e) {
+      debugPrint('Uac2Service.attemptReconnect failed: $e');
+      return false;
+    }
+  }
+
+  Future<Uac2FallbackInfo?> getFallbackInfo() async {
+    try {
+      if (Platform.isAndroid) {
+        return null;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return null;
+      return rust_uac2.uac2GetFallbackInfo();
+    } catch (e) {
+      debugPrint('Uac2Service.getFallbackInfo failed: $e');
+      return null;
+    }
+  }
+
+  Future<bool> activateFallback() async {
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      return rust_uac2.uac2ActivateFallback();
+    } catch (e) {
+      debugPrint('Uac2Service.activateFallback failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deactivateFallback() async {
+    try {
+      if (Platform.isAndroid) {
+        return false;
+      }
+      if (!rust_uac2.uac2IsAvailable()) return false;
+      await rust_uac2.uac2DeactivateFallback();
+      return true;
+    } catch (e) {
+      debugPrint('Uac2Service.deactivateFallback failed: $e');
+      return false;
+    }
+  }
+
   void _updateStatus(Uac2DeviceStatus? status) {
     _currentDeviceStatus = status;
     _notifyStatusListeners();
@@ -504,3 +584,5 @@ typedef Uac2DeviceInfo = rust_uac2.Uac2DeviceInfo;
 typedef Uac2VolumeRange = rust_uac2.Uac2VolumeRange;
 typedef Uac2TransferStats = rust_uac2.Uac2TransferStats;
 typedef Uac2PipelineInfo = rust_uac2.Uac2PipelineInfo;
+typedef Uac2ConnectionState = rust_uac2.Uac2ConnectionState;
+typedef Uac2FallbackInfo = rust_uac2.Uac2FallbackInfo;

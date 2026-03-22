@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1991013311;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1046978320;
 
 // Section: executor
 
@@ -870,6 +870,102 @@ fn wire__crate__api__scanner__scan_root_dir_impl(
         },
     )
 }
+fn wire__crate__api__uac2_api__uac2_activate_fallback_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_activate_fallback",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::uac2_api::uac2_activate_fallback()?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__uac2_api__uac2_attempt_reconnect_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_attempt_reconnect",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::uac2_api::uac2_attempt_reconnect()?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__uac2_api__uac2_deactivate_fallback_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_deactivate_fallback",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::uac2_api::uac2_deactivate_fallback()?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__uac2_api__uac2_disconnect_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -899,6 +995,35 @@ fn wire__crate__api__uac2_api__uac2_disconnect_impl(
                     Ok(output_ok)
                 })())
             }
+        },
+    )
+}
+fn wire__crate__api__uac2_api__uac2_get_connection_state_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_get_connection_state",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::uac2_api::uac2_get_connection_state()?;
+                Ok(output_ok)
+            })())
         },
     )
 }
@@ -932,6 +1057,35 @@ fn wire__crate__api__uac2_api__uac2_get_device_capabilities_impl(
                     Ok(output_ok)
                 })())
             }
+        },
+    )
+}
+fn wire__crate__api__uac2_api__uac2_get_fallback_info_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_get_fallback_info",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::uac2_api::uac2_get_fallback_info()?;
+                Ok(output_ok)
+            })())
         },
     )
 }
@@ -1229,6 +1383,39 @@ fn wire__crate__api__uac2_api__uac2_select_device_impl(
             move |context| {
                 transform_result_sse::<_, String>((move || {
                     let output_ok = crate::api::uac2_api::uac2_select_device(api_device)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__uac2_api__uac2_set_auto_reconnect_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "uac2_set_auto_reconnect",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_enabled = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::uac2_api::uac2_set_auto_reconnect(api_enabled)?;
                     Ok(output_ok)
                 })())
             }
@@ -1825,6 +2012,20 @@ impl SseDecode for crate::api::uac2_api::Uac2AudioFormat {
     }
 }
 
+impl SseDecode for crate::api::uac2_api::Uac2ConnectionState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_state = <String>::sse_decode(deserializer);
+        let mut var_reconnectAttempts = <u32>::sse_decode(deserializer);
+        let mut var_autoReconnectEnabled = <bool>::sse_decode(deserializer);
+        return crate::api::uac2_api::Uac2ConnectionState {
+            state: var_state,
+            reconnect_attempts: var_reconnectAttempts,
+            auto_reconnect_enabled: var_autoReconnectEnabled,
+        };
+    }
+}
+
 impl SseDecode for crate::api::uac2_api::Uac2DeviceCapabilities {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1857,6 +2058,18 @@ impl SseDecode for crate::api::uac2_api::Uac2DeviceInfo {
             product_name: var_productName,
             manufacturer: var_manufacturer,
             device_name: var_deviceName,
+        };
+    }
+}
+
+impl SseDecode for crate::api::uac2_api::Uac2FallbackInfo {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_hasActiveFallback = <bool>::sse_decode(deserializer);
+        let mut var_fallbackName = <Option<String>>::sse_decode(deserializer);
+        return crate::api::uac2_api::Uac2FallbackInfo {
+            has_active_fallback: var_hasActiveFallback,
+            fallback_name: var_fallbackName,
         };
     }
 }
@@ -1963,40 +2176,64 @@ fn pde_ffi_dispatcher_primary_impl(
         23 => wire__crate__api__audio_api__audio_stop_impl(port, ptr, rust_vec_len, data_len),
         25 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
         26 => wire__crate__api__scanner__scan_root_dir_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__uac2_api__uac2_disconnect_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__uac2_api__uac2_get_device_capabilities_impl(
+        27 => wire__crate__api__uac2_api__uac2_activate_fallback_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__uac2_api__uac2_get_volume_range_impl(
+        28 => wire__crate__api__uac2_api__uac2_attempt_reconnect_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__uac2_api__uac2_reset_transfer_stats_impl(
+        29 => wire__crate__api__uac2_api__uac2_deactivate_fallback_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => {
+        30 => wire__crate__api__uac2_api__uac2_disconnect_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__uac2_api__uac2_get_device_capabilities_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        39 => wire__crate__api__uac2_api__uac2_get_volume_range_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        42 => wire__crate__api__uac2_api__uac2_reset_transfer_stats_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        43 => {
             wire__crate__api__uac2_api__uac2_select_device_impl(port, ptr, rust_vec_len, data_len)
         }
-        39 => wire__crate__api__uac2_api__uac2_set_mute_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__uac2_api__uac2_set_sampling_frequency_impl(
+        44 => wire__crate__api__uac2_api__uac2_set_auto_reconnect_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__uac2_api__uac2_set_volume_impl(port, ptr, rust_vec_len, data_len),
-        42 => {
+        45 => wire__crate__api__uac2_api__uac2_set_mute_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__uac2_api__uac2_set_sampling_frequency_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        47 => wire__crate__api__uac2_api__uac2_set_volume_impl(port, ptr, rust_vec_len, data_len),
+        48 => {
             wire__crate__api__uac2_api__uac2_start_streaming_impl(port, ptr, rust_vec_len, data_len)
         }
-        43 => {
+        49 => {
             wire__crate__api__uac2_api__uac2_stop_streaming_impl(port, ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -2026,17 +2263,21 @@ fn pde_ffi_dispatcher_sync_impl(
         }
         12 => wire__crate__api__audio_api__audio_poll_event_impl(ptr, rust_vec_len, data_len),
         24 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__uac2_api__uac2_get_mute_impl(ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__uac2_api__uac2_get_pipeline_info_impl(ptr, rust_vec_len, data_len),
-        31 => wire__crate__api__uac2_api__uac2_get_sampling_frequency_impl(
+        31 => {
+            wire__crate__api__uac2_api__uac2_get_connection_state_impl(ptr, rust_vec_len, data_len)
+        }
+        33 => wire__crate__api__uac2_api__uac2_get_fallback_info_impl(ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__uac2_api__uac2_get_mute_impl(ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__uac2_api__uac2_get_pipeline_info_impl(ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__uac2_api__uac2_get_sampling_frequency_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        32 => wire__crate__api__uac2_api__uac2_get_transfer_stats_impl(ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__uac2_api__uac2_get_volume_impl(ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__uac2_api__uac2_is_available_impl(ptr, rust_vec_len, data_len),
-        36 => wire__crate__api__uac2_api__uac2_list_devices_impl(ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__uac2_api__uac2_get_transfer_stats_impl(ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__uac2_api__uac2_get_volume_impl(ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__uac2_api__uac2_is_available_impl(ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__uac2_api__uac2_list_devices_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -2211,6 +2452,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::uac2_api::Uac2AudioFormat>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::uac2_api::Uac2ConnectionState {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.state.into_into_dart().into_dart(),
+            self.reconnect_attempts.into_into_dart().into_dart(),
+            self.auto_reconnect_enabled.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::uac2_api::Uac2ConnectionState
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::uac2_api::Uac2ConnectionState>
+    for crate::api::uac2_api::Uac2ConnectionState
+{
+    fn into_into_dart(self) -> crate::api::uac2_api::Uac2ConnectionState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::uac2_api::Uac2DeviceCapabilities {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -2255,6 +2518,27 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::uac2_api::Uac2DeviceInfo>
     for crate::api::uac2_api::Uac2DeviceInfo
 {
     fn into_into_dart(self) -> crate::api::uac2_api::Uac2DeviceInfo {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::uac2_api::Uac2FallbackInfo {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.has_active_fallback.into_into_dart().into_dart(),
+            self.fallback_name.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::uac2_api::Uac2FallbackInfo
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::uac2_api::Uac2FallbackInfo>
+    for crate::api::uac2_api::Uac2FallbackInfo
+{
+    fn into_into_dart(self) -> crate::api::uac2_api::Uac2FallbackInfo {
         self
     }
 }
@@ -2686,6 +2970,15 @@ impl SseEncode for crate::api::uac2_api::Uac2AudioFormat {
     }
 }
 
+impl SseEncode for crate::api::uac2_api::Uac2ConnectionState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.state, serializer);
+        <u32>::sse_encode(self.reconnect_attempts, serializer);
+        <bool>::sse_encode(self.auto_reconnect_enabled, serializer);
+    }
+}
+
 impl SseEncode for crate::api::uac2_api::Uac2DeviceCapabilities {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2705,6 +2998,14 @@ impl SseEncode for crate::api::uac2_api::Uac2DeviceInfo {
         <String>::sse_encode(self.product_name, serializer);
         <String>::sse_encode(self.manufacturer, serializer);
         <Option<String>>::sse_encode(self.device_name, serializer);
+    }
+}
+
+impl SseEncode for crate::api::uac2_api::Uac2FallbackInfo {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.has_active_fallback, serializer);
+        <Option<String>>::sse_encode(self.fallback_name, serializer);
     }
 }
 

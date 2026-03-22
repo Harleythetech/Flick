@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -1991013311;
+  int get rustContentHash => 1046978320;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -143,11 +143,21 @@ abstract class RustLibApi extends BaseApi {
     required Map<String, PlatformInt64> knownFiles,
   });
 
+  Future<bool> crateApiUac2ApiUac2ActivateFallback();
+
+  Future<bool> crateApiUac2ApiUac2AttemptReconnect();
+
+  Future<void> crateApiUac2ApiUac2DeactivateFallback();
+
   Future<void> crateApiUac2ApiUac2Disconnect();
+
+  Uac2ConnectionState crateApiUac2ApiUac2GetConnectionState();
 
   Future<Uac2DeviceCapabilities> crateApiUac2ApiUac2GetDeviceCapabilities({
     required Uac2DeviceInfo device,
   });
+
+  Uac2FallbackInfo crateApiUac2ApiUac2GetFallbackInfo();
 
   bool crateApiUac2ApiUac2GetMute();
 
@@ -170,6 +180,8 @@ abstract class RustLibApi extends BaseApi {
   Future<bool> crateApiUac2ApiUac2SelectDevice({
     required Uac2DeviceInfo device,
   });
+
+  Future<void> crateApiUac2ApiUac2SetAutoReconnect({required bool enabled});
 
   Future<void> crateApiUac2ApiUac2SetMute({required bool muted});
 
@@ -880,7 +892,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  Future<void> crateApiUac2ApiUac2Disconnect() {
+  Future<bool> crateApiUac2ApiUac2ActivateFallback() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -889,6 +901,87 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             generalizedFrbRustBinding,
             serializer,
             funcId: 27,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2ActivateFallbackConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2ActivateFallbackConstMeta =>
+      const TaskConstMeta(debugName: "uac2_activate_fallback", argNames: []);
+
+  @override
+  Future<bool> crateApiUac2ApiUac2AttemptReconnect() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 28,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2AttemptReconnectConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2AttemptReconnectConstMeta =>
+      const TaskConstMeta(debugName: "uac2_attempt_reconnect", argNames: []);
+
+  @override
+  Future<void> crateApiUac2ApiUac2DeactivateFallback() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 29,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2DeactivateFallbackConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2DeactivateFallbackConstMeta =>
+      const TaskConstMeta(debugName: "uac2_deactivate_fallback", argNames: []);
+
+  @override
+  Future<void> crateApiUac2ApiUac2Disconnect() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 30,
             port: port_,
           );
         },
@@ -907,6 +1000,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "uac2_disconnect", argNames: []);
 
   @override
+  Uac2ConnectionState crateApiUac2ApiUac2GetConnectionState() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_uac_2_connection_state,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetConnectionStateConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetConnectionStateConstMeta =>
+      const TaskConstMeta(debugName: "uac2_get_connection_state", argNames: []);
+
+  @override
   Future<Uac2DeviceCapabilities> crateApiUac2ApiUac2GetDeviceCapabilities({
     required Uac2DeviceInfo device,
   }) {
@@ -918,7 +1033,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 32,
             port: port_,
           );
         },
@@ -940,12 +1055,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Uac2FallbackInfo crateApiUac2ApiUac2GetFallbackInfo() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_uac_2_fallback_info,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2GetFallbackInfoConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2GetFallbackInfoConstMeta =>
+      const TaskConstMeta(debugName: "uac2_get_fallback_info", argNames: []);
+
+  @override
   bool crateApiUac2ApiUac2GetMute() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -967,7 +1104,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_uac_2_pipeline_info,
@@ -989,7 +1126,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1014,7 +1151,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_uac_2_transfer_stats,
@@ -1036,7 +1173,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_f_64,
@@ -1061,7 +1198,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 39,
             port: port_,
           );
         },
@@ -1085,7 +1222,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 40)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -1107,7 +1244,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 41)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_list_uac_2_device_info,
@@ -1132,7 +1269,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 42,
             port: port_,
           );
         },
@@ -1162,7 +1299,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1184,6 +1321,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<void> crateApiUac2ApiUac2SetAutoReconnect({required bool enabled}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_bool(enabled, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 44,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUac2ApiUac2SetAutoReconnectConstMeta,
+        argValues: [enabled],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUac2ApiUac2SetAutoReconnectConstMeta =>
+      const TaskConstMeta(
+        debugName: "uac2_set_auto_reconnect",
+        argNames: ["enabled"],
+      );
+
+  @override
   Future<void> crateApiUac2ApiUac2SetMute({required bool muted}) {
     return handler.executeNormal(
       NormalTask(
@@ -1193,7 +1361,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 45,
             port: port_,
           );
         },
@@ -1223,7 +1391,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 46,
             port: port_,
           );
         },
@@ -1254,7 +1422,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 47,
             port: port_,
           );
         },
@@ -1284,7 +1452,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 48,
             port: port_,
           );
         },
@@ -1314,7 +1482,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 49,
             port: port_,
           );
         },
@@ -1673,6 +1841,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Uac2ConnectionState dco_decode_uac_2_connection_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return Uac2ConnectionState(
+      state: dco_decode_String(arr[0]),
+      reconnectAttempts: dco_decode_u_32(arr[1]),
+      autoReconnectEnabled: dco_decode_bool(arr[2]),
+    );
+  }
+
+  @protected
   Uac2DeviceCapabilities dco_decode_uac_2_device_capabilities(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -1699,6 +1880,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       productName: dco_decode_String(arr[3]),
       manufacturer: dco_decode_String(arr[4]),
       deviceName: dco_decode_opt_String(arr[5]),
+    );
+  }
+
+  @protected
+  Uac2FallbackInfo dco_decode_uac_2_fallback_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return Uac2FallbackInfo(
+      hasActiveFallback: dco_decode_bool(arr[0]),
+      fallbackName: dco_decode_opt_String(arr[1]),
     );
   }
 
@@ -2212,6 +2405,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Uac2ConnectionState sse_decode_uac_2_connection_state(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_state = sse_decode_String(deserializer);
+    var var_reconnectAttempts = sse_decode_u_32(deserializer);
+    var var_autoReconnectEnabled = sse_decode_bool(deserializer);
+    return Uac2ConnectionState(
+      state: var_state,
+      reconnectAttempts: var_reconnectAttempts,
+      autoReconnectEnabled: var_autoReconnectEnabled,
+    );
+  }
+
+  @protected
   Uac2DeviceCapabilities sse_decode_uac_2_device_capabilities(
     SseDeserializer deserializer,
   ) {
@@ -2246,6 +2454,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       productName: var_productName,
       manufacturer: var_manufacturer,
       deviceName: var_deviceName,
+    );
+  }
+
+  @protected
+  Uac2FallbackInfo sse_decode_uac_2_fallback_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_hasActiveFallback = sse_decode_bool(deserializer);
+    var var_fallbackName = sse_decode_opt_String(deserializer);
+    return Uac2FallbackInfo(
+      hasActiveFallback: var_hasActiveFallback,
+      fallbackName: var_fallbackName,
     );
   }
 
@@ -2753,6 +2974,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_uac_2_connection_state(
+    Uac2ConnectionState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.state, serializer);
+    sse_encode_u_32(self.reconnectAttempts, serializer);
+    sse_encode_bool(self.autoReconnectEnabled, serializer);
+  }
+
+  @protected
   void sse_encode_uac_2_device_capabilities(
     Uac2DeviceCapabilities self,
     SseSerializer serializer,
@@ -2776,6 +3008,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.productName, serializer);
     sse_encode_String(self.manufacturer, serializer);
     sse_encode_opt_String(self.deviceName, serializer);
+  }
+
+  @protected
+  void sse_encode_uac_2_fallback_info(
+    Uac2FallbackInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.hasActiveFallback, serializer);
+    sse_encode_opt_String(self.fallbackName, serializer);
   }
 
   @protected

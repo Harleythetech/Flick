@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Uac2ErrorCode`, `Uac2HotplugEvent`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 bool uac2IsAvailable() => RustLib.instance.api.crateApiUac2ApiUac2IsAvailable();
 
@@ -62,6 +62,24 @@ Future<void> uac2ResetTransferStats() =>
 Uac2PipelineInfo uac2GetPipelineInfo() =>
     RustLib.instance.api.crateApiUac2ApiUac2GetPipelineInfo();
 
+Uac2ConnectionState uac2GetConnectionState() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetConnectionState();
+
+Future<void> uac2SetAutoReconnect({required bool enabled}) =>
+    RustLib.instance.api.crateApiUac2ApiUac2SetAutoReconnect(enabled: enabled);
+
+Future<bool> uac2AttemptReconnect() =>
+    RustLib.instance.api.crateApiUac2ApiUac2AttemptReconnect();
+
+Uac2FallbackInfo uac2GetFallbackInfo() =>
+    RustLib.instance.api.crateApiUac2ApiUac2GetFallbackInfo();
+
+Future<bool> uac2ActivateFallback() =>
+    RustLib.instance.api.crateApiUac2ApiUac2ActivateFallback();
+
+Future<void> uac2DeactivateFallback() =>
+    RustLib.instance.api.crateApiUac2ApiUac2DeactivateFallback();
+
 class Uac2AudioFormat {
   final int sampleRate;
   final int bitDepth;
@@ -85,6 +103,33 @@ class Uac2AudioFormat {
           sampleRate == other.sampleRate &&
           bitDepth == other.bitDepth &&
           channels == other.channels;
+}
+
+class Uac2ConnectionState {
+  final String state;
+  final int reconnectAttempts;
+  final bool autoReconnectEnabled;
+
+  const Uac2ConnectionState({
+    required this.state,
+    required this.reconnectAttempts,
+    required this.autoReconnectEnabled,
+  });
+
+  @override
+  int get hashCode =>
+      state.hashCode ^
+      reconnectAttempts.hashCode ^
+      autoReconnectEnabled.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2ConnectionState &&
+          runtimeType == other.runtimeType &&
+          state == other.state &&
+          reconnectAttempts == other.reconnectAttempts &&
+          autoReconnectEnabled == other.autoReconnectEnabled;
 }
 
 class Uac2DeviceCapabilities {
@@ -155,6 +200,24 @@ class Uac2DeviceInfo {
           productName == other.productName &&
           manufacturer == other.manufacturer &&
           deviceName == other.deviceName;
+}
+
+class Uac2FallbackInfo {
+  final bool hasActiveFallback;
+  final String? fallbackName;
+
+  const Uac2FallbackInfo({required this.hasActiveFallback, this.fallbackName});
+
+  @override
+  int get hashCode => hasActiveFallback.hashCode ^ fallbackName.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Uac2FallbackInfo &&
+          runtimeType == other.runtimeType &&
+          hasActiveFallback == other.hasActiveFallback &&
+          fallbackName == other.fallbackName;
 }
 
 class Uac2PipelineInfo {

@@ -346,3 +346,95 @@ pub fn uac2_get_pipeline_info() -> Result<Uac2PipelineInfo, String> {
         Err("UAC2 not available".to_string())
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct Uac2ConnectionState {
+    pub state: String,
+    pub reconnect_attempts: u32,
+    pub auto_reconnect_enabled: bool,
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn uac2_get_connection_state() -> Result<Uac2ConnectionState, String> {
+    #[cfg(feature = "uac2")]
+    {
+        Ok(Uac2ConnectionState {
+            state: "Disconnected".to_string(),
+            reconnect_attempts: 0,
+            auto_reconnect_enabled: false,
+        })
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+pub fn uac2_set_auto_reconnect(enabled: bool) -> Result<(), String> {
+    #[cfg(feature = "uac2")]
+    {
+        log::info!("Setting UAC2 auto-reconnect: {}", enabled);
+        Ok(())
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+pub fn uac2_attempt_reconnect() -> Result<bool, String> {
+    #[cfg(feature = "uac2")]
+    {
+        log::info!("Attempting UAC2 device reconnection");
+        Ok(false)
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Uac2FallbackInfo {
+    pub has_active_fallback: bool,
+    pub fallback_name: Option<String>,
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn uac2_get_fallback_info() -> Result<Uac2FallbackInfo, String> {
+    #[cfg(feature = "uac2")]
+    {
+        Ok(Uac2FallbackInfo {
+            has_active_fallback: false,
+            fallback_name: None,
+        })
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+pub fn uac2_activate_fallback() -> Result<bool, String> {
+    #[cfg(feature = "uac2")]
+    {
+        log::info!("Activating UAC2 fallback audio output");
+        Ok(false)
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
+
+pub fn uac2_deactivate_fallback() -> Result<(), String> {
+    #[cfg(feature = "uac2")]
+    {
+        log::info!("Deactivating UAC2 fallback audio output");
+        Ok(())
+    }
+    #[cfg(not(feature = "uac2"))]
+    {
+        Err("UAC2 not available".to_string())
+    }
+}
