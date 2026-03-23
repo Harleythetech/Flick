@@ -19,6 +19,7 @@ class LastFmSettingsTile extends ConsumerStatefulWidget {
 class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
     with WidgetsBindingObserver {
   bool _awaitingCallback = false;
+  bool _showSharedSecret = false;
 
   @override
   void initState() {
@@ -149,7 +150,9 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppColors.glassBackgroundStrong,
-                      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.radiusMd,
+                      ),
                       border: Border.all(
                         color: context.adaptiveTextTertiary.withOpacity(0.1),
                       ),
@@ -187,11 +190,15 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             side: BorderSide(
-                              color: context.adaptiveTextTertiary.withOpacity(0.3),
+                              color: context.adaptiveTextTertiary.withOpacity(
+                                0.3,
+                              ),
                             ),
                             foregroundColor: context.adaptiveTextPrimary,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                              borderRadius: BorderRadius.circular(
+                                AppConstants.radiusMd,
+                              ),
                             ),
                           ),
                           child: const Text(
@@ -210,7 +217,9 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                              borderRadius: BorderRadius.circular(
+                                AppConstants.radiusMd,
+                              ),
                             ),
                           ),
                           child: const Text(
@@ -280,7 +289,7 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                
+
                 // Header
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
@@ -305,17 +314,19 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                           children: [
                             Text(
                               'Last.fm Configuration',
-                              style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                                color: context.adaptiveTextPrimary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: Theme.of(ctx).textTheme.titleLarge
+                                  ?.copyWith(
+                                    color: context.adaptiveTextPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'Connect to scrobble your music',
-                              style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                                color: context.adaptiveTextSecondary,
-                              ),
+                              style: Theme.of(ctx).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: context.adaptiveTextSecondary,
+                                  ),
                             ),
                           ],
                         ),
@@ -337,9 +348,13 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.glassBackgroundStrong,
-                          borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusMd,
+                          ),
                           border: Border.all(
-                            color: context.adaptiveTextTertiary.withOpacity(0.1),
+                            color: context.adaptiveTextTertiary.withOpacity(
+                              0.1,
+                            ),
                           ),
                         ),
                         child: Row(
@@ -356,16 +371,19 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                                 children: [
                                   Text(
                                     'Get your API credentials',
-                                    style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                                      color: context.adaptiveTextPrimary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: Theme.of(ctx).textTheme.bodyMedium
+                                        ?.copyWith(
+                                          color: context.adaptiveTextPrimary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                   ),
                                   const SizedBox(height: 4),
                                   GestureDetector(
                                     onTap: () {
                                       launchUrl(
-                                        Uri.parse('https://www.last.fm/api/account/create'),
+                                        Uri.parse(
+                                          'https://www.last.fm/api/account/create',
+                                        ),
                                         mode: LaunchMode.externalApplication,
                                       );
                                     },
@@ -413,17 +431,25 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                           filled: true,
                           fillColor: AppColors.glassBackgroundStrong,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                            borderRadius: BorderRadius.circular(
+                              AppConstants.radiusMd,
+                            ),
                             borderSide: BorderSide.none,
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                            borderRadius: BorderRadius.circular(
+                              AppConstants.radiusMd,
+                            ),
                             borderSide: BorderSide(
-                              color: context.adaptiveTextTertiary.withOpacity(0.1),
+                              color: context.adaptiveTextTertiary.withOpacity(
+                                0.1,
+                              ),
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                            borderRadius: BorderRadius.circular(
+                              AppConstants.radiusMd,
+                            ),
                             borderSide: const BorderSide(
                               color: Color(0xFFD51007),
                               width: 2,
@@ -449,7 +475,7 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                       const SizedBox(height: 8),
                       TextField(
                         controller: sharedSecretController,
-                        obscureText: true,
+                        obscureText: !_showSharedSecret,
                         style: TextStyle(color: context.adaptiveTextPrimary),
                         decoration: InputDecoration(
                           hintText: 'Enter your shared secret',
@@ -459,17 +485,25 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                           filled: true,
                           fillColor: AppColors.glassBackgroundStrong,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                            borderRadius: BorderRadius.circular(
+                              AppConstants.radiusMd,
+                            ),
                             borderSide: BorderSide.none,
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                            borderRadius: BorderRadius.circular(
+                              AppConstants.radiusMd,
+                            ),
                             borderSide: BorderSide(
-                              color: context.adaptiveTextTertiary.withOpacity(0.1),
+                              color: context.adaptiveTextTertiary.withOpacity(
+                                0.1,
+                              ),
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                            borderRadius: BorderRadius.circular(
+                              AppConstants.radiusMd,
+                            ),
                             borderSide: const BorderSide(
                               color: Color(0xFFD51007),
                               width: 2,
@@ -478,6 +512,19 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 14,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _showSharedSecret
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: context.adaptiveTextSecondary,
+                            ),
+                            onPressed: () {
+                              setState(
+                                () => _showSharedSecret = !_showSharedSecret,
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -491,12 +538,17 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                             child: OutlinedButton(
                               onPressed: () => Navigator.pop(ctx),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 side: BorderSide(
-                                  color: context.adaptiveTextTertiary.withOpacity(0.3),
+                                  color: context.adaptiveTextTertiary
+                                      .withOpacity(0.3),
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                                  borderRadius: BorderRadius.circular(
+                                    AppConstants.radiusMd,
+                                  ),
                                 ),
                               ),
                               child: Text(
@@ -515,7 +567,9 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                               onPressed: () async {
                                 if (apiKeyController.text.isEmpty ||
                                     sharedSecretController.text.isEmpty) {
-                                  _showError('Please enter both API key and shared secret');
+                                  _showError(
+                                    'Please enter both API key and shared secret',
+                                  );
                                   return;
                                 }
                                 await auth.setApiCredentials(
@@ -524,7 +578,9 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                                 );
                                 if (mounted) {
                                   Navigator.pop(ctx);
-                                  _showSuccess('Credentials saved successfully!');
+                                  _showSuccess(
+                                    'Credentials saved successfully!',
+                                  );
                                   if (autoConnectAfterSave && mounted) {
                                     await _startAuth();
                                   }
@@ -533,10 +589,14 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFD51007),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                                  borderRadius: BorderRadius.circular(
+                                    AppConstants.radiusMd,
+                                  ),
                                 ),
                               ),
                               child: const Text(
@@ -742,7 +802,9 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppColors.glassBackgroundStrong,
-                      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.radiusMd,
+                      ),
                       border: Border.all(
                         color: context.adaptiveTextTertiary.withOpacity(0.1),
                       ),
@@ -768,17 +830,19 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                             children: [
                               Text(
                                 'Connected Account',
-                                style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                                  color: context.adaptiveTextSecondary,
-                                ),
+                                style: Theme.of(ctx).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: context.adaptiveTextSecondary,
+                                    ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 username,
-                                style: Theme.of(ctx).textTheme.bodyLarge?.copyWith(
-                                  color: context.adaptiveTextPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: Theme.of(ctx).textTheme.bodyLarge
+                                    ?.copyWith(
+                                      color: context.adaptiveTextPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                             ],
                           ),
@@ -806,7 +870,9 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                         ),
                         foregroundColor: context.adaptiveTextPrimary,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusMd,
+                          ),
                         ),
                       ),
                     ),
@@ -829,7 +895,9 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusMd,
+                          ),
                         ),
                       ),
                     ),
