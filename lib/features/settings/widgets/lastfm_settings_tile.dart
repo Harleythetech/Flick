@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -34,18 +35,25 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    debugPrint('[LastFm] App lifecycle changed: $state, _awaitingCallback=$_awaitingCallback');
     if (state == AppLifecycleState.resumed && _awaitingCallback) {
+      debugPrint('[LastFm] App resumed after auth, completing authentication');
       _awaitingCallback = false;
       _completeAuth();
     }
   }
 
   Future<void> _startAuth() async {
+    debugPrint('[LastFm] _startAuth: Starting authentication flow');
     final auth = ref.read(lastFmAuthServiceProvider);
 
     // Check if API credentials are configured
+    debugPrint('[LastFm] _startAuth: Checking API credentials');
     final hasCredentials = await auth.hasValidApiCredentials();
+    debugPrint('[LastFm] _startAuth: Has valid credentials: $hasCredentials');
+    
     if (!hasCredentials) {
+      debugPrint('[LastFm] _startAuth: Missing credentials, showing error');
       _showError(
         'Please configure your Last.fm API key and shared secret first.',
       );
@@ -53,24 +61,43 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
     }
 
     try {
+      debugPrint('[LastFm] _startAuth: Calling getTokenAndLaunchAuth');
       await auth.getTokenAndLaunchAuth();
+      debugPrint('[LastFm] _startAuth: Successfully launched auth, mounted=$mounted');
+      
       if (mounted) {
         setState(() => _awaitingCallback = true);
+        debugPrint('[LastFm] _startAuth: Set _awaitingCallback=true');
       }
-    } catch (e) {
-      _showError(
-        'Could not open Last.fm. Check your API credentials and internet connection.',
-      );
+    } catch (e, stackTrace) {
+      debugPrint('[LastFm] _startAuth: ERROR - $e');
+      debugPrint('[LastFm] _startAuth: Stack trace: $stackTrace');
+      
+      if (mounted) {
+        // Provide more specific error message for network issues
+        final errorMessage = e.toString().contains('SocketException') ||
+                e.toString().contains('Failed host lookup')
+            ? 'No internet connection. Please check your network and try again.'
+            : 'Could not connect to Last.fm. Check your API credentials and try again.';
+        
+        _showError(errorMessage);
+      } else {
+        debugPrint('[LastFm] _startAuth: Widget not mounted, skipping error display');
+      }
     }
   }
 
   Future<void> _completeAuth() async {
+    debugPrint('[LastFm] _completeAuth: Starting token exchange');
     final auth = ref.read(lastFmAuthServiceProvider);
     try {
       await auth.exchangeTokenForSession();
+      debugPrint('[LastFm] _completeAuth: Token exchange successful');
       ref.invalidate(lastFmSessionProvider);
       _showSuccess('Last.fm connected!');
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('[LastFm] _completeAuth: ERROR - $e');
+      debugPrint('[LastFm] _completeAuth: Stack trace: $stackTrace');
       _showError(
         'Authorization failed. Make sure you approved access on Last.fm.',
       );
@@ -567,24 +594,46 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
                             flex: 2,
                             child: ElevatedButton(
                               onPressed: () async {
+                                debugPrint('[LastFm] Save & Connect button pressed');
+                                
                                 if (apiKeyController.text.isEmpty ||
                                     sharedSecretController.text.isEmpty) {
+                                  debugPrint('[LastFm] Empty credentials provided');
                                   _showError(
                                     'Please enter both API key and shared secret',
                                   );
                                   return;
                                 }
+                                
+                                debugPrint('[LastFm] Saving credentials...');
                                 await auth.setApiCredentials(
                                   apiKeyController.text,
                                   sharedSecretController.text,
                                 );
+                                debugPrint('[LastFm] Credentials saved, mounted=$mounted');
+                                
                                 if (mounted) {
                                   Navigator.pop(ctx);
+                                  debugPrint('[LastFm] Dialog closed');
+                                  
                                   _showSuccess(
                                     'Credentials saved successfully!',
                                   );
+                                  
                                   if (autoConnectAfterSave && mounted) {
-                                    await _startAuth();
+                                    debugPrint('[LastFm] Auto-connect enabled, waiting 300ms...');
+                                    // Small delay to ensure dialog is fully closed
+                                    await Future.delayed(
+                                      const Duration(milliseconds: 300),
+                                    );
+                                    debugPrint('[LastFm] Delay complete, mounted=$mounted');
+                                    
+                                    if (mounted) {
+                                      debugPrint('[LastFm] Calling _startAuth()');
+                                      await _startAuth();
+                                    } else {
+                                      debugPrint('[LastFm] Widget unmounted, skipping auth');
+                                    }
                                   }
                                 }
                               },
