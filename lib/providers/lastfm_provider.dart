@@ -54,6 +54,10 @@ class LastFmScrobbleNotifier extends _$LastFmScrobbleNotifier {
   ScrobbleEntry? _currentEntry;
   bool _hasScrobbledCurrent = false;
 
+  /// Monotonic counter to cancel stale now-playing calls during rapid
+  /// track changes (e.g. gapless transitions).
+  int _trackGeneration = 0;
+
   @override
   void build() {}
 
@@ -64,6 +68,7 @@ class LastFmScrobbleNotifier extends _$LastFmScrobbleNotifier {
     String? albumArtist,
     int? durationSeconds,
   }) async {
+    final gen = ++_trackGeneration;
     _playbackStart = DateTime.now();
     _hasScrobbledCurrent = false;
 
@@ -81,6 +86,9 @@ class LastFmScrobbleNotifier extends _$LastFmScrobbleNotifier {
       timestamp: _playbackStart!.millisecondsSinceEpoch ~/ 1000,
       durationSeconds: durationSeconds,
     );
+
+    // Skip now-playing if a newer onTrackStarted already fired
+    if (gen != _trackGeneration) return;
 
     final scrobbler = ref.read(lastFmScrobbleServiceProvider);
     await scrobbler.updateNowPlaying(_currentEntry!);
@@ -114,7 +122,6 @@ class LastFmScrobbleNotifier extends _$LastFmScrobbleNotifier {
         (track != null && !_isValidMetadata(track))) {
       _currentEntry = null;
       _playbackStart = null;
-      _hasScrobbledCurrent = false;
       return;
     }
     await _tryScrobble(
@@ -128,7 +135,6 @@ class LastFmScrobbleNotifier extends _$LastFmScrobbleNotifier {
 
     _currentEntry = null;
     _playbackStart = null;
-    _hasScrobbledCurrent = false;
   }
 
   Future<void> _tryScrobble({
@@ -174,12 +180,9 @@ class LastFmScrobbleNotifier extends _$LastFmScrobbleNotifier {
         ? trackDurationSeconds
         : entry.durationSeconds;
     if (durationSeconds == null || durationSeconds <= 0) {
+      debugPrint('[LastFm] scrobble skipped: missing or zero duration');
       return;
     }
-
-    final thresholdSeconds = durationSeconds >= 480
-        ? 240
-        : (durationSeconds / 2).ceil();
 
     final eligible = scrobbler.isEligibleToScrobble(
       trackDurationSeconds: durationSeconds,
@@ -193,8 +196,9 @@ class LastFmScrobbleNotifier extends _$LastFmScrobbleNotifier {
     _hasScrobbledCurrent = true;
     try {
       await queue.flush();
-    } catch (_) {
+    } catch (e) {
       // Offline or transient failure. Keep queued for later retry.
+      debugPrint('[LastFm] flush failed: $e');
     }
   }
 
@@ -203,28 +207,22 @@ class LastFmScrobbleNotifier extends _$LastFmScrobbleNotifier {
   bool _isValidMetadata(String text) {
     if (text.isEmpty) return false;
 
-    // Check for mojibake patterns: high density of replacement characters or
-    // suspicious Unicode sequences that indicate encoding corruption
+    // Check for mojibake patterns: high density of replacement characters
+    // that indicate encoding corruption. Only flag U+FFFD and letterlike
+    // symbols — avoid false-positives on legitimate non-Latin scripts
+    // (Japanese, Korean, Greek, etc.).
     int suspiciousCharCount = 0;
     for (final char in text.runes) {
-      // U+FFFD is the replacement character used for invalid UTF-8
-      // Mojibake often contains unusual combining marks or weird punctuation
-      if (char == 0xFFFD || // Replacement char
-          (char >= 0x2100 &&
-              char <= 0x214F) || // Letterlike symbols (suspicious)
-          (char >= 0x3040 &&
-              char <= 0x309F &&
-              char < 0x3400) || // Some hiragana mixed with other
-          (char == 0x03C0) || // Greek pi in artist/track names is rarely legit
-          (char == 0x03C3)) {
-        // Greek sigma
+      if (char == 0xFFFD || // Replacement char (invalid UTF-8)
+          (char >= 0x2100 && char <= 0x214F)) {
+        // Letterlike symbols (suspicious)
         suspiciousCharCount++;
       }
     }
 
-    // If more than 20% of characters are suspicious, likely mojibake
+    // If more than 40% of characters are suspicious, likely mojibake
     final suspicionRatio = suspiciousCharCount / text.length;
-    if (suspicionRatio > 0.2) {
+    if (suspicionRatio > 0.4) {
       return false;
     }
 

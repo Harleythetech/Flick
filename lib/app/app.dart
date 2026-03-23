@@ -134,8 +134,29 @@ class _MainShellState extends ConsumerState<MainShell>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      // Attempt to scrobble the current track before the app suspends
+      final playerState = ref.read(playerProvider);
+      final song = playerState.currentSong;
+      if (song != null) {
+        final notifier = ref.read(playerProvider.notifier);
+        ref
+            .read(lastFmScrobbleProvider.notifier)
+            .onTrackEnded(
+              artist: song.artist,
+              track: song.title,
+              album: song.album,
+              albumArtist: null,
+              listenedSeconds: notifier.accumulatedListenSeconds,
+              trackDurationSeconds: playerState.duration.inSeconds,
+            );
+      }
+    }
     if (state == AppLifecycleState.resumed) {
-      ref.read(lastFmScrobbleQueueProvider).flush().catchError((_) {});
+      ref.read(lastFmScrobbleQueueProvider).flush().catchError((e) {
+        debugPrint('[LastFm] queue flush on resume failed: $e');
+      });
     }
   }
 

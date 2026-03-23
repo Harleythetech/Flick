@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flick/core/constants/app_constants.dart';
 import 'package:flick/core/theme/adaptive_color_provider.dart';
@@ -134,13 +135,9 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Open in browser: https://www.last.fm/api/account/create',
-                      ),
-                      duration: Duration(seconds: 3),
-                    ),
+                  launchUrl(
+                    Uri.parse('https://www.last.fm/api/account/create'),
+                    mode: LaunchMode.externalApplication,
                   );
                 },
                 child: Text(
@@ -192,12 +189,8 @@ class _LastFmSettingsTileState extends ConsumerState<LastFmSettingsTile>
               if (mounted) {
                 Navigator.pop(ctx);
                 _showSuccess('Credentials saved successfully!');
-                if (autoConnectAfterSave) {
-                  // Wait a moment for dialog to close
-                  await Future.delayed(const Duration(milliseconds: 500));
-                  if (mounted) {
-                    await _startAuth();
-                  }
+                if (autoConnectAfterSave && mounted) {
+                  await _startAuth();
                 }
               }
             },

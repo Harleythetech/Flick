@@ -86,6 +86,12 @@ class PlayerNotifier extends Notifier<PlayerState> {
   int _lastTrackedPositionSeconds = 0;
   int _lastTrackedDurationSeconds = 0;
 
+  /// Accumulated actual listen time for the current track (ignores seeks).
+  int _accumulatedListenSeconds = 0;
+
+  /// Expose accumulated listen seconds for lifecycle hooks (e.g. app pause).
+  int get accumulatedListenSeconds => _accumulatedListenSeconds;
+
   @override
   PlayerState build() {
     _service = ref.watch(playerServiceProvider);
@@ -112,17 +118,27 @@ class PlayerNotifier extends Notifier<PlayerState> {
       if (_lastTrackedSong != null && latestSong?.id != _lastTrackedSong!.id) {
         _handleTrackEnded(
           endedSong: _lastTrackedSong!,
-          listenedSeconds: _lastTrackedPositionSeconds,
+          listenedSeconds: _accumulatedListenSeconds,
           trackDurationSeconds: _lastTrackedDurationSeconds,
         );
       }
 
       if (latestSong != null && latestSong.id != _lastTrackedSong?.id) {
         _handleTrackStarted(latestSong);
+        _accumulatedListenSeconds = 0;
       }
 
+      // Accumulate actual listen time: only count small position deltas
+      // (≤ 3s) as real playback. Larger jumps indicate seeks.
       final isSameTrack =
           latestSong != null && latestSong.id == _lastTrackedSong?.id;
+      if (isSameTrack) {
+        final delta = latestPositionSeconds - _lastTrackedPositionSeconds;
+        if (delta > 0 && delta <= 3) {
+          _accumulatedListenSeconds += delta;
+        }
+      }
+
       final positionAdvanced =
           latestPositionSeconds > _lastTrackedPositionSeconds;
       if (isSameTrack && positionAdvanced) {
@@ -134,15 +150,23 @@ class PlayerNotifier extends Notifier<PlayerState> {
                 track: latestSong.title,
                 album: latestSong.album,
                 albumArtist: null,
-                listenedSeconds: latestPositionSeconds,
+                listenedSeconds: _accumulatedListenSeconds,
                 trackDurationSeconds: latestDurationSeconds,
               ),
         );
       }
 
+      // Latch duration to highest value for the same track. During gapless
+      // transitions the player may briefly reset duration to 0 before the
+      // song notifier fires, which would wipe the stored value.
+      if (!isSameTrack) {
+        _lastTrackedDurationSeconds = latestDurationSeconds;
+      } else if (latestDurationSeconds > _lastTrackedDurationSeconds) {
+        _lastTrackedDurationSeconds = latestDurationSeconds;
+      }
+
       _lastTrackedSong = latestSong;
       _lastTrackedPositionSeconds = latestPositionSeconds;
-      _lastTrackedDurationSeconds = latestDurationSeconds;
 
       state = state.copyWith(
         currentSong: latestSong,

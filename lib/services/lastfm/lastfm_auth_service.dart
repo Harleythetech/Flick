@@ -51,22 +51,28 @@ class LastFmAuthService {
       throw Exception('No pending Last.fm token found. Start auth again.');
     }
 
-    final data = await _client.post({
-      'method': 'auth.getSession',
-      'token': token,
-    });
+    try {
+      final data = await _client.post({
+        'method': 'auth.getSession',
+        'token': token,
+      });
 
-    final raw = data['session'] as Map<String, dynamic>;
-    final session = LastFmSession(
-      sessionKey: raw['key'] as String,
-      username: raw['name'] as String,
-    );
+      final raw = data['session'] as Map<String, dynamic>;
+      final session = LastFmSession(
+        sessionKey: raw['key'] as String,
+        username: raw['name'] as String,
+      );
 
-    await _credentials.setSessionKey(session.sessionKey);
-    await _credentials.setUsername(session.username);
-    await _credentials.deletePendingToken();
+      await _credentials.setSessionKey(session.sessionKey);
+      await _credentials.setUsername(session.username);
+      await _credentials.deletePendingToken();
 
-    return session;
+      return session;
+    } catch (_) {
+      // Clean up stale pending token on failure so it doesn't linger
+      await _credentials.deletePendingToken();
+      rethrow;
+    }
   }
 
   Future<LastFmSession?> getSession() async {
