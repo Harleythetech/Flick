@@ -76,7 +76,9 @@ dev_dependencies:
 # https://github.com/rrousselGit/riverpod/issues/4393
 dependency_overrides:
   analyzer: ">=7.4.5 <8.3.0"
-  rive_native: ^0.1.4
+  # Pin rive_native to a known‑good version to align with rive ^0.14.0 and
+  # avoid transitive version‑solving issues. Remove once upstream constraints are fixed.
+  rive_native: 0.1.4
 
 flutter_launcher_icons:
   android: "launcher_icon"
