@@ -377,8 +377,8 @@ class MusicNotificationService : Service() {
             .setStyle(
                 MediaNotificationCompat.MediaStyle()
                     .setMediaSession(mediaSession.sessionToken)
-                    // Compact view: Play/Pause (1), Next (2)
-                    .setShowActionsInCompactView(1, 2)
+                    // Compact view: Previous (0), Play/Pause (1), Next (2)
+                    .setShowActionsInCompactView(0, 1, 2)
                     .setShowCancelButton(true)
             )
         
