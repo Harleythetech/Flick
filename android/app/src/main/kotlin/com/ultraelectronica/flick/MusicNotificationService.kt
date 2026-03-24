@@ -352,10 +352,13 @@ class MusicNotificationService : Service() {
             }
         }
         
-        val playPauseIcon = if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+        val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
         val playPauseText = if (isPlaying) "Pause" else "Play"
         
-        val favoriteIcon = if(isFavorite) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off
+        val shuffleIcon = R.drawable.ic_shuffle
+        val shuffleText = if(isShuffleMode) "Shuffle: On" else "Shuffle: Off"
+        
+        val favoriteIcon = if(isFavorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border
         val favoriteText = if(isFavorite) "Unfavorite" else "Favorite"
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
@@ -369,18 +372,31 @@ class MusicNotificationService : Service() {
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
             .setOngoing(true)  // Always ongoing to prevent Android from treating play/pause as different types
-            // Actions: Prev, Play/Pause, Next, Favorite
-            .addAction(android.R.drawable.ic_media_previous, "Previous", prevIntent)
-            .addAction(playPauseIcon, playPauseText, playPauseIntent)
-            .addAction(android.R.drawable.ic_media_next, "Next", nextIntent)
-            .addAction(favoriteIcon, favoriteText, favoriteIntent)
-            .setStyle(
-                MediaNotificationCompat.MediaStyle()
-                    .setMediaSession(mediaSession.sessionToken)
-                    // Compact view: Previous (0), Play/Pause (1), Next (2)
-                    .setShowActionsInCompactView(0, 1, 2)
-                    .setShowCancelButton(true)
-            )
+        
+        // Add actions in order: Prev, Play/Pause, Next, Shuffle, Favorite
+        // Compact view shows first 3, expanded view shows all 5
+        builder.addAction(R.drawable.ic_previous, "Previous", prevIntent)
+        builder.addAction(playPauseIcon, playPauseText, playPauseIntent)
+        builder.addAction(R.drawable.ic_next, "Next", nextIntent)
+        
+        // Create shuffle PendingIntent
+        val shuffleIntent = PendingIntent.getBroadcast(
+            this,
+            104,
+            Intent(ACTION_SHUFFLE).apply { setPackage(packageName) },
+            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        builder.addAction(shuffleIcon, shuffleText, shuffleIntent)
+        builder.addAction(favoriteIcon, favoriteText, favoriteIntent)
+        
+        // Configure MediaStyle - compact view always shows max 3 buttons
+        // Expanded view automatically shows all 5 buttons
+        val mediaStyle = MediaNotificationCompat.MediaStyle()
+            .setMediaSession(mediaSession.sessionToken)
+            .setShowActionsInCompactView(0, 1, 2)  // Prev, Play/Pause, Next
+            .setShowCancelButton(true)
+        
+        builder.setStyle(mediaStyle)
         
         // Add progress bar for Android 9 and below (MediaStyle handles it automatically on 10+)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && currentDuration > 0) {
