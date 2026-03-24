@@ -66,6 +66,9 @@ class PlayerService {
 
   // Track previous position to detect repeat wrap-around for notification progress
   Duration _lastPosition = Duration.zero;
+  
+  // Track last notification update time to throttle updates
+  DateTime _lastNotificationUpdate = DateTime.now();
 
   void _init() {
     // Initialize notification service with callbacks
@@ -102,7 +105,8 @@ class PlayerService {
       isPlayingNotifier.value = state.playing;
 
       if (wasPlaying != state.playing && currentSongNotifier.value != null) {
-        _notificationService.updatePlaybackState(isPlaying: state.playing);
+        // Update full notification state to ensure icon and time update properly
+        _updateNotificationState();
       }
 
       if (state.processingState == just_audio.ProcessingState.completed) {
@@ -116,10 +120,21 @@ class PlayerService {
       final prev = _lastPosition;
       _lastPosition = pos;
       positionNotifier.value = pos;
+      
+      // Update notification on loop wrap-around
       if (currentSongNotifier.value != null &&
           durationNotifier.value.inSeconds > 0 &&
           prev.inSeconds > 5 &&
           pos.inSeconds < 2) {
+        _updateNotificationState();
+      }
+      
+      // Periodically update notification with current position (throttled to every 2 seconds)
+      final now = DateTime.now();
+      if (currentSongNotifier.value != null &&
+          isPlayingNotifier.value &&
+          now.difference(_lastNotificationUpdate).inSeconds >= 2) {
+        _lastNotificationUpdate = now;
         _updateNotificationState();
       }
     });

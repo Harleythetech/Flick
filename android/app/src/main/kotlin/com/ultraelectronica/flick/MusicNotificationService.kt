@@ -40,6 +40,7 @@ class MusicNotificationService : Service() {
     private lateinit var mediaSession: MediaSessionCompat
     private lateinit var notificationManager: NotificationManager
     private var methodChannel: MethodChannel? = null
+    private var isForegroundServiceStarted = false
     
     private var currentTitle: String = "Unknown"
     private var currentArtist: String = "Unknown Artist"
@@ -52,17 +53,40 @@ class MusicNotificationService : Service() {
     
     private val actionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            android.util.Log.d("MusicNotification", "Received action: ${intent?.action}")
             when (intent?.action) {
-                ACTION_PLAY_PAUSE -> sendCommandToFlutter("togglePlayPause")
-                ACTION_NEXT -> sendCommandToFlutter("next")
-                ACTION_PREVIOUS -> sendCommandToFlutter("previous")
+                ACTION_PLAY_PAUSE -> {
+                    android.util.Log.d("MusicNotification", "Play/Pause tapped. Current isPlaying=$isPlaying")
+                    sendCommandToFlutter("togglePlayPause")
+                    // Optimistic local update so UI reflects immediately without waiting for Flutter
+                    isPlaying = !isPlaying
+                    val notification = buildNotification()
+                    notificationManager.cancel(NOTIFICATION_ID)
+                    notificationManager.notify(NOTIFICATION_ID, notification)
+                    android.util.Log.d("MusicNotification", "Optimistically updated to isPlaying=$isPlaying")
+                }
+                ACTION_NEXT -> {
+                    android.util.Log.d("MusicNotification", "Next action triggered")
+                    sendCommandToFlutter("next")
+                }
+                ACTION_PREVIOUS -> {
+                    android.util.Log.d("MusicNotification", "Previous action triggered")
+                    sendCommandToFlutter("previous")
+                }
                 ACTION_STOP -> {
+                    android.util.Log.d("MusicNotification", "Stop action triggered")
                     sendCommandToFlutter("stop")
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
-                ACTION_SHUFFLE -> sendCommandToFlutter("toggleShuffle")
-                ACTION_FAVORITE -> sendCommandToFlutter("toggleFavorite")
+                ACTION_SHUFFLE -> {
+                    android.util.Log.d("MusicNotification", "Shuffle action triggered")
+                    sendCommandToFlutter("toggleShuffle")
+                }
+                ACTION_FAVORITE -> {
+                    android.util.Log.d("MusicNotification", "Favorite action triggered")
+                    sendCommandToFlutter("toggleFavorite")
+                }
             }
         }
     }
@@ -73,7 +97,7 @@ class MusicNotificationService : Service() {
         createNotificationChannel()
         setupMediaSession()
         
-        // Register broadcast receiver for notification actions
+        // Register broadcast receiver for notification actions with proper flags
         val filter = IntentFilter().apply {
             addAction(ACTION_PLAY_PAUSE)
             addAction(ACTION_NEXT)
@@ -82,7 +106,13 @@ class MusicNotificationService : Service() {
             addAction(ACTION_SHUFFLE)
             addAction(ACTION_FAVORITE)
         }
+        
+        // For Android 12+, we need to be explicit about receiver export status
+        // Since these are internal app broadcasts, use NOT_EXPORTED for security
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(actionReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12 (API 31-32): Use NOT_EXPORTED since intents are explicit
             registerReceiver(actionReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             registerReceiver(actionReceiver, filter)
@@ -123,7 +153,18 @@ class MusicNotificationService : Service() {
         }
         
         val notification = buildNotification()
-        startForeground(NOTIFICATION_ID, notification)
+        
+        // Only call startForeground on initial start, otherwise cancel+notify to force full redraw
+        if (!isForegroundServiceStarted) {
+            android.util.Log.d("MusicNotification", "Starting foreground service with state: isPlaying=$isPlaying")
+            startForeground(NOTIFICATION_ID, notification)
+            isForegroundServiceStarted = true
+        } else {
+            android.util.Log.d("MusicNotification", "Updating notification with state: isPlaying=$isPlaying, position=$currentPosition, duration=$currentDuration")
+            // Cancel + notify forces Android to fully redraw the notification
+            notificationManager.cancel(NOTIFICATION_ID)
+            notificationManager.notify(NOTIFICATION_ID, notification)
+        }
         
         return START_STICKY
     }
@@ -143,6 +184,7 @@ class MusicNotificationService : Service() {
             // Receiver not registered
         }
         mediaSession.release()
+        isForegroundServiceStarted = false
     }
     
     private fun createNotificationChannel() {
@@ -267,26 +309,38 @@ class MusicNotificationService : Service() {
             )
         }
         
-        // Action intents
+        // Action intents - use FLAG_CANCEL_CURRENT to force fresh intents each time
         val playPauseIntent = PendingIntent.getBroadcast(
-            this, 1,
-            Intent(ACTION_PLAY_PAUSE),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            this,
+            100,
+            Intent(ACTION_PLAY_PAUSE).apply {
+                setPackage(packageName) // Explicit package for Android 12+
+            },
+            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val prevIntent = PendingIntent.getBroadcast(
-            this, 2,
-            Intent(ACTION_PREVIOUS),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            this,
+            101,
+            Intent(ACTION_PREVIOUS).apply {
+                setPackage(packageName)
+            },
+            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val nextIntent = PendingIntent.getBroadcast(
-            this, 3,
-            Intent(ACTION_NEXT),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            this,
+            102,
+            Intent(ACTION_NEXT).apply {
+                setPackage(packageName)
+            },
+            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val favoriteIntent = PendingIntent.getBroadcast(
-            this, 6,
-            Intent(ACTION_FAVORITE),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            this,
+            103,
+            Intent(ACTION_FAVORITE).apply {
+                setPackage(packageName)
+            },
+            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
         // Load album art
@@ -304,16 +358,17 @@ class MusicNotificationService : Service() {
         val favoriteIcon = if(isFavorite) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off
         val favoriteText = if(isFavorite) "Unfavorite" else "Favorite"
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(currentTitle)
             .setContentText(currentArtist)
+            .setSubText("${formatTime(currentPosition)} / ${formatTime(currentDuration)}")  // Show time in subtitle
             .setSmallIcon(R.drawable.ic_notification)
             .setLargeIcon(albumArt)
             .setContentIntent(contentIntent)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
-            .setOngoing(isPlaying)
+            .setOngoing(true)  // Always ongoing to prevent Android from treating play/pause as different types
             // Actions: Prev, Play/Pause, Next, Favorite
             .addAction(android.R.drawable.ic_media_previous, "Previous", prevIntent)
             .addAction(playPauseIcon, playPauseText, playPauseIntent)
@@ -326,7 +381,25 @@ class MusicNotificationService : Service() {
                     .setShowActionsInCompactView(1, 2)
                     .setShowCancelButton(true)
             )
-            .build()
+        
+        // Add progress bar for Android 9 and below (MediaStyle handles it automatically on 10+)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && currentDuration > 0) {
+            val progress = if (currentDuration > 0) {
+                ((currentPosition.toFloat() / currentDuration.toFloat()) * 100).toInt()
+            } else {
+                0
+            }
+            builder.setProgress(100, progress, false)
+        }
+        
+        return builder.build()
+    }
+    
+    private fun formatTime(millis: Long): String {
+        val seconds = (millis / 1000).toInt()
+        val minutes = seconds / 60
+        val secs = seconds % 60
+        return String.format("%d:%02d", minutes, secs)
     }
     
     fun updateNotification(title: String?, artist: String?, albumArtPath: String?, playing: Boolean?, duration: Long?, position: Long?, shuffle: Boolean?, favorite: Boolean?) {
@@ -340,14 +413,37 @@ class MusicNotificationService : Service() {
         favorite?.let { isFavorite = it }
         
         val notification = buildNotification()
+        // Cancel + notify forces Android to fully redraw the notification
+        notificationManager.cancel(NOTIFICATION_ID)
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
     
     private fun sendCommandToFlutter(command: String, args: Map<String, Any>? = null) {
         android.os.Handler(mainLooper).post {
             try {
-                methodChannel?.invokeMethod(command, args)
+                if (methodChannel == null) {
+                    android.util.Log.w("MusicNotification", "Method channel is null, attempting to reconnect")
+                    // Try to re-establish connection if channel is null
+                    FlutterEngineCache.getInstance().get("main_engine")?.let { engine ->
+                        methodChannel = MethodChannel(engine.dartExecutor.binaryMessenger, PLAYER_CHANNEL)
+                        android.util.Log.d("MusicNotification", "Method channel reconnected")
+                    } ?: android.util.Log.e("MusicNotification", "Failed to get Flutter engine from cache")
+                }
+                
+                android.util.Log.d("MusicNotification", "Sending command to Flutter: $command")
+                methodChannel?.invokeMethod(command, args, object : MethodChannel.Result {
+                    override fun success(result: Any?) {
+                        android.util.Log.d("MusicNotification", "Command $command succeeded")
+                    }
+                    override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) {
+                        android.util.Log.e("MusicNotification", "Command $command failed: $errorCode - $errorMessage")
+                    }
+                    override fun notImplemented() {
+                        android.util.Log.e("MusicNotification", "Command $command not implemented")
+                    }
+                })
             } catch (e: Exception) {
+                android.util.Log.e("MusicNotification", "Failed to send command to Flutter: $command, error: ${e.message}", e)
             }
         }
     }
