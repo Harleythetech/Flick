@@ -9,8 +9,6 @@ import 'package:flick/services/player_service.dart';
 import 'package:flick/services/favorites_service.dart';
 import 'package:flick/providers/playlist_provider.dart';
 import 'package:flick/features/player/widgets/waveform_seek_bar.dart';
-import 'package:flick/features/player/widgets/ambient_background.dart';
-import 'package:flick/features/player/widgets/compact_player_info_layout.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flick/widgets/common/cached_image_widget.dart';
 import 'package:flick/widgets/common/display_mode_wrapper.dart';
@@ -544,14 +542,49 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                 },
                 child: Stack(
                   children: [
-                    // Ambient background - wrapped in RepaintBoundary
-                    RepaintBoundary(child: AmbientBackground(song: song)),
+                    // Album art as background
+                    Positioned.fill(
+                      child: song.albumArt != null
+                          ? CachedImageWidget(
+                              imagePath: song.albumArt!,
+                              fit: BoxFit.cover,
+                            )
+                          : Container(
+                              color: AppColors.background,
+                              child: Icon(
+                                LucideIcons.music,
+                                size: 120,
+                                color: AppColors.textTertiary.withValues(alpha: 0.3),
+                              ),
+                            ),
+                    ),
+
+                    // Gradient overlay from bottom to top (#121212 to transparent)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              const Color(0xFF121212),
+                              const Color(0xFF121212).withValues(alpha: 0.95),
+                              const Color(0xFF121212).withValues(alpha: 0.85),
+                              const Color(0xFF121212).withValues(alpha: 0.6),
+                              const Color(0xFF121212).withValues(alpha: 0.3),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
 
                     SafeArea(
                       child: Column(
                         children: [
                           const Uac2ErrorNotification(),
-                          // Top Bar
+                          // Top Bar - individual backgrounds
                           Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: context.responsive(8.0, 12.0, 16.0),
@@ -560,46 +593,70 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                IconButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  padding: EdgeInsets.all(
-                                    context.responsive(8.0, 10.0, 12.0),
+                                // Dropdown with individual background
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF121212).withValues(alpha: 0.7),
+                                    shape: BoxShape.circle,
                                   ),
-                                  constraints: const BoxConstraints(),
-                                  icon: Icon(
-                                    LucideIcons.chevronDown,
-                                    color: context.adaptiveTextPrimary,
-                                    size: context.responsive(20.0, 22.0, 24.0),
-                                  ),
-                                ),
-                                Text(
-                                  "Now Playing",
-                                  style: TextStyle(
-                                    fontFamily: 'ProductSans',
-                                    fontSize: context.responsive(
-                                      12.0,
-                                      13.0,
-                                      14.0,
+                                  child: IconButton(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    padding: EdgeInsets.all(
+                                      context.responsive(8.0, 10.0, 12.0),
                                     ),
-                                    fontWeight: FontWeight.w600,
-                                    color: context.adaptiveTextSecondary,
-                                    letterSpacing: 0.8,
+                                    constraints: const BoxConstraints(),
+                                    icon: Icon(
+                                      LucideIcons.chevronDown,
+                                      color: Colors.white,
+                                      size: context.responsive(20.0, 22.0, 24.0),
+                                    ),
                                   ),
                                 ),
-                                PopupMenuButton<String>(
-                                  padding: EdgeInsets.all(
-                                    context.responsive(8.0, 10.0, 12.0),
+                                // Now Playing with individual background
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: context.responsive(16.0, 18.0, 20.0),
+                                    vertical: context.responsive(8.0, 9.0, 10.0),
                                   ),
-                                  icon: Icon(
-                                    Icons.more_vert,
-                                    color: context.adaptiveTextPrimary,
-                                    size: context.responsive(20.0, 22.0, 24.0),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF121212).withValues(alpha: 0.7),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
-                                  color: AppColors.surface,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                  child: Text(
+                                    "Now Playing",
+                                    style: TextStyle(
+                                      fontFamily: 'ProductSans',
+                                      fontSize: context.responsive(
+                                        12.0,
+                                        13.0,
+                                        14.0,
+                                      ),
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white.withValues(alpha: 0.9),
+                                      letterSpacing: 0.8,
+                                    ),
                                   ),
-                                  itemBuilder: (context) => [
+                                ),
+                                // Three-dot menu with individual background
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF121212).withValues(alpha: 0.7),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: PopupMenuButton<String>(
+                                    padding: EdgeInsets.all(
+                                      context.responsive(8.0, 10.0, 12.0),
+                                    ),
+                                    icon: Icon(
+                                      Icons.more_vert,
+                                      color: Colors.white,
+                                      size: context.responsive(20.0, 22.0, 24.0),
+                                    ),
+                                    color: AppColors.surface,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    itemBuilder: (context) => [
                                     PopupMenuItem(
                                       value: 'add_to_playlist',
                                       child: Row(
@@ -690,495 +747,216 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                     }
                                   },
                                 ),
+                                ),
                               ],
                             ),
                           ),
 
-                          Flexible(
-                            fit: FlexFit.loose,
-                            child: Builder(
-                              builder: (context) {
-                                final mediaSize = MediaQuery.sizeOf(context);
-                                // More adaptive compact height threshold
-                                final isCompactHeight =
-                                    mediaSize.height <= 650 ||
-                                    (context.isCompact &&
-                                        mediaSize.height <= 700);
-
-                                if (isCompactHeight) {
-                                  return CompactPlayerInfoLayout(
-                                    song: song,
-                                    heroTag: widget.heroTag,
-                                    playerService: _playerService,
-                                    favoritesService: _favoritesService,
-                                  );
-                                }
-
-                                return Column(
-                                  mainAxisSize: MainAxisSize.max,
-                                  children: [
-                                    const SizedBox(height: 30),
-                                    Hero(
-                                      tag: widget.heroTag,
-                                      child: Builder(
-                                        builder: (context) {
-                                          final screenWidth = MediaQuery.sizeOf(
-                                            context,
-                                          ).width;
-                                          final screenHeight =
-                                              MediaQuery.sizeOf(context).height;
-
-                                          // Better responsive sizing for album art with safer constraints
-                                          final double size;
-                                          if (context.isCompact) {
-                                            // Compact phones: smaller art, more space for controls
-                                            size = (screenWidth * 0.60).clamp(
-                                              160.0,
-                                              screenHeight * 0.25,
-                                            );
-                                          } else if (screenHeight < 700) {
-                                            // Short screens: prioritize controls
-                                            size = (screenWidth * 0.65).clamp(
-                                              180.0,
-                                              screenHeight * 0.28,
-                                            );
-                                          } else {
-                                            // Normal screens: larger art
-                                            final maxSize = screenHeight * 0.36;
-                                            size =
-                                                (context.responsive(
-                                                          0.70,
-                                                          0.75,
-                                                          0.80,
-                                                        ) *
-                                                        screenWidth)
-                                                    .clamp(200.0, maxSize);
-                                          }
-
-                                          final borderRadius = context
-                                              .responsive(20.0, 28.0, 36.0);
-
-                                          return Container(
-                                            width: size,
-                                            height: size,
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                    borderRadius,
-                                                  ),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black
-                                                      .withValues(alpha: 0.3),
-                                                  blurRadius: context
-                                                      .responsive(
-                                                        16.0,
-                                                        24.0,
-                                                        28.0,
-                                                      ),
-                                                  offset: Offset(
-                                                    0,
-                                                    context.responsive(
-                                                      8.0,
-                                                      12.0,
-                                                      14.0,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                    borderRadius,
-                                                  ),
-                                              child: song.albumArt != null
-                                                  ? CachedImageWidget(
-                                                      imagePath: song.albumArt!,
-                                                      fit: BoxFit.cover,
-                                                    )
-                                                  : Container(
-                                                      decoration: BoxDecoration(
-                                                        color: AppColors
-                                                            .glassBackgroundStrong,
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              borderRadius,
-                                                            ),
-                                                      ),
-                                                      child: Icon(
-                                                        LucideIcons.music,
-                                                        size: context
-                                                            .responsive(
-                                                              50.0,
-                                                              60.0,
-                                                              70.0,
-                                                            ),
-                                                        color: AppColors
-                                                            .textTertiary,
-                                                      ),
-                                                    ),
-                                            ),
-                                          );
-                                        },
-                                      ),
+                          // Title and Artist below "Now Playing"
+                          SizedBox(height: context.responsive(16.0, 20.0, 24.0)),
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: context.responsive(12.0, 16.0, 20.0),
+                            ),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              transitionBuilder: (Widget child, Animation<double> animation) {
+                                return SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(1.0, 0.0),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeInOut,
                                     ),
-                                    SizedBox(
-                                      height: context.responsive(
-                                        20.0,
-                                        24.0,
-                                        28.0,
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: context.responsive(
-                                          12.0,
-                                          16.0,
-                                          20.0,
-                                        ),
-                                      ),
-                                      child: AnimatedSwitcher(
-                                        duration: const Duration(
-                                          milliseconds: 300,
-                                        ),
-                                        transitionBuilder:
-                                            (
-                                              Widget child,
-                                              Animation<double> animation,
-                                            ) {
-                                              return SlideTransition(
-                                                position:
-                                                    Tween<Offset>(
-                                                      begin: const Offset(
-                                                        1.0,
-                                                        0.0,
-                                                      ),
-                                                      end: Offset.zero,
-                                                    ).animate(
-                                                      CurvedAnimation(
-                                                        parent: animation,
-                                                        curve: Curves.easeInOut,
-                                                      ),
-                                                    ),
-                                                child: FadeTransition(
-                                                  opacity: animation,
-                                                  child: child,
-                                                ),
-                                              );
-                                            },
-                                        child: Column(
-                                          key: ValueKey(song.id),
-                                          children: [
-                                            Text(
-                                              song.title,
-                                              textAlign: TextAlign.center,
-                                              maxLines: context.isCompact
-                                                  ? 1
-                                                  : 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontFamily: 'ProductSans',
-                                                fontSize: context
-                                                    .responsiveText(
-                                                      context.responsive(
-                                                        18.0,
-                                                        22.0,
-                                                        26.0,
-                                                      ),
-                                                    ),
-                                                fontWeight: FontWeight.bold,
-                                                color:
-                                                    context.adaptiveTextPrimary,
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              height: context.responsive(
-                                                3.0,
-                                                5.0,
-                                                6.0,
-                                              ),
-                                            ),
-                                            Text(
-                                              song.artist,
-                                              textAlign: TextAlign.center,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontFamily: 'ProductSans',
-                                                fontSize: context
-                                                    .responsiveText(
-                                                      context.responsive(
-                                                        13.0,
-                                                        15.0,
-                                                        17.0,
-                                                      ),
-                                                    ),
-                                                color: context
-                                                    .adaptiveTextSecondary,
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              height: context.responsive(
-                                                6.0,
-                                                8.0,
-                                                8.0,
-                                              ),
-                                            ),
-                                            const Uac2PlayerStatus(
-                                              compact: true,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: context.responsive(2.0, 3.0, 4.0),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: context.responsive(
-                                          12.0,
-                                          16.0,
-                                          20.0,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          // Lyrics button (left)
-                                          GestureDetector(
-                                            onTap: () {
-                                              // TODO: open lyrics
-                                            },
-                                            child: Container(
-                                              padding: EdgeInsets.all(
-                                                context.responsive(
-                                                  6.0,
-                                                  7.0,
-                                                  8.0,
-                                                ),
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: context
-                                                    .adaptiveTextTertiary
-                                                    .withValues(alpha: 0.08),
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                              ),
-                                              child: Icon(
-                                                LucideIcons.fileText,
-                                                color: context
-                                                    .adaptiveTextTertiary,
-                                                size: context.responsive(
-                                                  16.0,
-                                                  17.0,
-                                                  18.0,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          // File info (center)
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Container(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: context
-                                                      .responsive(
-                                                        4.0,
-                                                        5.0,
-                                                        6.0,
-                                                      ),
-                                                  vertical: 2,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: context
-                                                      .adaptiveTextTertiary
-                                                      .withValues(alpha: 0.1),
-                                                  borderRadius:
-                                                      BorderRadius.circular(3),
-                                                ),
-                                                child: Text(
-                                                  song.fileType,
-                                                  style: TextStyle(
-                                                    fontFamily: 'ProductSans',
-                                                    fontSize: context
-                                                        .responsive(
-                                                          9.0,
-                                                          10.0,
-                                                          11.0,
-                                                        ),
-                                                    fontWeight: FontWeight.w600,
-                                                    color: context
-                                                        .adaptiveTextSecondary,
-                                                  ),
-                                                ),
-                                              ),
-                                              if (song.resolution != null) ...[
-                                                SizedBox(
-                                                  width: context.responsive(
-                                                    5.0,
-                                                    6.0,
-                                                    7.0,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  song.resolution!,
-                                                  style: TextStyle(
-                                                    fontFamily: 'ProductSans',
-                                                    fontSize: context
-                                                        .responsive(
-                                                          9.0,
-                                                          10.0,
-                                                          11.0,
-                                                        ),
-                                                    color: context
-                                                        .adaptiveTextTertiary,
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                          // Favorites button (right)
-                                          FutureBuilder<bool>(
-                                            future: _favoritesService
-                                                .isFavorite(song.id),
-                                            builder: (context, snapshot) {
-                                              final isFavorite =
-                                                  snapshot.data ?? false;
-                                              return GestureDetector(
-                                                onTap: () async {
-                                                  final newState =
-                                                      await _favoritesService
-                                                          .toggleFavorite(
-                                                            song.id,
-                                                          );
-                                                  setState(() {});
-                                                  if (context.mounted) {
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          newState
-                                                              ? 'Added to favorites'
-                                                              : 'Removed from favorites',
-                                                        ),
-                                                        duration:
-                                                            const Duration(
-                                                              seconds: 1,
-                                                            ),
-                                                      ),
-                                                    );
-                                                  }
-                                                },
-                                                child: Container(
-                                                  padding: EdgeInsets.all(
-                                                    context.responsive(
-                                                      6.0,
-                                                      7.0,
-                                                      8.0,
-                                                    ),
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: isFavorite
-                                                        ? Colors.red.withValues(
-                                                            alpha: 0.12,
-                                                          )
-                                                        : context
-                                                              .adaptiveTextTertiary
-                                                              .withValues(
-                                                                alpha: 0.08,
-                                                              ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          10,
-                                                        ),
-                                                  ),
-                                                  child: Icon(
-                                                    isFavorite
-                                                        ? Icons.favorite
-                                                        : Icons.favorite_border,
-                                                    color: isFavorite
-                                                        ? Colors.red
-                                                        : context
-                                                              .adaptiveTextTertiary,
-                                                    size: context.responsive(
-                                                      16.0,
-                                                      17.0,
-                                                      18.0,
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: context.responsive(
-                                        6.0,
-                                        8.0,
-                                        10.0,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
+                                  child: FadeTransition(
+                                    opacity: animation,
+                                    child: child,
+                                  ),
                                 );
                               },
+                              child: Column(
+                                key: ValueKey(song.id),
+                                children: [
+                                  // Scrolling title
+                                  SizedBox(
+                                    height: context.responsive(32.0, 36.0, 40.0),
+                                    child: _ScrollingText(
+                                      text: song.title,
+                                      style: TextStyle(
+                                        fontFamily: 'ProductSans',
+                                        fontSize: context.responsiveText(
+                                          context.responsive(18.0, 22.0, 26.0),
+                                        ),
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: context.responsive(4.0, 5.0, 6.0)),
+                                  // Artist
+                                  Text(
+                                    song.artist,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontFamily: 'ProductSans',
+                                      fontSize: context.responsiveText(
+                                        context.responsive(13.0, 15.0, 17.0),
+                                      ),
+                                      color: Colors.white.withValues(alpha: 0.8),
+                                    ),
+                                  ),
+                                  SizedBox(height: context.responsive(6.0, 8.0, 8.0)),
+                                  const Uac2PlayerStatus(compact: true),
+                                ],
+                              ),
                             ),
                           ),
 
-                          SizedBox(
-                            height: context.responsive(10.0, 14.0, 18.0),
-                          ),
-                          const Spacer(flex: 3),
+                          const Spacer(),
 
-                          // Waveform & Controls
+                          // File info above waveform
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: context.responsive(12.0, 16.0, 20.0),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Lyrics button (left)
+                                GestureDetector(
+                                  onTap: () {
+                                    // TODO: open lyrics
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.all(
+                                      context.responsive(6.0, 7.0, 8.0),
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(
+                                      LucideIcons.fileText,
+                                      color: Colors.white.withValues(alpha: 0.9),
+                                      size: context.responsive(16.0, 17.0, 18.0),
+                                    ),
+                                  ),
+                                ),
+                                // File info (center)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: context.responsive(4.0, 5.0, 6.0),
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                      child: Text(
+                                        song.fileType,
+                                        style: TextStyle(
+                                          fontFamily: 'ProductSans',
+                                          fontSize: context.responsive(9.0, 10.0, 11.0),
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    if (song.resolution != null) ...[
+                                      SizedBox(width: context.responsive(5.0, 6.0, 7.0)),
+                                      Text(
+                                        song.resolution!,
+                                        style: TextStyle(
+                                          fontFamily: 'ProductSans',
+                                          fontSize: context.responsive(9.0, 10.0, 11.0),
+                                          color: Colors.white.withValues(alpha: 0.7),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                // Favorites button (right)
+                                FutureBuilder<bool>(
+                                  future: _favoritesService.isFavorite(song.id),
+                                  builder: (context, snapshot) {
+                                    final isFavorite = snapshot.data ?? false;
+                                    return GestureDetector(
+                                      onTap: () async {
+                                        final newState = await _favoritesService.toggleFavorite(song.id);
+                                        setState(() {});
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                newState ? 'Added to favorites' : 'Removed from favorites',
+                                              ),
+                                              duration: const Duration(seconds: 1),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: EdgeInsets.all(
+                                          context.responsive(6.0, 7.0, 8.0),
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isFavorite
+                                              ? Colors.red.withValues(alpha: 0.25)
+                                              : Colors.white.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Icon(
+                                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                                          color: isFavorite
+                                              ? Colors.red
+                                              : Colors.white.withValues(alpha: 0.9),
+                                          size: context.responsive(16.0, 17.0, 18.0),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(height: context.responsive(12.0, 16.0, 20.0)),
+
+                          // Waveform & Controls (lowered)
                           Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: context.responsive(12.0, 16.0, 20.0),
                             ),
                             child: Column(
-                              mainAxisSize: MainAxisSize.max,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Transform.translate(
-                                  offset: Offset(
-                                    0,
-                                    context.responsive(10.0, 12.0, 14.0),
-                                  ),
-                                  child: _WaveformLayer(
-                                    playerService: _playerService,
-                                    throttledPosition: _throttledPosition,
-                                    currentSong: song,
-                                  ),
+                                _WaveformLayer(
+                                  playerService: _playerService,
+                                  throttledPosition: _throttledPosition,
+                                  currentSong: song,
                                 ),
-                                SizedBox(
-                                  height: context.responsive(2.0, 3.0, 4.0),
-                                ),
-                                Transform.translate(
-                                  offset: Offset(
-                                    0,
-                                    context.responsive(14.0, 16.0, 18.0),
-                                  ),
-                                  child: _PlayerControls(
-                                    playerService: _playerService,
-                                    formatDuration: _formatDuration,
-                                    currentSong: song,
-                                    isShuffleNotifier:
-                                        _playerService.isShuffleNotifier,
-                                  ),
+                                SizedBox(height: context.responsive(2.0, 3.0, 4.0)),
+                                _PlayerControls(
+                                  playerService: _playerService,
+                                  formatDuration: _formatDuration,
+                                  currentSong: song,
+                                  isShuffleNotifier: _playerService.isShuffleNotifier,
                                 ),
                               ],
                             ),
                           ),
 
                           SizedBox(height: context.responsive(8.0, 12.0, 16.0)),
-                          const Spacer(flex: 1),
 
-                          // Bottom Directory Info (fixed above navigation)
+                          // Bottom Directory Info
                           if (song.filePath != null)
                             Builder(
                               builder: (context) {
@@ -1186,10 +964,8 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                 final filePath = song.filePath!;
                                 final parts = filePath.split(RegExp(r'[/\\]'));
                                 if (parts.length > 1) {
-                                  parts.removeLast(); // remove the file name
-                                  final startIndex = parts.length > 2
-                                      ? parts.length - 2
-                                      : 0;
+                                  parts.removeLast();
+                                  final startIndex = parts.length > 2 ? parts.length - 2 : 0;
                                   final folders = parts.sublist(startIndex);
                                   dirText = folders.join('/');
                                 }
@@ -1198,31 +974,17 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                 }
                                 return Padding(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: context.responsive(
-                                      12.0,
-                                      16.0,
-                                      20.0,
-                                    ),
+                                    horizontal: context.responsive(12.0, 16.0, 20.0),
                                   ),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(
                                         LucideIcons.folder,
-                                        size: context.responsive(
-                                          11.0,
-                                          12.0,
-                                          13.0,
-                                        ),
-                                        color: context.adaptiveTextPrimary,
+                                        size: context.responsive(11.0, 12.0, 13.0),
+                                        color: Colors.white.withValues(alpha: 0.7),
                                       ),
-                                      SizedBox(
-                                        width: context.responsive(
-                                          4.0,
-                                          5.0,
-                                          6.0,
-                                        ),
-                                      ),
+                                      SizedBox(width: context.responsive(4.0, 5.0, 6.0)),
                                       Flexible(
                                         child: Text(
                                           dirText,
@@ -1230,12 +992,8 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontFamily: 'ProductSans',
-                                            fontSize: context.responsive(
-                                              10.0,
-                                              11.0,
-                                              12.0,
-                                            ),
-                                            color: context.adaptiveTextPrimary,
+                                            fontSize: context.responsive(10.0, 11.0, 12.0),
+                                            color: Colors.white.withValues(alpha: 0.7),
                                           ),
                                         ),
                                       ),
@@ -1253,6 +1011,86 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+/// Scrolling text widget for long titles
+class _ScrollingText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const _ScrollingText({
+    required this.text,
+    required this.style,
+  });
+
+  @override
+  State<_ScrollingText> createState() => _ScrollingTextState();
+}
+
+class _ScrollingTextState extends State<_ScrollingText> {
+  late ScrollController _scrollController;
+  Timer? _scrollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _startScrolling();
+  }
+
+  @override
+  void dispose() {
+    _scrollTimer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _startScrolling() {
+    // Wait a bit before starting to scroll
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      
+      _scrollTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+        if (!mounted || !_scrollController.hasClients) {
+          timer.cancel();
+          return;
+        }
+
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final currentScroll = _scrollController.offset;
+
+        if (maxScroll > 0) {
+          if (currentScroll >= maxScroll) {
+            // Reset to start
+            _scrollController.jumpTo(0);
+            timer.cancel();
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) _startScrolling();
+            });
+          } else {
+            _scrollController.animateTo(
+              currentScroll + 1,
+              duration: const Duration(milliseconds: 50),
+              curve: Curves.linear,
+            );
+          }
+        }
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      child: Text(
+        widget.text,
+        style: widget.style,
+        maxLines: 1,
       ),
     );
   }
@@ -1342,7 +1180,7 @@ class _PlayerControls extends StatelessWidget {
                         style: const TextStyle(
                           fontFamily: 'ProductSans',
                           fontSize: 12,
-                          color: AppColors.textPrimary,
+                          color: Colors.white,
                           fontFeatures: [FontFeature.tabularFigures()],
                         ),
                       ),
@@ -1351,7 +1189,7 @@ class _PlayerControls extends StatelessWidget {
                         style: const TextStyle(
                           fontFamily: 'ProductSans',
                           fontSize: 12,
-                          color: AppColors.textPrimary,
+                          color: Colors.white,
                           fontFeatures: [FontFeature.tabularFigures()],
                         ),
                       ),
@@ -1381,8 +1219,8 @@ class _PlayerControls extends StatelessWidget {
                               icon: Icon(
                                 LucideIcons.shuffle,
                                 color: isShuffle
-                                    ? context.adaptiveAccent
-                                    : context.adaptiveTextTertiary,
+                                    ? AppColors.accent
+                                    : Colors.white.withValues(alpha: 0.7),
                               ),
                             ),
                           );
@@ -1403,7 +1241,7 @@ class _PlayerControls extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           icon: Icon(
                             LucideIcons.skipBack,
-                            color: context.adaptiveTextPrimary,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -1425,7 +1263,7 @@ class _PlayerControls extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           icon: Icon(
                             LucideIcons.skipForward,
-                            color: context.adaptiveTextPrimary,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -1435,13 +1273,13 @@ class _PlayerControls extends StatelessWidget {
                         valueListenable: playerService.loopModeNotifier,
                         builder: (context, loopMode, _) {
                           IconData icon = LucideIcons.repeat;
-                          Color color = context.adaptiveTextTertiary;
+                          Color color = Colors.white.withValues(alpha: 0.7);
                           if (loopMode == LoopMode.all) {
-                            color = context.adaptiveAccent;
+                            color = AppColors.accent;
                           }
                           if (loopMode == LoopMode.one) {
                             icon = LucideIcons.repeat1;
-                            color = context.adaptiveAccent;
+                            color = AppColors.accent;
                           }
                           return Container(
                             width: context.responsive(40.0, 44.0, 48.0),
