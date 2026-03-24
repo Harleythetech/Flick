@@ -679,10 +679,11 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                           22.0,
                                           24.0,
                                         ),
-                                        child: MarqueeWidget(
-                                          child: Text(
-                                            '${song.title} - ${song.artist}',
-                                            style: TextStyle(
+                                        child: LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            final text =
+                                                '${song.title} - ${song.artist}';
+                                            final textStyle = TextStyle(
                                               fontFamily: 'ProductSans',
                                               fontSize: context.responsiveText(
                                                 context.responsive(
@@ -695,8 +696,36 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                               color: Colors.white.withValues(
                                                 alpha: 0.85,
                                               ),
-                                            ),
-                                          ),
+                                            );
+                                            final textPainter = TextPainter(
+                                              text: TextSpan(
+                                                text: text,
+                                                style: textStyle,
+                                              ),
+                                              textDirection: TextDirection.ltr,
+                                              maxLines: 1,
+                                            )..layout();
+
+                                            if (textPainter.width <=
+                                                constraints.maxWidth) {
+                                              return Center(
+                                                child: Text(
+                                                  text,
+                                                  style: textStyle,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              );
+                                            }
+
+                                            return MarqueeWidget(
+                                              child: Text(
+                                                text,
+                                                style: textStyle,
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ),
                                     ],
