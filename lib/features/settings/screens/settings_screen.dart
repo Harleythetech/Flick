@@ -19,6 +19,7 @@ import 'package:flick/widgets/common/glass_bottom_sheet.dart';
 import 'package:flick/widgets/common/display_mode_wrapper.dart';
 import 'package:flick/features/settings/screens/equalizer_screen.dart';
 import 'package:flick/features/settings/screens/uac2_settings_screen.dart';
+import 'package:flick/features/settings/screens/duplicate_cleaner_screen.dart';
 import 'package:flick/features/settings/widgets/lastfm_settings_tile.dart';
 
 /// Settings screen matching the design language.
@@ -203,6 +204,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _scanProgress = null;
       });
     }
+  }
+
+  void _openDuplicateCleaner() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const DuplicateCleanerScreen(),
+      ),
+    );
   }
 
   void _showScanningBottomSheet(String folderName) {
@@ -769,6 +778,14 @@ SOFTWARE.
               title: 'Rescan Library',
               subtitle: 'Re-index all folders',
               onTap: _isScanning ? null : _rescanAllFolders,
+            ),
+            _buildDivider(),
+            _buildActionButton(
+              context,
+              icon: LucideIcons.copy,
+              title: 'Remove Duplicates',
+              subtitle: 'Find and remove duplicate songs',
+              onTap: _isScanning ? null : _openDuplicateCleaner,
             ),
             _buildDivider(),
             _buildAutoSyncToggle(context),
