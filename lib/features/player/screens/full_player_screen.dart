@@ -28,6 +28,8 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
     with TickerProviderStateMixin {
   final PlayerService _playerService = PlayerService();
   final FavoritesService _favoritesService = FavoritesService();
+  static const String _topBarTextFontFamily = 'ProductSans';
+  static const FontWeight _topBarTextFontWeight = FontWeight.w500;
 
   // Animation controller for drag offset (replaces setState)
   late AnimationController _dragController;
@@ -41,6 +43,9 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
   // Notifier for throttled position – only _WaveformLayer listens, so no setState needed.
   late final ValueNotifier<Duration> _throttledPositionNotifier;
   Timer? _positionThrottleTimer;
+  String? _cachedTopBarText;
+  double? _cachedTopBarFontSize;
+  double _cachedTopBarTextWidth = 0;
 
   @override
   void initState() {
@@ -70,14 +75,58 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
         }
       }
     });
+
+    _playerService.currentSongNotifier.addListener(_handleCurrentSongChanged);
+    _updateTopBarTextMeasurement(_playerService.currentSongNotifier.value);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateTopBarTextMeasurement(_playerService.currentSongNotifier.value);
   }
 
   @override
   void dispose() {
+    _playerService.currentSongNotifier.removeListener(_handleCurrentSongChanged);
     _positionThrottleTimer?.cancel();
     _throttledPositionNotifier.dispose();
     _dragController.dispose();
     super.dispose();
+  }
+
+  void _handleCurrentSongChanged() {
+    _updateTopBarTextMeasurement(_playerService.currentSongNotifier.value);
+  }
+
+  void _updateTopBarTextMeasurement(Song? song) {
+    if (!mounted || song == null) return;
+
+    final text = '${song.title} - ${song.artist}';
+    final fontSize = context.responsiveText(
+      context.responsive(13.0, 14.0, 15.0),
+    );
+
+    if (_cachedTopBarText == text && _cachedTopBarFontSize == fontSize) {
+      return;
+    }
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontFamily: _topBarTextFontFamily,
+          fontSize: fontSize,
+          fontWeight: _topBarTextFontWeight,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+
+    _cachedTopBarText = text;
+    _cachedTopBarFontSize = fontSize;
+    _cachedTopBarTextWidth = textPainter.width;
   }
 
   // For nice time formatting (mm:ss)
@@ -685,7 +734,8 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                             final text =
                                                 '${song.title} - ${song.artist}';
                                             final textStyle = TextStyle(
-                                              fontFamily: 'ProductSans',
+                                              fontFamily:
+                                                  _topBarTextFontFamily,
                                               fontSize: context.responsiveText(
                                                 context.responsive(
                                                   13.0,
@@ -693,21 +743,14 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                                   15.0,
                                                 ),
                                               ),
-                                              fontWeight: FontWeight.w500,
+                                              fontWeight:
+                                                  _topBarTextFontWeight,
                                               color: Colors.white.withValues(
                                                 alpha: 0.85,
                                               ),
                                             );
-                                            final textPainter = TextPainter(
-                                              text: TextSpan(
-                                                text: text,
-                                                style: textStyle,
-                                              ),
-                                              textDirection: TextDirection.ltr,
-                                              maxLines: 1,
-                                            )..layout();
 
-                                            if (textPainter.width <=
+                                            if (_cachedTopBarTextWidth <=
                                                 constraints.maxWidth) {
                                               return Center(
                                                 child: Text(
