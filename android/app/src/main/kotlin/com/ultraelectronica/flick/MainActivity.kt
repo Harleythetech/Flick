@@ -13,6 +13,7 @@ import android.media.audiofx.Equalizer
 import android.media.audiofx.AudioEffect
 import android.net.Uri
 import android.os.Build
+import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -144,6 +145,40 @@ class MainActivity: FlutterActivity() {
                         }
                     } else {
                         result.error("INVALID_ARGUMENT", "URI is required", null)
+                    }
+                }
+                "readSiblingLyrics" -> {
+                    val audioUri = call.argument<String>("audioUri")
+                    if (audioUri != null) {
+                        mainScope.launch {
+                            try {
+                                val lyrics = withContext(Dispatchers.IO) {
+                                    readSiblingLyrics(audioUri)
+                                }
+                                result.success(lyrics)
+                            } catch (e: Exception) {
+                                result.error("LYRICS_READ_ERROR", "Failed to read lyrics: ${e.message}", null)
+                            }
+                        }
+                    } else {
+                        result.error("INVALID_ARGUMENT", "audioUri is required", null)
+                    }
+                }
+                "readEmbeddedLyrics" -> {
+                    val audioUri = call.argument<String>("audioUri")
+                    if (audioUri != null) {
+                        mainScope.launch {
+                            try {
+                                val lyrics = withContext(Dispatchers.IO) {
+                                    readEmbeddedLyrics(audioUri)
+                                }
+                                result.success(lyrics)
+                            } catch (e: Exception) {
+                                result.error("LYRICS_EMBEDDED_ERROR", "Failed to read embedded lyrics: ${e.message}", null)
+                            }
+                        }
+                    } else {
+                        result.error("INVALID_ARGUMENT", "audioUri is required", null)
                     }
                 }
                 "getDocumentDisplayName" -> {
@@ -659,6 +694,195 @@ class MainActivity: FlutterActivity() {
             if (tempFile.exists()) {
                 tempFile.delete()
             }
+        }
+    }
+
+    private fun readSiblingLyrics(audioUriString: String): Map<String, String>? {
+        return try {
+            val audioUri = Uri.parse(audioUriString)
+            when (audioUri.scheme) {
+                "content" -> readSiblingLyricsFromContentUri(audioUri)
+                "file" -> readSiblingLyricsFromFilePath(audioUri.path)
+                null, "" -> readSiblingLyricsFromFilePath(audioUriString)
+                else -> null
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("FlickLyrics", "readSiblingLyrics failed for $audioUriString: ${e.message}")
+            null
+        }
+    }
+
+    private fun readEmbeddedLyrics(audioUriString: String): Map<String, String>? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            val uri = Uri.parse(audioUriString)
+
+            val handledByUri = when (uri.scheme) {
+                "content", "file" -> {
+                    retriever.setDataSource(this, uri)
+                    true
+                }
+                else -> false
+            }
+
+            if (!handledByUri) {
+                retriever.setDataSource(audioUriString)
+            }
+
+            val lyricKey = try {
+                MediaMetadataRetriever::class.java.getField("METADATA_KEY_LYRIC").getInt(null)
+            } catch (_: Exception) {
+                null
+            }
+
+            val lyricText = lyricKey?.let { retriever.extractMetadata(it) }
+            if (lyricText.isNullOrBlank()) {
+                null
+            } else {
+                mapOf(
+                    "content" to lyricText,
+                    "source" to "embedded",
+                )
+            }
+        } catch (_: Exception) {
+            null
+        } finally {
+            try {
+                retriever.release()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun readSiblingLyricsFromContentUri(audioUri: Uri): Map<String, String>? {
+        val audioName = DocumentFile.fromSingleUri(this, audioUri)?.name ?: return null
+        val stem = audioName.substringBeforeLast('.', audioName)
+        val candidateNames = listOf("$stem.lrc", "$stem.txt")
+        val candidateSet = candidateNames.map { it.lowercase() }.toSet()
+
+        val authority = audioUri.authority ?: return null
+        val documentId = try {
+            DocumentsContract.getDocumentId(audioUri)
+        } catch (e: Exception) {
+            return null
+        }
+        val slashIndex = documentId.lastIndexOf('/')
+        if (slashIndex <= 0) return null
+        val parentDocumentId = documentId.substring(0, slashIndex)
+
+        // Fast path: build candidate URIs directly using parent document id.
+        for (candidateName in candidateNames) {
+            val candidateDocumentId = "$parentDocumentId/$candidateName"
+            val directUri = DocumentsContract.buildDocumentUri(authority, candidateDocumentId)
+            val directContent = readTextFromUri(directUri)
+            if (!directContent.isNullOrBlank()) {
+                return mapOf(
+                    "content" to directContent,
+                    "uri" to directUri.toString(),
+                    "name" to candidateName,
+                )
+            }
+
+            val treeUri = try {
+                DocumentsContract.buildDocumentUriUsingTree(audioUri, candidateDocumentId)
+            } catch (_: Exception) {
+                null
+            }
+            if (treeUri != null) {
+                val treeContent = readTextFromUri(treeUri)
+                if (!treeContent.isNullOrBlank()) {
+                    return mapOf(
+                        "content" to treeContent,
+                        "uri" to treeUri.toString(),
+                        "name" to candidateName,
+                    )
+                }
+            }
+        }
+
+        // Fallback: list siblings from parent and match candidate names case-insensitively.
+        val childrenUri = try {
+            DocumentsContract.buildChildDocumentsUri(authority, parentDocumentId)
+        } catch (e: Exception) {
+            return null
+        }
+
+        contentResolver.query(
+            childrenUri,
+            arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            ),
+            null,
+            null,
+            null,
+        )?.use { cursor ->
+            val idIndex = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+            val nameIndex = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+            if (idIndex == -1 || nameIndex == -1) {
+                return null
+            }
+
+            while (cursor.moveToNext()) {
+                val displayName = cursor.getString(nameIndex) ?: continue
+                if (!candidateSet.contains(displayName.lowercase())) continue
+
+                val childDocumentId = cursor.getString(idIndex) ?: continue
+                val childUri = DocumentsContract.buildDocumentUri(authority, childDocumentId)
+                val content = readTextFromUri(childUri)
+                if (!content.isNullOrBlank()) {
+                    return mapOf(
+                        "content" to content,
+                        "uri" to childUri.toString(),
+                        "name" to displayName,
+                    )
+                }
+            }
+        }
+
+        return null
+    }
+
+    private fun readSiblingLyricsFromFilePath(audioPath: String?): Map<String, String>? {
+        if (audioPath.isNullOrBlank()) return null
+
+        val audioFile = java.io.File(audioPath)
+        val parent = audioFile.parentFile ?: return null
+        val stem = audioFile.name.substringBeforeLast('.', audioFile.name)
+        val candidateNames = listOf("$stem.lrc", "$stem.txt", "$stem.LRC", "$stem.TXT")
+
+        for (candidateName in candidateNames) {
+            val candidateFile = java.io.File(parent, candidateName)
+            if (!candidateFile.exists() || !candidateFile.isFile) continue
+
+            val text = try {
+                candidateFile.readText(Charsets.UTF_8)
+            } catch (_: Exception) {
+                try {
+                    candidateFile.readText(Charsets.ISO_8859_1)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+
+            if (!text.isNullOrBlank()) {
+                return mapOf(
+                    "content" to text,
+                    "uri" to candidateFile.absolutePath,
+                    "name" to candidateFile.name,
+                )
+            }
+        }
+
+        return null
+    }
+
+    private fun readTextFromUri(uri: Uri): String? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+        } catch (_: Exception) {
+            null
         }
     }
 

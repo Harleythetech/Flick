@@ -7,6 +7,7 @@ import 'package:flick/core/utils/responsive.dart';
 import 'package:flick/models/song.dart';
 import 'package:flick/services/player_service.dart';
 import 'package:flick/services/favorites_service.dart';
+import 'package:flick/services/lyrics_service.dart';
 import 'package:flick/providers/playlist_provider.dart';
 import 'package:flick/features/player/widgets/waveform_seek_bar.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -28,6 +29,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
     with TickerProviderStateMixin {
   final PlayerService _playerService = PlayerService();
   final FavoritesService _favoritesService = FavoritesService();
+  final LyricsService _lyricsService = LyricsService();
   static const String _topBarTextFontFamily = 'ProductSans';
   static const FontWeight _topBarTextFontWeight = FontWeight.w500;
 
@@ -46,6 +48,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
   String? _cachedTopBarText;
   double? _cachedTopBarFontSize;
   double _cachedTopBarTextWidth = 0;
+  bool _isLyricsMode = false;
 
   @override
   void initState() {
@@ -88,7 +91,9 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
 
   @override
   void dispose() {
-    _playerService.currentSongNotifier.removeListener(_handleCurrentSongChanged);
+    _playerService.currentSongNotifier.removeListener(
+      _handleCurrentSongChanged,
+    );
     _positionThrottleTimer?.cancel();
     _throttledPositionNotifier.dispose();
     _dragController.dispose();
@@ -521,6 +526,169 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
     );
   }
 
+  Widget _buildFileInfoRow(
+    BuildContext context,
+    Song song, {
+    required bool lyricsMode,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _isLyricsMode = !lyricsMode;
+            });
+          },
+          child: Container(
+            padding: EdgeInsets.all(context.responsive(6.0, 7.0, 8.0)),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              lyricsMode
+                  ? Icons.keyboard_arrow_down_rounded
+                  : LucideIcons.fileText,
+              color: Colors.white.withValues(alpha: 0.9),
+              size: context.responsive(18.0, 20.0, 22.0),
+            ),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.responsive(4.0, 5.0, 6.0),
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: Text(
+                song.fileType,
+                style: TextStyle(
+                  fontFamily: 'ProductSans',
+                  fontSize: context.responsive(9.0, 10.0, 11.0),
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            if (song.resolution != null) ...[
+              SizedBox(width: context.responsive(5.0, 6.0, 7.0)),
+              Text(
+                song.resolution!,
+                style: TextStyle(
+                  fontFamily: 'ProductSans',
+                  fontSize: context.responsive(9.0, 10.0, 11.0),
+                  color: Colors.white.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ],
+        ),
+        FutureBuilder<bool>(
+          future: _favoritesService.isFavorite(song.id),
+          builder: (context, snapshot) {
+            final isFavorite = snapshot.data ?? false;
+            return GestureDetector(
+              onTap: () async {
+                final newState = await _favoritesService.toggleFavorite(
+                  song.id,
+                );
+                setState(() {});
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        newState
+                            ? 'Added to favorites'
+                            : 'Removed from favorites',
+                      ),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                }
+              },
+              child: Container(
+                padding: EdgeInsets.all(context.responsive(6.0, 7.0, 8.0)),
+                decoration: BoxDecoration(
+                  color: isFavorite
+                      ? Colors.red.withValues(alpha: 0.25)
+                      : Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite
+                      ? Colors.red
+                      : Colors.white.withValues(alpha: 0.9),
+                  size: context.responsive(16.0, 17.0, 18.0),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDirectoryInfo(
+    BuildContext context,
+    Song song, {
+    required bool compact,
+  }) {
+    if (song.filePath == null) return const SizedBox.shrink();
+
+    String dirText = '';
+    final filePath = song.filePath!;
+    final parts = filePath.split(RegExp(r'[/\\]'));
+    if (parts.length > 1) {
+      parts.removeLast();
+      final startIndex = parts.length > 2 ? parts.length - 2 : 0;
+      final folders = parts.sublist(startIndex);
+      dirText = folders.join('/');
+    }
+    if (dirText.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: context.responsive(12.0, 16.0, 20.0),
+        right: context.responsive(12.0, 16.0, 20.0),
+        top: compact ? context.responsive(8.0, 10.0, 12.0) : 0,
+        bottom: compact ? 0 : context.responsive(16.0, 20.0, 24.0),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            LucideIcons.folder,
+            size: context.responsive(11.0, 12.0, 13.0),
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
+          SizedBox(width: context.responsive(4.0, 5.0, 6.0)),
+          Flexible(
+            child: Text(
+              dirText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'ProductSans',
+                fontSize: context.responsive(10.0, 11.0, 12.0),
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DisplayModeWrapper(
@@ -734,8 +902,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                             final text =
                                                 '${song.title} - ${song.artist}';
                                             final textStyle = TextStyle(
-                                              fontFamily:
-                                                  _topBarTextFontFamily,
+                                              fontFamily: _topBarTextFontFamily,
                                               fontSize: context.responsiveText(
                                                 context.responsive(
                                                   13.0,
@@ -743,8 +910,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                                   15.0,
                                                 ),
                                               ),
-                                              fontWeight:
-                                                  _topBarTextFontWeight,
+                                              fontWeight: _topBarTextFontWeight,
                                               color: Colors.white.withValues(
                                                 alpha: 0.85,
                                               ),
@@ -901,173 +1067,42 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                           SizedBox(height: context.responsive(8.0, 10.0, 12.0)),
                           const Uac2PlayerStatus(compact: true),
 
-                          const Spacer(flex: 2),
+                          if (_isLyricsMode) ...[
+                            SizedBox(
+                              height: context.responsive(8.0, 10.0, 12.0),
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: context.responsive(
+                                    20.0,
+                                    28.0,
+                                    36.0,
+                                  ),
+                                ),
+                                child: _InlineLyricsPanel(
+                                  song: song,
+                                  playerService: _playerService,
+                                  lyricsService: _lyricsService,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (!_isLyricsMode) const Spacer(flex: 2),
 
-                          // File info above waveform
                           Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: context.responsive(12.0, 16.0, 20.0),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Lyrics button (left)
-                                GestureDetector(
-                                  onTap: () {
-                                    // TODO: open lyrics
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.all(
-                                      context.responsive(6.0, 7.0, 8.0),
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.15,
-                                      ),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Icon(
-                                      LucideIcons.fileText,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.9,
-                                      ),
-                                      size: context.responsive(
-                                        16.0,
-                                        17.0,
-                                        18.0,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                // File info (center)
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: context.responsive(
-                                          4.0,
-                                          5.0,
-                                          6.0,
-                                        ),
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                      child: Text(
-                                        song.fileType,
-                                        style: TextStyle(
-                                          fontFamily: 'ProductSans',
-                                          fontSize: context.responsive(
-                                            9.0,
-                                            10.0,
-                                            11.0,
-                                          ),
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                    if (song.resolution != null) ...[
-                                      SizedBox(
-                                        width: context.responsive(
-                                          5.0,
-                                          6.0,
-                                          7.0,
-                                        ),
-                                      ),
-                                      Text(
-                                        song.resolution!,
-                                        style: TextStyle(
-                                          fontFamily: 'ProductSans',
-                                          fontSize: context.responsive(
-                                            9.0,
-                                            10.0,
-                                            11.0,
-                                          ),
-                                          color: Colors.white.withValues(
-                                            alpha: 0.7,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                // Favorites button (right)
-                                FutureBuilder<bool>(
-                                  future: _favoritesService.isFavorite(song.id),
-                                  builder: (context, snapshot) {
-                                    final isFavorite = snapshot.data ?? false;
-                                    return GestureDetector(
-                                      onTap: () async {
-                                        final newState = await _favoritesService
-                                            .toggleFavorite(song.id);
-                                        setState(() {});
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                newState
-                                                    ? 'Added to favorites'
-                                                    : 'Removed from favorites',
-                                              ),
-                                              duration: const Duration(
-                                                seconds: 1,
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                      child: Container(
-                                        padding: EdgeInsets.all(
-                                          context.responsive(6.0, 7.0, 8.0),
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isFavorite
-                                              ? Colors.red.withValues(
-                                                  alpha: 0.25,
-                                                )
-                                              : Colors.white.withValues(
-                                                  alpha: 0.15,
-                                                ),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          isFavorite
-                                              ? Icons.favorite
-                                              : Icons.favorite_border,
-                                          color: isFavorite
-                                              ? Colors.red
-                                              : Colors.white.withValues(
-                                                  alpha: 0.9,
-                                                ),
-                                          size: context.responsive(
-                                            16.0,
-                                            17.0,
-                                            18.0,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
+                            child: _buildFileInfoRow(
+                              context,
+                              song,
+                              lyricsMode: _isLyricsMode,
                             ),
                           ),
-
                           SizedBox(
                             height: context.responsive(12.0, 14.0, 16.0),
                           ),
-
-                          // Waveform & Controls (lowered)
                           Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: context.responsive(12.0, 16.0, 20.0),
@@ -1093,83 +1128,10 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                               ],
                             ),
                           ),
-
                           SizedBox(
                             height: context.responsive(16.0, 20.0, 24.0),
                           ),
-
-                          // Bottom Directory Info
-                          if (song.filePath != null)
-                            Builder(
-                              builder: (context) {
-                                String dirText = '';
-                                final filePath = song.filePath!;
-                                final parts = filePath.split(RegExp(r'[/\\]'));
-                                if (parts.length > 1) {
-                                  parts.removeLast();
-                                  final startIndex = parts.length > 2
-                                      ? parts.length - 2
-                                      : 0;
-                                  final folders = parts.sublist(startIndex);
-                                  dirText = folders.join('/');
-                                }
-                                if (dirText.isEmpty) {
-                                  return const SizedBox.shrink();
-                                }
-                                return Padding(
-                                  padding: EdgeInsets.only(
-                                    left: context.responsive(12.0, 16.0, 20.0),
-                                    right: context.responsive(12.0, 16.0, 20.0),
-                                    bottom: context.responsive(
-                                      16.0,
-                                      20.0,
-                                      24.0,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        LucideIcons.folder,
-                                        size: context.responsive(
-                                          11.0,
-                                          12.0,
-                                          13.0,
-                                        ),
-                                        color: Colors.white.withValues(
-                                          alpha: 0.7,
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: context.responsive(
-                                          4.0,
-                                          5.0,
-                                          6.0,
-                                        ),
-                                      ),
-                                      Flexible(
-                                        child: Text(
-                                          dirText,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontFamily: 'ProductSans',
-                                            fontSize: context.responsive(
-                                              10.0,
-                                              11.0,
-                                              12.0,
-                                            ),
-                                            color: Colors.white.withValues(
-                                              alpha: 0.7,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
+                          _buildDirectoryInfo(context, song, compact: false),
                         ],
                       ),
                     ),
@@ -1180,6 +1142,189 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
           },
         ),
       ),
+    );
+  }
+}
+
+class _InlineLyricsPanel extends StatefulWidget {
+  final PlayerService playerService;
+  final LyricsService lyricsService;
+  final Song song;
+
+  const _InlineLyricsPanel({
+    required this.playerService,
+    required this.lyricsService,
+    required this.song,
+  });
+
+  @override
+  State<_InlineLyricsPanel> createState() => _InlineLyricsPanelState();
+}
+
+class _InlineLyricsPanelState extends State<_InlineLyricsPanel> {
+  static const double _lineHeight = 56;
+
+  final ScrollController _scrollController = ScrollController();
+  LyricsData? _lyricsData;
+  bool _isLoading = true;
+  int _activeLineIndex = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.playerService.positionNotifier.addListener(_onPositionChanged);
+    _loadLyricsForSong(widget.song);
+  }
+
+  @override
+  void didUpdateWidget(covariant _InlineLyricsPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.song.id != widget.song.id) {
+      _loadLyricsForSong(widget.song);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.playerService.positionNotifier.removeListener(_onPositionChanged);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onPositionChanged() {
+    final data = _lyricsData;
+    if (data == null || !data.isSynchronized || data.lines.isEmpty) return;
+
+    final position = widget.playerService.positionNotifier.value;
+    final newIndex = widget.lyricsService.findCurrentLineIndex(data, position);
+    if (newIndex == _activeLineIndex) return;
+
+    setState(() {
+      _activeLineIndex = newIndex;
+    });
+    _scrollToActiveLine(newIndex);
+  }
+
+  Future<void> _loadLyricsForSong(Song song) async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _lyricsData = null;
+      _activeLineIndex = -1;
+    });
+
+    final loaded = await widget.lyricsService.loadLyricsForSong(song);
+    if (!mounted) return;
+    if (widget.song.id != song.id) return;
+
+    setState(() {
+      _lyricsData = loaded;
+      _isLoading = false;
+    });
+
+    _onPositionChanged();
+  }
+
+  void _scrollToActiveLine(int index) {
+    if (!_scrollController.hasClients || index < 0) return;
+
+    final viewportHeight = _scrollController.position.viewportDimension;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final target = (index * _lineHeight) - (viewportHeight * 0.35);
+    final clampedTarget = target.clamp(0.0, maxScroll);
+
+    _scrollController.animateTo(
+      clampedTarget,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _buildBody(context);
+  }
+
+  Widget _buildBody(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.accent),
+      );
+    }
+
+    final lyrics = _lyricsData;
+    if (lyrics == null || lyrics.lines.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            'No lyrics file found.\nAdd an .lrc or .txt file with the same name as the song.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'ProductSans',
+              fontSize: 14,
+              height: 1.5,
+              color: Colors.white.withValues(alpha: 0.72),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!lyrics.isSynchronized) {
+      return Align(
+        alignment: Alignment.center,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          padding: const EdgeInsets.fromLTRB(12, 20, 12, 20),
+          child: Text(
+            lyrics.lines.map((line) => line.text).join('\n'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'ProductSans',
+              fontSize: 18,
+              height: 1.9,
+              color: Colors.white.withValues(alpha: 0.92),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final centerPadding = constraints.maxHeight * 0.35;
+        return ListView.builder(
+          controller: _scrollController,
+          padding: EdgeInsets.fromLTRB(10, centerPadding, 10, centerPadding),
+          itemCount: lyrics.lines.length,
+          itemExtent: _lineHeight,
+          itemBuilder: (context, index) {
+            final line = lyrics.lines[index];
+            final isActive = index == _activeLineIndex;
+
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                line.text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'ProductSans',
+                  fontSize: isActive ? 22 : 17,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                  color: isActive
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.52),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -1205,7 +1350,6 @@ class _WaveformLayer extends StatefulWidget {
 class _WaveformLayerState extends State<_WaveformLayer> {
   @override
   Widget build(BuildContext context) {
-    // Outer builder: re-runs only when the track duration changes.
     return ValueListenableBuilder<Duration>(
       valueListenable: widget.playerService.durationNotifier,
       builder: (context, engineDuration, _) {
@@ -1217,8 +1361,6 @@ class _WaveformLayerState extends State<_WaveformLayer> {
           return const SizedBox();
         }
 
-        // Inner builder: re-runs every 50ms with the throttled position.
-        // Only this subtree is rebuilt – the parent is completely unaffected.
         return ValueListenableBuilder<Duration>(
           valueListenable: widget.positionNotifier,
           builder: (context, position, _) {
@@ -1310,11 +1452,15 @@ class _PlayerControls extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: isShuffle
                                   ? AppColors.accent.withValues(alpha: 0.25)
-                                  : const Color(0xFF121212).withValues(alpha: 0.6),
+                                  : const Color(
+                                      0xFF121212,
+                                    ).withValues(alpha: 0.6),
                               shape: BoxShape.circle,
                               border: isShuffle
                                   ? Border.all(
-                                      color: AppColors.accent.withValues(alpha: 0.6),
+                                      color: AppColors.accent.withValues(
+                                        alpha: 0.6,
+                                      ),
                                       width: 1.5,
                                     )
                                   : null,
