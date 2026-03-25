@@ -109,10 +109,12 @@ class PlayerNotifier extends Notifier<PlayerState> {
       sleepTimerRemaining: _service.sleepTimerRemainingNotifier.value,
     );
 
-    // Listen to ValueNotifiers and update state
+    DateTime lastPositionSync = DateTime.now();
+    const positionThrottle = Duration(milliseconds: 250);
+
+    // Listen to ValueNotifiers and update state (except position/bufferedPosition)
     void syncState() {
       final latestSong = _service.currentSongNotifier.value;
-      final latestPositionSeconds = _service.positionNotifier.value.inSeconds;
       final latestDurationSeconds = _service.durationNotifier.value.inSeconds;
 
       if (_lastTrackedSong != null && latestSong?.id != _lastTrackedSong!.id) {
@@ -126,35 +128,11 @@ class PlayerNotifier extends Notifier<PlayerState> {
       if (latestSong != null && latestSong.id != _lastTrackedSong?.id) {
         _handleTrackStarted(latestSong);
         _accumulatedListenSeconds = 0;
+        _lastTrackedPositionSeconds = _service.positionNotifier.value.inSeconds;
       }
 
-      // Accumulate actual listen time: only count small position deltas
-      // (≤ 3s) as real playback. Larger jumps indicate seeks.
       final isSameTrack =
           latestSong != null && latestSong.id == _lastTrackedSong?.id;
-      if (isSameTrack) {
-        final delta = latestPositionSeconds - _lastTrackedPositionSeconds;
-        if (delta > 0 && delta <= 3) {
-          _accumulatedListenSeconds += delta;
-        }
-      }
-
-      final positionAdvanced =
-          latestPositionSeconds > _lastTrackedPositionSeconds;
-      if (isSameTrack && positionAdvanced) {
-        unawaited(
-          ref
-              .read(lastFmScrobbleProvider.notifier)
-              .onPlaybackProgress(
-                artist: latestSong.artist,
-                track: latestSong.title,
-                album: latestSong.album,
-                albumArtist: null,
-                listenedSeconds: _accumulatedListenSeconds,
-                trackDurationSeconds: latestDurationSeconds,
-              ),
-        );
-      }
 
       // Latch duration to highest value for the same track. During gapless
       // transitions the player may briefly reset duration to 0 before the
@@ -166,7 +144,6 @@ class PlayerNotifier extends Notifier<PlayerState> {
       }
 
       _lastTrackedSong = latestSong;
-      _lastTrackedPositionSeconds = latestPositionSeconds;
 
       state = state.copyWith(
         currentSong: latestSong,
@@ -183,12 +160,59 @@ class PlayerNotifier extends Notifier<PlayerState> {
       );
     }
 
+    void syncPosition() {
+      final latestPosition = _service.positionNotifier.value;
+      final latestPositionSeconds = latestPosition.inSeconds;
+      final latestSong = _service.currentSongNotifier.value;
+      final latestDurationSeconds = _service.durationNotifier.value.inSeconds;
+
+      final isSameTrack =
+          latestSong != null && latestSong.id == _lastTrackedSong?.id;
+
+      if (isSameTrack) {
+        // Accumulate actual listen time: only count small position deltas
+        // (≤ 3s) as real playback. Larger jumps indicate seeks.
+        final delta = latestPositionSeconds - _lastTrackedPositionSeconds;
+        if (delta > 0 && delta <= 3) {
+          _accumulatedListenSeconds += delta;
+        }
+
+        final positionAdvanced =
+            latestPositionSeconds > _lastTrackedPositionSeconds;
+        if (positionAdvanced) {
+          unawaited(
+            ref
+                .read(lastFmScrobbleProvider.notifier)
+                .onPlaybackProgress(
+                  artist: latestSong.artist,
+                  track: latestSong.title,
+                  album: latestSong.album,
+                  albumArtist: null,
+                  listenedSeconds: _accumulatedListenSeconds,
+                  trackDurationSeconds: latestDurationSeconds,
+                ),
+          );
+        }
+      }
+
+      _lastTrackedPositionSeconds = latestPositionSeconds;
+
+      final now = DateTime.now();
+      if (now.difference(lastPositionSync) > positionThrottle) {
+        lastPositionSync = now;
+        state = state.copyWith(
+          position: latestPosition,
+          bufferedPosition: _service.bufferedPositionNotifier.value,
+        );
+      }
+    }
+
     // Add listeners
     _service.currentSongNotifier.addListener(syncState);
     _service.isPlayingNotifier.addListener(syncState);
-    _service.positionNotifier.addListener(syncState);
+    _service.positionNotifier.addListener(syncPosition);
     _service.durationNotifier.addListener(syncState);
-    _service.bufferedPositionNotifier.addListener(syncState);
+    _service.bufferedPositionNotifier.addListener(syncPosition);
     _service.isShuffleNotifier.addListener(syncState);
     _service.loopModeNotifier.addListener(syncState);
     _service.playbackSpeedNotifier.addListener(syncState);
@@ -198,9 +222,9 @@ class PlayerNotifier extends Notifier<PlayerState> {
     ref.onDispose(() {
       _service.currentSongNotifier.removeListener(syncState);
       _service.isPlayingNotifier.removeListener(syncState);
-      _service.positionNotifier.removeListener(syncState);
+      _service.positionNotifier.removeListener(syncPosition);
       _service.durationNotifier.removeListener(syncState);
-      _service.bufferedPositionNotifier.removeListener(syncState);
+      _service.bufferedPositionNotifier.removeListener(syncPosition);
       _service.isShuffleNotifier.removeListener(syncState);
       _service.loopModeNotifier.removeListener(syncState);
       _service.playbackSpeedNotifier.removeListener(syncState);
