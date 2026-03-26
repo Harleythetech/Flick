@@ -5,6 +5,7 @@ import 'package:flick/core/theme/app_colors.dart';
 import 'package:flick/core/theme/adaptive_color_provider.dart';
 import 'package:flick/core/constants/app_constants.dart';
 import 'package:flick/core/utils/responsive.dart';
+import 'package:flick/models/playlist.dart';
 import 'package:flick/providers/playlist_provider.dart';
 import 'package:flick/features/playlists/screens/playlist_detail_screen.dart';
 
@@ -83,6 +84,38 @@ class PlaylistsScreen extends ConsumerWidget {
                       : '$count playlist${count == 1 ? '' : 's'}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: context.adaptiveTextTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.glassBackground,
+              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: PopupMenuButton<String>(
+              icon: Icon(
+                LucideIcons.ellipsisVertical,
+                color: context.adaptiveTextPrimary,
+                size: context.responsiveIcon(AppConstants.iconSizeMd),
+              ),
+              color: AppColors.surface,
+              onSelected: (value) {
+                if (value == 'import_m3u') {
+                  _importPlaylist(context, ref);
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'import_m3u',
+                  child: Row(
+                    children: [
+                      Icon(LucideIcons.fileUp, size: 18),
+                      SizedBox(width: 8),
+                      Text('Import M3U/M3U8'),
+                    ],
                   ),
                 ),
               ],
@@ -214,7 +247,7 @@ class PlaylistsScreen extends ConsumerWidget {
   Widget _buildPlaylistsList(
     BuildContext context,
     WidgetRef ref,
-    List playlists,
+    List<Playlist> playlists,
   ) {
     return ListView.builder(
       padding: EdgeInsets.only(bottom: AppConstants.navBarHeight + 120),
@@ -238,6 +271,10 @@ class PlaylistsScreen extends ConsumerWidget {
                   .deletePlaylist(playlist.id);
             }
           },
+          onExportM3u: () =>
+              _exportPlaylist(context, ref, playlist, utf8: false),
+          onExportM3u8: () =>
+              _exportPlaylist(context, ref, playlist, utf8: true),
         );
       },
     );
@@ -386,17 +423,73 @@ class PlaylistsScreen extends ConsumerWidget {
       );
     }
   }
+
+  Future<void> _importPlaylist(BuildContext context, WidgetRef ref) async {
+    try {
+      final result = await ref
+          .read(playlistsProvider.notifier)
+          .importM3uPlaylist();
+      if (result == null || !context.mounted) return;
+
+      final unmatchedText = result.unmatchedEntries > 0
+          ? ' Skipped ${result.unmatchedEntries} unmatched entr${result.unmatchedEntries == 1 ? 'y' : 'ies'}.'
+          : '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Imported "${result.playlist.name}" with ${result.importedSongs} songs.$unmatchedText',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Import failed: $e')),
+      );
+    }
+  }
+
+  Future<void> _exportPlaylist(
+    BuildContext context,
+    WidgetRef ref,
+    Playlist playlist, {
+    required bool utf8,
+  }) async {
+    try {
+      final result = await ref
+          .read(playlistsProvider.notifier)
+          .exportPlaylistAsM3u(playlist.id, utf8: utf8);
+      if (result == null || !context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Exported ${result.exportedSongs} songs to "${result.fileName}".',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e')),
+      );
+    }
+  }
 }
 
 class _PlaylistCard extends StatelessWidget {
-  final dynamic playlist;
+  final Playlist playlist;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback onExportM3u;
+  final VoidCallback onExportM3u8;
 
   const _PlaylistCard({
     required this.playlist,
     required this.onTap,
     required this.onDelete,
+    required this.onExportM3u,
+    required this.onExportM3u8,
   });
 
   @override
@@ -463,11 +556,40 @@ class _PlaylistCard extends StatelessWidget {
                   ),
                   color: AppColors.surface,
                   onSelected: (value) {
-                    if (value == 'delete') {
-                      onDelete();
+                    switch (value) {
+                      case 'export_m3u':
+                        onExportM3u();
+                        break;
+                      case 'export_m3u8':
+                        onExportM3u8();
+                        break;
+                      case 'delete':
+                        onDelete();
+                        break;
                     }
                   },
                   itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'export_m3u',
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.fileDown, size: 18),
+                          SizedBox(width: 8),
+                          Text('Export as .m3u'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'export_m3u8',
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.fileDown, size: 18),
+                          SizedBox(width: 8),
+                          Text('Export as .m3u8'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
                     PopupMenuItem(
                       value: 'delete',
                       child: Row(

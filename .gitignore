@@ -49,5 +49,8 @@ app.*.map.json
 
 .env
 .env.local
+target/rust-analyzer/flycheck0/stderr.txt
+target/rust-analyzer/flycheck0/stdout.txt
+
 target/rust-analyzer/flycheck0/stderr
 target/rust-analyzer/flycheck0/stdout

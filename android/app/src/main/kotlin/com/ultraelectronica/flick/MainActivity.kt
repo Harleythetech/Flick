@@ -39,9 +39,13 @@ class MainActivity: FlutterActivity() {
     private val EQUALIZER_CHANNEL = "com.ultraelectronica.flick/equalizer"
     // private val CONVERTER_CHANNEL = "com.ultraelectronica.flick/converter"
     private val REQUEST_OPEN_DOCUMENT_TREE = 1001
+    private val REQUEST_OPEN_DOCUMENT = 1003
+    private val REQUEST_CREATE_DOCUMENT = 1004
     private val REQUEST_USB_PERMISSION = 1002
 
-    private var pendingResult: MethodChannel.Result? = null
+    private var pendingDocumentTreeResult: MethodChannel.Result? = null
+    private var pendingOpenDocumentResult: MethodChannel.Result? = null
+    private var pendingCreateDocumentResult: MethodChannel.Result? = null
     private var pendingUac2PermissionResult: MethodChannel.Result? = null
     private var usbPermissionReceiver: BroadcastReceiver? = null
     private var usbHotplugReceiver: BroadcastReceiver? = null
@@ -75,8 +79,38 @@ class MainActivity: FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "openDocumentTree" -> {
-                    pendingResult = result
+                    pendingDocumentTreeResult = result
                     openDocumentTree()
+                }
+                "openDocument" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val mimeTypes = (call.argument<List<String>>("mimeTypes") ?: listOf(
+                        "audio/x-mpegurl",
+                        "application/vnd.apple.mpegurl",
+                        "application/x-mpegurl",
+                        "audio/mpegurl",
+                        "text/plain"
+                    )) as List<String>
+                    if (pendingOpenDocumentResult != null) {
+                        result.error(
+                            "OPERATION_IN_PROGRESS",
+                            "Another document picker request is already in progress",
+                            null
+                        )
+                        return@setMethodCallHandler
+                    }
+                    pendingOpenDocumentResult = result
+                    openDocument(mimeTypes)
+                }
+                "createDocument" -> {
+                    val fileName = call.argument<String>("fileName")
+                    val mimeType = call.argument<String>("mimeType") ?: "audio/x-mpegurl"
+                    if (fileName != null && fileName.isNotBlank()) {
+                        pendingCreateDocumentResult = result
+                        createDocument(fileName, mimeType)
+                    } else {
+                        result.error("INVALID_ARGUMENT", "fileName is required", null)
+                    }
                 }
                 "takePersistableUriPermission" -> {
                     val uri = call.argument<String>("uri")
@@ -194,6 +228,47 @@ class MainActivity: FlutterActivity() {
                         result.success(displayName)
                     } else {
                         result.error("INVALID_ARGUMENT", "URI is required", null)
+                    }
+                }
+                "readTextDocument" -> {
+                    val uri = call.argument<String>("uri")
+                    android.util.Log.d("MainActivity", "[MethodChannel] readTextDocument called with URI: $uri")
+                    if (uri != null) {
+                        mainScope.launch {
+                            try {
+                                val text = withContext(Dispatchers.IO) {
+                                    readTextDocument(uri)
+                                }
+                                android.util.Log.d("MainActivity", "[MethodChannel] readTextDocument success, length: ${text.length}")
+                                result.success(text)
+                            } catch (e: Exception) {
+                                android.util.Log.e("MainActivity", "[MethodChannel] readTextDocument error: ${e.message}", e)
+                                result.error("READ_TEXT_ERROR", "Failed to read document: ${e.message}", null)
+                            }
+                        }
+                    } else {
+                        result.error("INVALID_ARGUMENT", "URI is required", null)
+                    }
+                }
+                "writeTextDocument" -> {
+                    val uri = call.argument<String>("uri")
+                    val content = call.argument<String>("content")
+                    android.util.Log.d("MainActivity", "[MethodChannel] writeTextDocument called with URI: $uri, content length: ${content?.length}")
+                    if (uri != null && content != null) {
+                        mainScope.launch {
+                            try {
+                                val success = withContext(Dispatchers.IO) {
+                                    writeTextDocument(uri, content)
+                                }
+                                android.util.Log.d("MainActivity", "[MethodChannel] writeTextDocument result: $success")
+                                result.success(success)
+                            } catch (e: Exception) {
+                                android.util.Log.e("MainActivity", "[MethodChannel] writeTextDocument error: ${e.message}", e)
+                                result.error("WRITE_TEXT_ERROR", "Failed to write document: ${e.message}", null)
+                            }
+                        }
+                    } else {
+                        result.error("INVALID_ARGUMENT", "URI and content are required", null)
                     }
                 }
                 else -> result.notImplemented()
@@ -471,17 +546,54 @@ class MainActivity: FlutterActivity() {
         startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE)
     }
 
+    private fun openDocument(mimeTypes: List<String>) {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toTypedArray())
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivityForResult(intent, REQUEST_OPEN_DOCUMENT)
+    }
+
+    private fun createDocument(fileName: String, mimeType: String) {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = mimeType
+            putExtra(Intent.EXTRA_TITLE, fileName)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+        startActivityForResult(intent, REQUEST_CREATE_DOCUMENT)
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
         if (requestCode == REQUEST_OPEN_DOCUMENT_TREE) {
             if (resultCode == RESULT_OK && data?.data != null) {
                 val uri = data.data!!
-                pendingResult?.success(uri.toString())
+                pendingDocumentTreeResult?.success(uri.toString())
             } else {
-                pendingResult?.success(null)
+                pendingDocumentTreeResult?.success(null)
             }
-            pendingResult = null
+            pendingDocumentTreeResult = null
+        } else if (requestCode == REQUEST_OPEN_DOCUMENT) {
+            if (resultCode == RESULT_OK && data?.data != null) {
+                val uri = data.data!!
+                pendingOpenDocumentResult?.success(uri.toString())
+            } else {
+                pendingOpenDocumentResult?.success(null)
+            }
+            pendingOpenDocumentResult = null
+        } else if (requestCode == REQUEST_CREATE_DOCUMENT) {
+            if (resultCode == RESULT_OK && data?.data != null) {
+                val uri = data.data!!
+                pendingCreateDocumentResult?.success(uri.toString())
+            } else {
+                pendingCreateDocumentResult?.success(null)
+            }
+            pendingCreateDocumentResult = null
         }
     }
 
@@ -515,13 +627,72 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun getDocumentDisplayName(uriString: String): String? {
+        android.util.Log.d("MainActivity", "[getDocumentDisplayName] Input URI: $uriString")
         return try {
             val uri = Uri.parse(uriString)
-            val documentFile = DocumentFile.fromTreeUri(this, uri)
-            documentFile?.name
+            android.util.Log.d("MainActivity", "[getDocumentDisplayName] Parsed URI: $uri")
+            val fromSingle = DocumentFile.fromSingleUri(this, uri)?.name
+            if (!fromSingle.isNullOrBlank()) {
+                android.util.Log.d("MainActivity", "[getDocumentDisplayName] From single: $fromSingle")
+                return fromSingle
+            }
+
+            val fromTree = DocumentFile.fromTreeUri(this, uri)?.name
+            if (!fromTree.isNullOrBlank()) {
+                android.util.Log.d("MainActivity", "[getDocumentDisplayName] From tree: $fromTree")
+                return fromTree
+            }
+
+            contentResolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val index = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                    if (index >= 0) {
+                        val name = cursor.getString(index)
+                        android.util.Log.d("MainActivity", "[getDocumentDisplayName] From query: $name")
+                        return name
+                    }
+                }
+            }
+            android.util.Log.d("MainActivity", "[getDocumentDisplayName] No name found")
+            null
         } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "[getDocumentDisplayName] Error: ${e.message}", e)
             null
         }
+    }
+
+    private fun readTextDocument(uriString: String): String {
+        android.util.Log.d("MainActivity", "[readTextDocument] Input URI: $uriString")
+        val uri = Uri.parse(uriString)
+        android.util.Log.d("MainActivity", "[readTextDocument] Parsed URI: $uri")
+        val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: throw IllegalStateException("Unable to open input stream")
+
+        android.util.Log.d("MainActivity", "[readTextDocument] Read ${bytes.size} bytes")
+        if (bytes.size >= 3 &&
+            bytes[0] == 0xEF.toByte() &&
+            bytes[1] == 0xBB.toByte() &&
+            bytes[2] == 0xBF.toByte()
+        ) {
+            android.util.Log.d("MainActivity", "[readTextDocument] Detected UTF-8 BOM")
+            return String(bytes.copyOfRange(3, bytes.size), Charsets.UTF_8)
+        }
+        return String(bytes, Charsets.UTF_8)
+    }
+
+    private fun writeTextDocument(uriString: String, content: String): Boolean {
+        android.util.Log.d("MainActivity", "[writeTextDocument] Input URI: $uriString")
+        android.util.Log.d("MainActivity", "[writeTextDocument] Content length: ${content.length}")
+        val uri = Uri.parse(uriString)
+        android.util.Log.d("MainActivity", "[writeTextDocument] Parsed URI: $uri")
+        contentResolver.openOutputStream(uri, "wt")?.use { output ->
+            output.write(content.toByteArray(Charsets.UTF_8))
+            output.flush()
+            android.util.Log.d("MainActivity", "[writeTextDocument] Write successful")
+            return true
+        }
+        android.util.Log.e("MainActivity", "[writeTextDocument] Failed to open output stream")
+        return false
     }
 
     // Phase 1: Fast Scan (Filesystem only)
@@ -1399,7 +1570,12 @@ class MainActivity: FlutterActivity() {
                 override fun onReceive(context: Context?, intent: Intent?) {
                     if (intent?.action == ACTION_USB_PERMISSION) {
                         val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
-                        val device = intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
+                        val device: UsbDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
+                        }
                         unregisterReceiver(usbPermissionReceiver)
                         usbPermissionReceiver = null
                         

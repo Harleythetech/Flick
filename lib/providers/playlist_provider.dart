@@ -115,6 +115,25 @@ class PlaylistsNotifier extends AsyncNotifier<PlaylistsState> {
 
     return success;
   }
+
+  Future<PlaylistImportResult?> importM3uPlaylist() async {
+    final service = ref.read(playlistServiceProvider);
+    final result = await service.importM3uPlaylist();
+
+    if (result != null && ref.mounted) {
+      ref.invalidateSelf();
+    }
+
+    return result;
+  }
+
+  Future<PlaylistExportResult?> exportPlaylistAsM3u(
+    String playlistId, {
+    required bool utf8,
+  }) async {
+    final service = ref.read(playlistServiceProvider);
+    return service.exportPlaylistAsM3u(playlistId, utf8: utf8);
+  }
 }
 
 final playlistsProvider =
