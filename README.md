@@ -189,6 +189,10 @@ Additional documentation is available in the `docs/` directory:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Contributors
+
+- [@Harleythetech](https://github.com/Harleythetech)
+
 ## Contributing
 
 Contributions are welcome. Please ensure all changes pass linting and testing before submitting pull requests.
