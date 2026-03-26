@@ -189,6 +189,8 @@ Additional documentation is available in the `docs/` directory:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+Flick Player is purely open-source and free. There are no premium features, ads, or paid components.
+
 ## Contributors
 
 - [@Harleythetech](https://github.com/Harleythetech)
