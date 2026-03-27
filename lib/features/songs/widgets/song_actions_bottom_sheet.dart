@@ -69,6 +69,20 @@ class SongActionsBottomSheet extends ConsumerWidget {
           _buildActionTile(
             context: context,
             icon: LucideIcons.listPlus,
+            label: 'Add to Queue',
+            onTap: () async {
+              await ref.read(playerProvider.notifier).addToQueue(song);
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Queued "${song.title}"')),
+                );
+              }
+            },
+          ),
+          _buildActionTile(
+            context: context,
+            icon: LucideIcons.listMusic,
             label: 'Add to Playlist',
             onTap: () {
               Navigator.pop(context);

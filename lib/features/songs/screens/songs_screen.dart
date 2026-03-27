@@ -287,6 +287,9 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
         onSongSelected: (index) async {
           await _playSongAndOpenPlayer(songs: songs, index: index);
         },
+        onSongSwipedLeft: (index) async {
+          await _queueSong(songs[index]);
+        },
       ),
     );
   }
@@ -308,112 +311,120 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
 
         return Padding(
           padding: const EdgeInsets.only(bottom: AppConstants.spacingSm),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-              onTap: () async {
-                setState(() {
-                  _selectedIndex = index;
-                });
-                _syncSelectedTokenForIndex(songs, index);
-                await _playSongAndOpenPlayer(songs: songs, index: index);
-              },
-              onLongPress: () {
-                SongActionsBottomSheet.show(context, song);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spacingMd,
-                  vertical: AppConstants.spacingSm,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isSelected
-                        ? [
-                            AppColors.surfaceLight.withValues(alpha: 0.9),
-                            AppColors.surface.withValues(alpha: 0.95),
-                          ]
-                        : [
-                            AppColors.surfaceLight.withValues(alpha: 0.65),
-                            AppColors.surface.withValues(alpha: 0.78),
+          child: GestureDetector(
+            onHorizontalDragEnd: (details) async {
+              if (details.primaryVelocity != null &&
+                  details.primaryVelocity! < -400) {
+                await _queueSong(song);
+              }
+            },
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+                onTap: () async {
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                  _syncSelectedTokenForIndex(songs, index);
+                  await _playSongAndOpenPlayer(songs: songs, index: index);
+                },
+                onLongPress: () {
+                  SongActionsBottomSheet.show(context, song);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppConstants.spacingMd,
+                    vertical: AppConstants.spacingSm,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isSelected
+                          ? [
+                              AppColors.surfaceLight.withValues(alpha: 0.9),
+                              AppColors.surface.withValues(alpha: 0.95),
+                            ]
+                          : [
+                              AppColors.surfaceLight.withValues(alpha: 0.65),
+                              AppColors.surface.withValues(alpha: 0.78),
+                            ],
+                    ),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.accent.withValues(alpha: 0.45)
+                          : AppColors.glassBorder,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.radiusMd,
+                        ),
+                        child: SizedBox(
+                          width: 46,
+                          height: 46,
+                          child: song.albumArt != null
+                              ? CachedImageWidget(
+                                  imagePath: song.albumArt!,
+                                  fit: BoxFit.cover,
+                                  useThumbnail: true,
+                                  thumbnailWidth: 92,
+                                  thumbnailHeight: 92,
+                                )
+                              : const ColoredBox(
+                                  color: AppColors.surface,
+                                  child: Icon(
+                                    LucideIcons.music,
+                                    color: AppColors.textTertiary,
+                                    size: 18,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: AppConstants.spacingMd),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              song.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(
+                                    color: context.adaptiveTextPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${song.artist} • ${song.fileType.toUpperCase()}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: context.adaptiveTextSecondary,
+                                  ),
+                            ),
                           ],
+                        ),
+                      ),
+                      const SizedBox(width: AppConstants.spacingSm),
+                      Text(
+                        song.formattedDuration,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: context.adaptiveTextTertiary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
                   ),
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.accent.withValues(alpha: 0.45)
-                        : AppColors.glassBorder,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.radiusMd,
-                      ),
-                      child: SizedBox(
-                        width: 46,
-                        height: 46,
-                        child: song.albumArt != null
-                            ? CachedImageWidget(
-                                imagePath: song.albumArt!,
-                                fit: BoxFit.cover,
-                                useThumbnail: true,
-                                thumbnailWidth: 92,
-                                thumbnailHeight: 92,
-                              )
-                            : const ColoredBox(
-                                color: AppColors.surface,
-                                child: Icon(
-                                  LucideIcons.music,
-                                  color: AppColors.textTertiary,
-                                  size: 18,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(width: AppConstants.spacingMd),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            song.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(
-                                  color: context.adaptiveTextPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${song.artist} • ${song.fileType.toUpperCase()}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: context.adaptiveTextSecondary,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: AppConstants.spacingSm),
-                    Text(
-                      song.formattedDuration,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.adaptiveTextTertiary,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -609,6 +620,14 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
     if (result != null && result != 1 && widget.onNavigationRequested != null) {
       widget.onNavigationRequested!(result);
     }
+  }
+
+  Future<void> _queueSong(Song song) async {
+    await ref.read(playerProvider.notifier).addToQueue(song);
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Queued "${song.title}"')));
   }
 
   Widget _buildLoadingState() {

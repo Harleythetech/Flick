@@ -530,6 +530,14 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
     );
   }
 
+  Future<void> _queueSong(BuildContext context, Song song) async {
+    await _playerService.addToQueue(song);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Queued "${song.title}"')));
+  }
+
   void _showSongActionsBottomSheet(BuildContext context, Song song) {
     showModalBottomSheet(
       context: context,
@@ -633,6 +641,15 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
               _buildSongActionTile(
                 context: sheetContext,
                 icon: LucideIcons.listPlus,
+                label: 'Add to Queue',
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  await _queueSong(context, song);
+                },
+              ),
+              _buildSongActionTile(
+                context: sheetContext,
+                icon: LucideIcons.listMusic,
                 label: 'Add to Playlist',
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -1246,104 +1263,115 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                                   ),
                                 ),
                                 // Now Playing with Title - Artist in same container
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: context.responsive(
-                                      16.0,
-                                      18.0,
-                                      20.0,
-                                    ),
-                                    vertical: context.responsive(
-                                      8.0,
-                                      9.0,
-                                      10.0,
-                                    ),
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF121212,
-                                    ).withValues(alpha: 0.7),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        "Now Playing",
-                                        style: TextStyle(
-                                          fontFamily: 'ProductSans',
-                                          fontSize: context.responsive(
-                                            12.0,
-                                            13.0,
-                                            14.0,
-                                          ),
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white.withValues(
-                                            alpha: 0.9,
-                                          ),
-                                          letterSpacing: 0.8,
-                                        ),
+                                GestureDetector(
+                                  onHorizontalDragEnd: (details) async {
+                                    if (details.primaryVelocity != null &&
+                                        details.primaryVelocity! < -400) {
+                                      await _queueSong(context, song);
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: context.responsive(
+                                        16.0,
+                                        18.0,
+                                        20.0,
                                       ),
-                                      SizedBox(
-                                        height: context.responsive(
-                                          6.0,
-                                          7.0,
-                                          8.0,
-                                        ),
+                                      vertical: context.responsive(
+                                        8.0,
+                                        9.0,
+                                        10.0,
                                       ),
-                                      SizedBox(
-                                        width: context.responsive(
-                                          120.0,
-                                          140.0,
-                                          160.0,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFF121212,
+                                      ).withValues(alpha: 0.7),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          "Now Playing",
+                                          style: TextStyle(
+                                            fontFamily: 'ProductSans',
+                                            fontSize: context.responsive(
+                                              12.0,
+                                              13.0,
+                                              14.0,
+                                            ),
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.9,
+                                            ),
+                                            letterSpacing: 0.8,
+                                          ),
                                         ),
-                                        height: context.responsive(
-                                          20.0,
-                                          22.0,
-                                          24.0,
+                                        SizedBox(
+                                          height: context.responsive(
+                                            6.0,
+                                            7.0,
+                                            8.0,
+                                          ),
                                         ),
-                                        child: LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            final text =
-                                                '${song.title} - ${song.artist}';
-                                            final textStyle = TextStyle(
-                                              fontFamily: _topBarTextFontFamily,
-                                              fontSize: context.responsiveText(
-                                                context.responsive(
-                                                  13.0,
-                                                  14.0,
-                                                  15.0,
+                                        SizedBox(
+                                          width: context.responsive(
+                                            120.0,
+                                            140.0,
+                                            160.0,
+                                          ),
+                                          height: context.responsive(
+                                            20.0,
+                                            22.0,
+                                            24.0,
+                                          ),
+                                          child: LayoutBuilder(
+                                            builder: (context, constraints) {
+                                              final text =
+                                                  '${song.title} - ${song.artist}';
+                                              final textStyle = TextStyle(
+                                                fontFamily:
+                                                    _topBarTextFontFamily,
+                                                fontSize:
+                                                    context.responsiveText(
+                                                      context.responsive(
+                                                        13.0,
+                                                        14.0,
+                                                        15.0,
+                                                      ),
+                                                    ),
+                                                fontWeight:
+                                                    _topBarTextFontWeight,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.85,
                                                 ),
-                                              ),
-                                              fontWeight: _topBarTextFontWeight,
-                                              color: Colors.white.withValues(
-                                                alpha: 0.85,
-                                              ),
-                                            );
+                                              );
 
-                                            if (_cachedTopBarTextWidth <=
-                                                constraints.maxWidth) {
-                                              return Center(
+                                              if (_cachedTopBarTextWidth <=
+                                                  constraints.maxWidth) {
+                                                return Center(
+                                                  child: Text(
+                                                    text,
+                                                    style: textStyle,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                );
+                                              }
+
+                                              return MarqueeWidget(
                                                 child: Text(
                                                   text,
                                                   style: textStyle,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
                                                 ),
                                               );
-                                            }
-
-                                            return MarqueeWidget(
-                                              child: Text(
-                                                text,
-                                                style: textStyle,
-                                              ),
-                                            );
-                                          },
+                                            },
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                                 // Three-dot menu with individual background

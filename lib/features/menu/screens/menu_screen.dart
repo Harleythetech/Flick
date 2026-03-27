@@ -7,6 +7,7 @@ import 'package:flick/core/utils/responsive.dart';
 import 'package:flick/features/songs/screens/songs_screen.dart';
 import 'package:flick/features/playlists/screens/playlists_screen.dart';
 import 'package:flick/features/favorites/screens/favorites_screen.dart';
+import 'package:flick/features/queue/screens/queue_screen.dart';
 import 'package:flick/features/recently_played/screens/recently_played_screen.dart';
 import 'package:flick/features/folders/screens/folders_screen.dart';
 import 'package:flick/features/albums/screens/albums_screen.dart';
@@ -94,6 +95,13 @@ class MenuScreen extends StatelessWidget {
                     title: 'Favorites',
                     subtitle: 'Your liked songs',
                     onTap: () => _navigateTo(context, const FavoritesScreen()),
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: LucideIcons.list,
+                    title: 'Queue',
+                    subtitle: 'See what plays next',
+                    onTap: () => _navigateTo(context, const QueueScreen()),
                   ),
                   _buildMenuItem(
                     context,

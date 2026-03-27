@@ -6,7 +6,7 @@ import 'package:flick/widgets/common/marquee_widget.dart';
 import 'package:flick/widgets/common/cached_image_widget.dart';
 
 /// Song card widget for displaying in the orbit scroll.
-class SongCard extends StatelessWidget {
+class SongCard extends StatefulWidget {
   /// Song data to display
   final Song song;
 
@@ -22,6 +22,9 @@ class SongCard extends StatelessWidget {
   /// Callback when card is tapped
   final VoidCallback? onTap;
 
+  /// Callback when the card is swiped left.
+  final VoidCallback? onSwipeLeft;
+
   const SongCard({
     super.key,
     required this.song,
@@ -29,69 +32,202 @@ class SongCard extends StatelessWidget {
     this.opacity = 1.0,
     this.isSelected = false,
     this.onTap,
+    this.onSwipeLeft,
   });
 
   @override
+  State<SongCard> createState() => _SongCardState();
+}
+
+class _SongCardState extends State<SongCard> {
+  double _dragDx = 0;
+  bool _queuedFlash = false;
+
+  @override
   Widget build(BuildContext context) {
-    final artSize = isSelected
+    final artSize = widget.isSelected
         ? AppConstants.songCardArtSizeLarge
         : AppConstants.songCardArtSize;
 
     final cardWidth = MediaQuery.of(context).size.width * 0.68;
     final cardHeight = 130.0;
+    final revealProgress = (-_dragDx / 110).clamp(0.0, 1.0);
 
     return RepaintBoundary(
       child: GestureDetector(
-        onTap: onTap,
+        onTap: widget.onTap,
+        onHorizontalDragUpdate: (details) {
+          final nextDx = (_dragDx + details.delta.dx).clamp(-120.0, 0.0);
+          if (nextDx != _dragDx) {
+            setState(() {
+              _dragDx = nextDx;
+            });
+          }
+        },
+        onHorizontalDragEnd: (details) async {
+          final shouldQueue =
+              _dragDx <= -80 ||
+              (details.primaryVelocity != null && details.primaryVelocity! < -400);
+          if (shouldQueue) {
+            setState(() {
+              _dragDx = 0;
+              _queuedFlash = true;
+            });
+            widget.onSwipeLeft?.call();
+            await Future<void>.delayed(const Duration(milliseconds: 180));
+            if (!mounted) return;
+            setState(() {
+              _queuedFlash = false;
+            });
+            return;
+          }
+          setState(() {
+            _dragDx = 0;
+          });
+        },
+        onHorizontalDragCancel: () {
+          if (_dragDx != 0) {
+            setState(() {
+              _dragDx = 0;
+            });
+          }
+        },
         child: AnimatedOpacity(
           duration: AppConstants.animationNormal,
-          opacity: opacity,
+          opacity: widget.opacity,
           child: Transform.scale(
-            scale: scale,
+            scale: widget.scale,
             child: SizedBox(
               width: cardWidth,
               height: cardHeight,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-                child: Stack(
-                  children: [
-                    // Album art with gradient overlay
-                    Positioned.fill(child: _buildAlbumWithGradient(artSize)),
-
-                    // Text content with darkening overlay for readability
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                            AppConstants.radiusLg,
-                          ),
-                          gradient: LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.85),
-                            ],
-                            stops: const [0.25, 0.70],
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            AppColors.accent.withValues(
+                              alpha: 0.14 + (revealProgress * 0.14),
+                            ),
+                            AppColors.surface,
+                          ],
+                        ),
+                        border: Border.all(
+                          color: AppColors.accent.withValues(
+                            alpha: 0.18 + (revealProgress * 0.26),
                           ),
                         ),
-                        padding: const EdgeInsets.all(AppConstants.spacingMd),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppConstants.spacingLg,
+                        ),
                         child: Row(
                           children: [
-                            // Spacer to push text to the right
-                            SizedBox(width: artSize + AppConstants.spacingMd),
-                            Expanded(
-                              child: _buildSongInfo(
-                                context,
-                                isSelected: isSelected,
+                            const Spacer(),
+                            Opacity(
+                              opacity: revealProgress,
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.queue_music_rounded,
+                                    color: AppColors.accent,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Add to queue',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  AnimatedSlide(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    offset: Offset(_dragDx / cardWidth, 0),
+                    child: AnimatedScale(
+                      duration: const Duration(milliseconds: 180),
+                      scale: _queuedFlash ? 0.98 : 1,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusLg,
+                          ),
+                          boxShadow: _queuedFlash
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.accent.withValues(alpha: 0.25),
+                                    blurRadius: 18,
+                                    spreadRadius: 1,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusLg,
+                          ),
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: _buildAlbumWithGradient(artSize),
+                              ),
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(
+                                      AppConstants.radiusLg,
+                                    ),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withValues(alpha: 0.85),
+                                      ],
+                                      stops: const [0.25, 0.70],
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.all(
+                                    AppConstants.spacingMd,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: artSize + AppConstants.spacingMd,
+                                      ),
+                                      Expanded(
+                                        child: _buildSongInfo(
+                                          context,
+                                          isSelected: widget.isSelected,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -104,13 +240,10 @@ class SongCard extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Album art or placeholder
-        if (song.albumArt != null)
-          _buildRawImage(song.albumArt!, fit: BoxFit.cover, artSize: size)
+        if (widget.song.albumArt != null)
+          _buildRawImage(widget.song.albumArt!, fit: BoxFit.cover, artSize: size)
         else
           _buildPlaceholderArt(),
-
-        // Gradient overlay: album art to semi-transparent background
         Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -130,7 +263,6 @@ class SongCard extends StatelessWidget {
     BoxFit fit = BoxFit.cover,
     required double artSize,
   }) {
-    // Use thumbnail for smaller album art sizes to improve performance
     final isThumbnail = artSize <= AppConstants.songCardArtSize;
 
     return CachedImageWidget(
@@ -172,13 +304,12 @@ class SongCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Title with Marquee
         if (isSelected)
           SizedBox(
             height: 24,
             child: MarqueeWidget(
               child: Text(
-                song.title,
+                widget.song.title,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -190,7 +321,7 @@ class SongCard extends StatelessWidget {
           )
         else
           Text(
-            song.title,
+            widget.song.title,
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -200,12 +331,9 @@ class SongCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-
         const SizedBox(height: AppConstants.spacingXxs),
-
-        // Artist - white for visibility
         Text(
-          song.artist,
+          widget.song.artist,
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w400,
@@ -214,20 +342,18 @@ class SongCard extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-
         const SizedBox(height: AppConstants.spacingXs),
-
-        // Metadata row: file type, duration, resolution
         Row(
           children: [
-            _buildMetadataBadge(song.fileType),
+            _buildMetadataBadge(widget.song.fileType),
             const SizedBox(width: AppConstants.spacingXs),
-            _buildMetadataText(song.formattedDuration),
-            if (song.resolution != null && song.resolution != 'Unknown') ...[
+            _buildMetadataText(widget.song.formattedDuration),
+            if (widget.song.resolution != null &&
+                widget.song.resolution != 'Unknown') ...[
               const SizedBox(width: AppConstants.spacingXs),
               _buildMetadataText('•'),
               const SizedBox(width: AppConstants.spacingXs),
-              Flexible(child: _buildMetadataText(song.resolution!)),
+              Flexible(child: _buildMetadataText(widget.song.resolution!)),
             ],
           ],
         ),

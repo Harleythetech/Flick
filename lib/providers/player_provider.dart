@@ -22,6 +22,8 @@ class PlayerState {
   final LoopMode loopMode;
   final double playbackSpeed;
   final Duration? sleepTimerRemaining;
+  final List<Song> queue;
+  final int currentIndex;
 
   const PlayerState({
     this.currentSong,
@@ -33,6 +35,8 @@ class PlayerState {
     this.loopMode = LoopMode.off,
     this.playbackSpeed = 1.0,
     this.sleepTimerRemaining,
+    this.queue = const [],
+    this.currentIndex = -1,
   });
 
   PlayerState copyWith({
@@ -45,6 +49,8 @@ class PlayerState {
     LoopMode? loopMode,
     double? playbackSpeed,
     Duration? sleepTimerRemaining,
+    List<Song>? queue,
+    int? currentIndex,
     bool clearSong = false,
     bool clearSleepTimer = false,
   }) {
@@ -60,6 +66,8 @@ class PlayerState {
       sleepTimerRemaining: clearSleepTimer
           ? null
           : (sleepTimerRemaining ?? this.sleepTimerRemaining),
+      queue: queue ?? this.queue,
+      currentIndex: currentIndex ?? this.currentIndex,
     );
   }
 
@@ -71,6 +79,12 @@ class PlayerState {
 
   /// Whether there is a song loaded.
   bool get hasSong => currentSong != null;
+
+  List<Song> get upNext {
+    if (queue.isEmpty) return const [];
+    final startIndex = (currentIndex + 1).clamp(0, queue.length);
+    return queue.sublist(startIndex);
+  }
 }
 
 /// Provider for the PlayerService singleton.
@@ -107,6 +121,8 @@ class PlayerNotifier extends Notifier<PlayerState> {
       loopMode: _service.loopModeNotifier.value,
       playbackSpeed: _service.playbackSpeedNotifier.value,
       sleepTimerRemaining: _service.sleepTimerRemainingNotifier.value,
+      queue: _service.queueNotifier.value,
+      currentIndex: _service.currentIndexNotifier.value,
     );
 
     DateTime lastPositionSync = DateTime.now();
@@ -155,6 +171,8 @@ class PlayerNotifier extends Notifier<PlayerState> {
         loopMode: _service.loopModeNotifier.value,
         playbackSpeed: _service.playbackSpeedNotifier.value,
         sleepTimerRemaining: _service.sleepTimerRemainingNotifier.value,
+        queue: _service.queueNotifier.value,
+        currentIndex: _service.currentIndexNotifier.value,
         clearSong: _service.currentSongNotifier.value == null,
         clearSleepTimer: _service.sleepTimerRemainingNotifier.value == null,
       );
@@ -217,6 +235,8 @@ class PlayerNotifier extends Notifier<PlayerState> {
     _service.loopModeNotifier.addListener(syncState);
     _service.playbackSpeedNotifier.addListener(syncState);
     _service.sleepTimerRemainingNotifier.addListener(syncState);
+    _service.queueNotifier.addListener(syncState);
+    _service.currentIndexNotifier.addListener(syncState);
 
     // Cleanup listeners when provider is disposed
     ref.onDispose(() {
@@ -229,6 +249,8 @@ class PlayerNotifier extends Notifier<PlayerState> {
       _service.loopModeNotifier.removeListener(syncState);
       _service.playbackSpeedNotifier.removeListener(syncState);
       _service.sleepTimerRemainingNotifier.removeListener(syncState);
+      _service.queueNotifier.removeListener(syncState);
+      _service.currentIndexNotifier.removeListener(syncState);
     });
 
     return initial;
@@ -309,6 +331,30 @@ class PlayerNotifier extends Notifier<PlayerState> {
     await _service.toggleShuffle();
   }
 
+  Future<void> addToQueue(Song song) async {
+    await _service.addToQueue(song);
+  }
+
+  Future<void> playFromQueueIndex(int index) async {
+    await _service.playFromQueueIndex(index);
+  }
+
+  Future<void> clearQueue() async {
+    await _service.clearQueue();
+  }
+
+  Future<void> removeFromQueue(int index) async {
+    await _service.removeFromQueue(index);
+  }
+
+  Future<void> moveQueueItem(int oldIndex, int newIndex) async {
+    await _service.moveQueueItem(oldIndex, newIndex);
+  }
+
+  Future<void> moveQueueItemToNext(int index) async {
+    await _service.moveQueueItemToNext(index);
+  }
+
   /// Toggle loop mode.
   void toggleLoopMode() {
     _service.toggleLoopMode();
@@ -357,6 +403,14 @@ final currentSongProvider = Provider<Song?>((ref) {
 /// Is playing selector.
 final isPlayingProvider = Provider<bool>((ref) {
   return ref.watch(playerProvider.select((state) => state.isPlaying));
+});
+
+final queueProvider = Provider<List<Song>>((ref) {
+  return ref.watch(playerProvider.select((state) => state.queue));
+});
+
+final upNextProvider = Provider<List<Song>>((ref) {
+  return ref.watch(playerProvider.select((state) => state.upNext));
 });
 
 /// Position selector - updates frequently during playback.
