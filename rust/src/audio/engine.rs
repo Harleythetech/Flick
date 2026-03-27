@@ -6,6 +6,7 @@
 use crate::audio::commands::{AudioCommand, AudioEvent, PlaybackProgress, PlaybackState};
 use crate::audio::crossfader::Crossfader;
 use crate::audio::decoder::DecoderThread;
+use crate::audio::dynamics::DynamicsChain;
 use crate::audio::equalizer::Equalizer;
 use crate::audio::resampler::DEFAULT_OUTPUT_SAMPLE_RATE;
 use crate::audio::source::{AudioSource, SourceProvider};
@@ -45,6 +46,8 @@ pub struct AudioCallbackData {
     speed_frac_pos: Mutex<f64>,
     /// Graphic EQ (10 bands). try_lock in callback to avoid blocking.
     equalizer: Mutex<Equalizer>,
+    /// Lightweight compressor + limiter chain.
+    dynamics: Mutex<DynamicsChain>,
     /// Channel for sending finished tracks to command thread
     finished_tracks: Sender<AudioSource>,
 }
@@ -68,6 +71,7 @@ impl AudioCallbackData {
             speed_buffer: Mutex::new(vec![0.0; speed_buffer_size]),
             speed_frac_pos: Mutex::new(0.0),
             equalizer: Mutex::new(Equalizer::new()),
+            dynamics: Mutex::new(DynamicsChain::new(sample_rate)),
             finished_tracks,
         }
     }
@@ -200,6 +204,42 @@ impl AudioEngineHandle {
     /// Set graphic EQ: enabled and 10 band gains in dB (order matches EqualizerState.defaultGraphicFrequenciesHz).
     pub fn set_equalizer(&self, enabled: bool, gains_db: [f32; 10]) -> Result<(), String> {
         self.send_command(AudioCommand::SetEqualizer { enabled, gains_db })
+    }
+
+    /// Configure compressor settings.
+    pub fn set_compressor(
+        &self,
+        enabled: bool,
+        threshold_db: f32,
+        ratio: f32,
+        attack_ms: f32,
+        release_ms: f32,
+        makeup_gain_db: f32,
+    ) -> Result<(), String> {
+        self.send_command(AudioCommand::SetCompressor {
+            enabled,
+            threshold_db,
+            ratio,
+            attack_ms,
+            release_ms,
+            makeup_gain_db,
+        })
+    }
+
+    /// Configure limiter settings.
+    pub fn set_limiter(
+        &self,
+        enabled: bool,
+        input_gain_db: f32,
+        ceiling_db: f32,
+        release_ms: f32,
+    ) -> Result<(), String> {
+        self.send_command(AudioCommand::SetLimiter {
+            enabled,
+            input_gain_db,
+            ceiling_db,
+            release_ms,
+        })
     }
 
     /// Get the current playback speed.
@@ -426,6 +466,9 @@ fn audio_callback(output: &mut [f32], data: &AudioCallbackData, _event_tx: &Send
             if let Some(mut eq) = data.equalizer.try_lock() {
                 eq.process(output, channels);
             }
+            if let Some(mut dynamics) = data.dynamics.try_lock() {
+                dynamics.process(output, channels);
+            }
             return;
         }
     };
@@ -570,6 +613,9 @@ fn audio_callback(output: &mut [f32], data: &AudioCallbackData, _event_tx: &Send
     if let Some(mut eq) = data.equalizer.try_lock() {
         eq.process(output, channels);
     }
+    if let Some(mut dynamics) = data.dynamics.try_lock() {
+        dynamics.process(output, channels);
+    }
 }
 
 /// Command processing loop running in the audio thread.
@@ -656,6 +702,36 @@ fn command_processing_loop(
                         if let Some(mut eq) = callback_data.equalizer.try_lock() {
                             eq.set(enabled, &gains_db, sample_rate);
                         }
+                    }
+                    AudioCommand::SetCompressor {
+                        enabled,
+                        threshold_db,
+                        ratio,
+                        attack_ms,
+                        release_ms,
+                        makeup_gain_db,
+                    } => {
+                        callback_data.dynamics.lock().set_compressor(
+                            enabled,
+                            threshold_db,
+                            ratio,
+                            attack_ms,
+                            release_ms,
+                            makeup_gain_db,
+                        );
+                    }
+                    AudioCommand::SetLimiter {
+                        enabled,
+                        input_gain_db,
+                        ceiling_db,
+                        release_ms,
+                    } => {
+                        callback_data.dynamics.lock().set_limiter(
+                            enabled,
+                            input_gain_db,
+                            ceiling_db,
+                            release_ms,
+                        );
                     }
                     AudioCommand::CrossfadeToNext | AudioCommand::SkipToNext => {
                         handle_skip_to_next(&callback_data, &state, &event_tx);

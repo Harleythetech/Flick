@@ -17,6 +17,7 @@ pub mod alac_converter;
 pub mod commands;
 pub mod crossfader;
 pub mod decoder;
+pub mod dynamics;
 pub mod engine;
 pub mod equalizer;
 pub mod resampler;
