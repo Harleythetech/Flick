@@ -53,6 +53,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
   double? _cachedTopBarFontSize;
   double _cachedTopBarTextWidth = 0;
   bool _isLyricsMode = false;
+  int _songTransitionDirection = 1;
 
   @override
   void initState() {
@@ -105,7 +106,20 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
   }
 
   void _handleCurrentSongChanged() {
+    if (_playerService.currentSongNotifier.value == null) {
+      return;
+    }
     _updateTopBarTextMeasurement(_playerService.currentSongNotifier.value);
+  }
+
+  Future<void> _animateToNextSong() async {
+    _songTransitionDirection = 1;
+    await _playerService.next();
+  }
+
+  Future<void> _animateToPreviousSong() async {
+    _songTransitionDirection = -1;
+    await _playerService.previous();
   }
 
   void _updateTopBarTextMeasurement(Song? song) {
@@ -1164,10 +1178,10 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
               onHorizontalDragEnd: (details) {
                 if (details.primaryVelocity! < -500) {
                   // Swipe Left -> Next
-                  _playerService.next();
+                  _animateToNextSong();
                 } else if (details.primaryVelocity! > 500) {
                   // Swipe Right -> Previous
-                  _playerService.previous();
+                  _animateToPreviousSong();
                 }
               },
               child: AnimatedBuilder(
@@ -1181,224 +1195,258 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                     child: child!,
                   );
                 },
-                child: Stack(
-                  children: [
-                    // Album art as background
-                    Positioned.fill(
-                      child: song.albumArt != null
-                          ? CachedImageWidget(
-                              imagePath: song.albumArt!,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              color: AppColors.background,
-                              child: Icon(
-                                LucideIcons.music,
-                                size: 120,
-                                color: AppColors.textTertiary.withValues(
-                                  alpha: 0.3,
-                                ),
-                              ),
-                            ),
-                    ),
+                child: _AnimatedSongScene(
+                  key: ValueKey(song.id),
+                  song: song,
+                  lyricsMode: _isLyricsMode,
+                  transitionDirection: _songTransitionDirection,
+                  topBarTextFontFamily: _topBarTextFontFamily,
+                  topBarTextFontWeight: _topBarTextFontWeight,
+                  cachedTopBarTextWidth: _cachedTopBarTextWidth,
+                  playerService: _playerService,
+                  lyricsService: _lyricsService,
+                  throttledPositionNotifier: _throttledPositionNotifier,
+                  formatDuration: _formatDuration,
+                  onClose: () => Navigator.of(context).pop(),
+                  onQueueSwipe: () => _queueSong(context, song),
+                  onShowSongActions: () =>
+                      _showSongActionsBottomSheet(context, song),
+                  onPrevious: _animateToPreviousSong,
+                  onNext: _animateToNextSong,
+                  buildFileInfoRow: (song, lyricsMode) =>
+                      _buildFileInfoRow(context, song, lyricsMode: lyricsMode),
+                  buildDirectoryInfo: (song) =>
+                      _buildDirectoryInfo(context, song, compact: false),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
 
-                    // Gradient overlay from bottom to top (#121212 to transparent)
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              const Color(0xFF121212),
-                              const Color(0xFF121212).withValues(alpha: 0.95),
-                              const Color(0xFF121212).withValues(alpha: 0.85),
-                              const Color(0xFF121212).withValues(alpha: 0.6),
-                              const Color(0xFF121212).withValues(alpha: 0.3),
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
-                          ),
-                        ),
+class _AnimatedSongScene extends StatelessWidget {
+  final Song song;
+  final bool lyricsMode;
+  final int transitionDirection;
+  final String topBarTextFontFamily;
+  final FontWeight topBarTextFontWeight;
+  final double cachedTopBarTextWidth;
+  final PlayerService playerService;
+  final LyricsService lyricsService;
+  final ValueNotifier<Duration> throttledPositionNotifier;
+  final String Function(Duration) formatDuration;
+  final VoidCallback onClose;
+  final Future<void> Function() onQueueSwipe;
+  final VoidCallback onShowSongActions;
+  final Future<void> Function() onPrevious;
+  final Future<void> Function() onNext;
+  final Widget Function(Song song, bool lyricsMode) buildFileInfoRow;
+  final Widget Function(Song song) buildDirectoryInfo;
+
+  const _AnimatedSongScene({
+    super.key,
+    required this.song,
+    required this.lyricsMode,
+    required this.transitionDirection,
+    required this.topBarTextFontFamily,
+    required this.topBarTextFontWeight,
+    required this.cachedTopBarTextWidth,
+    required this.playerService,
+    required this.lyricsService,
+    required this.throttledPositionNotifier,
+    required this.formatDuration,
+    required this.onClose,
+    required this.onQueueSwipe,
+    required this.onShowSongActions,
+    required this.onPrevious,
+    required this.onNext,
+    required this.buildFileInfoRow,
+    required this.buildDirectoryInfo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final direction = transitionDirection >= 0 ? 1.0 : -1.0;
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeOutCubic,
+      layoutBuilder: (currentChild, previousChildren) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            ...previousChildren,
+            if (currentChild != null) currentChild,
+          ],
+        );
+      },
+      transitionBuilder: (child, animation) {
+        final offsetAnimation = Tween<Offset>(
+          begin: Offset(direction * 0.08, 0),
+          end: Offset.zero,
+        ).animate(animation);
+        final outgoingOffsetAnimation = Tween<Offset>(
+          begin: Offset.zero,
+          end: Offset(-direction * 0.05, 0),
+        ).animate(animation);
+        final isIncoming = child.key == ValueKey(song.id);
+
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: isIncoming ? offsetAnimation : outgoingOffsetAnimation,
+            child: child,
+          ),
+        );
+      },
+      child: RepaintBoundary(
+        key: ValueKey(song.id),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: song.albumArt != null
+                  ? CachedImageWidget(
+                      imagePath: song.albumArt!,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      color: AppColors.background,
+                      child: Icon(
+                        LucideIcons.music,
+                        size: 120,
+                        color: AppColors.textTertiary.withValues(alpha: 0.3),
                       ),
                     ),
-
-                    SafeArea(
-                      child: Column(
-                        children: [
-                          const Uac2ErrorNotification(),
-                          // Top Bar - individual backgrounds
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: context.responsive(8.0, 12.0, 16.0),
-                              vertical: context.responsive(4.0, 6.0, 8.0),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      const Color(0xFF121212),
+                      const Color(0xFF121212).withValues(alpha: 0.95),
+                      const Color(0xFF121212).withValues(alpha: 0.85),
+                      const Color(0xFF121212).withValues(alpha: 0.6),
+                      const Color(0xFF121212).withValues(alpha: 0.3),
+                      Colors.transparent,
+                    ],
+                    stops: const [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Column(
+                children: [
+                  const Uac2ErrorNotification(),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.responsive(8.0, 12.0, 16.0),
+                      vertical: context.responsive(4.0, 6.0, 8.0),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF121212,
+                            ).withValues(alpha: 0.7),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            onPressed: onClose,
+                            padding: EdgeInsets.all(
+                              context.responsive(8.0, 10.0, 12.0),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            constraints: const BoxConstraints(),
+                            icon: Icon(
+                              LucideIcons.chevronDown,
+                              color: Colors.white,
+                              size: context.responsive(20.0, 22.0, 24.0),
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onHorizontalDragEnd: (details) async {
+                            if (details.primaryVelocity != null &&
+                                details.primaryVelocity! < -400) {
+                              await onQueueSwipe();
+                            }
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: context.responsive(16.0, 18.0, 20.0),
+                              vertical: context.responsive(8.0, 9.0, 10.0),
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF121212,
+                              ).withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Dropdown with individual background
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF121212,
-                                    ).withValues(alpha: 0.7),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: IconButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(),
-                                    padding: EdgeInsets.all(
-                                      context.responsive(8.0, 10.0, 12.0),
+                                Text(
+                                  'Now Playing',
+                                  style: TextStyle(
+                                    fontFamily: 'ProductSans',
+                                    fontSize: context.responsive(
+                                      12.0,
+                                      13.0,
+                                      14.0,
                                     ),
-                                    constraints: const BoxConstraints(),
-                                    icon: Icon(
-                                      LucideIcons.chevronDown,
-                                      color: Colors.white,
-                                      size: context.responsive(
-                                        20.0,
-                                        22.0,
-                                        24.0,
-                                      ),
-                                    ),
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    letterSpacing: 0.8,
                                   ),
                                 ),
-                                // Now Playing with Title - Artist in same container
-                                GestureDetector(
-                                  onHorizontalDragEnd: (details) async {
-                                    if (details.primaryVelocity != null &&
-                                        details.primaryVelocity! < -400) {
-                                      await _queueSong(context, song);
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: context.responsive(
-                                        16.0,
-                                        18.0,
-                                        20.0,
-                                      ),
-                                      vertical: context.responsive(
-                                        8.0,
-                                        9.0,
-                                        10.0,
-                                      ),
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFF121212,
-                                      ).withValues(alpha: 0.7),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          "Now Playing",
-                                          style: TextStyle(
-                                            fontFamily: 'ProductSans',
-                                            fontSize: context.responsive(
-                                              12.0,
-                                              13.0,
-                                              14.0,
-                                            ),
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white.withValues(
-                                              alpha: 0.9,
-                                            ),
-                                            letterSpacing: 0.8,
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          height: context.responsive(
-                                            6.0,
-                                            7.0,
-                                            8.0,
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: context.responsive(
-                                            120.0,
-                                            140.0,
-                                            160.0,
-                                          ),
-                                          height: context.responsive(
-                                            20.0,
-                                            22.0,
-                                            24.0,
-                                          ),
-                                          child: LayoutBuilder(
-                                            builder: (context, constraints) {
-                                              final text =
-                                                  '${song.title} - ${song.artist}';
-                                              final textStyle = TextStyle(
-                                                fontFamily:
-                                                    _topBarTextFontFamily,
-                                                fontSize:
-                                                    context.responsiveText(
-                                                      context.responsive(
-                                                        13.0,
-                                                        14.0,
-                                                        15.0,
-                                                      ),
-                                                    ),
-                                                fontWeight:
-                                                    _topBarTextFontWeight,
-                                                color: Colors.white.withValues(
-                                                  alpha: 0.85,
-                                                ),
-                                              );
-
-                                              if (_cachedTopBarTextWidth <=
-                                                  constraints.maxWidth) {
-                                                return Center(
-                                                  child: Text(
-                                                    text,
-                                                    style: textStyle,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                );
-                                              }
-
-                                              return MarqueeWidget(
-                                                child: Text(
-                                                  text,
-                                                  style: textStyle,
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                SizedBox(
+                                  height: context.responsive(6.0, 7.0, 8.0),
                                 ),
-                                // Three-dot menu with individual background
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF121212,
-                                    ).withValues(alpha: 0.7),
-                                    shape: BoxShape.circle,
+                                SizedBox(
+                                  width: context.responsive(
+                                    120.0,
+                                    140.0,
+                                    160.0,
                                   ),
-                                  child: IconButton(
-                                    padding: EdgeInsets.all(
-                                      context.responsive(8.0, 10.0, 12.0),
-                                    ),
-                                    icon: Icon(
-                                      Icons.more_vert,
-                                      color: Colors.white,
-                                      size: context.responsive(
-                                        20.0,
-                                        22.0,
-                                        24.0,
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      _showSongActionsBottomSheet(
-                                        context,
-                                        song,
+                                  height: context.responsive(20.0, 22.0, 24.0),
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final text =
+                                          '${song.title} - ${song.artist}';
+                                      final textStyle = TextStyle(
+                                        fontFamily: topBarTextFontFamily,
+                                        fontSize: context.responsiveText(
+                                          context.responsive(13.0, 14.0, 15.0),
+                                        ),
+                                        fontWeight: topBarTextFontWeight,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.85,
+                                        ),
+                                      );
+
+                                      if (cachedTopBarTextWidth <=
+                                          constraints.maxWidth) {
+                                        return Center(
+                                          child: Text(
+                                            text,
+                                            style: textStyle,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        );
+                                      }
+
+                                      return MarqueeWidget(
+                                        child: Text(text, style: textStyle),
                                       );
                                     },
                                   ),
@@ -1406,84 +1454,84 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                               ],
                             ),
                           ),
-
-                          // UAC2 Player Status
-                          SizedBox(height: context.responsive(8.0, 10.0, 12.0)),
-                          const Uac2PlayerStatus(compact: true),
-
-                          if (_isLyricsMode) ...[
-                            SizedBox(
-                              height: context.responsive(8.0, 10.0, 12.0),
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: context.responsive(
-                                    20.0,
-                                    28.0,
-                                    36.0,
-                                  ),
-                                ),
-                                child: _InlineLyricsPanel(
-                                  song: song,
-                                  playerService: _playerService,
-                                  lyricsService: _lyricsService,
-                                ),
-                              ),
-                            ),
-                          ],
-                          if (!_isLyricsMode) const Spacer(flex: 2),
-
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: context.responsive(12.0, 16.0, 20.0),
-                            ),
-                            child: _buildFileInfoRow(
-                              context,
-                              song,
-                              lyricsMode: _isLyricsMode,
-                            ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF121212,
+                            ).withValues(alpha: 0.7),
+                            shape: BoxShape.circle,
                           ),
-                          SizedBox(
-                            height: context.responsive(12.0, 14.0, 16.0),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: context.responsive(12.0, 16.0, 20.0),
+                          child: IconButton(
+                            padding: EdgeInsets.all(
+                              context.responsive(8.0, 10.0, 12.0),
                             ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _WaveformLayer(
-                                  playerService: _playerService,
-                                  positionNotifier: _throttledPositionNotifier,
-                                  currentSong: song,
-                                ),
-                                SizedBox(
-                                  height: context.responsive(2.0, 3.0, 4.0),
-                                ),
-                                _PlayerControls(
-                                  playerService: _playerService,
-                                  formatDuration: _formatDuration,
-                                  currentSong: song,
-                                  isShuffleNotifier:
-                                      _playerService.isShuffleNotifier,
-                                ),
-                              ],
+                            icon: Icon(
+                              Icons.more_vert,
+                              color: Colors.white,
+                              size: context.responsive(20.0, 22.0, 24.0),
                             ),
+                            onPressed: onShowSongActions,
                           ),
-                          SizedBox(
-                            height: context.responsive(16.0, 20.0, 24.0),
-                          ),
-                          _buildDirectoryInfo(context, song, compact: false),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: context.responsive(8.0, 10.0, 12.0)),
+                  const Uac2PlayerStatus(compact: true),
+                  if (lyricsMode) ...[
+                    SizedBox(height: context.responsive(8.0, 10.0, 12.0)),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: context.responsive(20.0, 28.0, 36.0),
+                        ),
+                        child: _InlineLyricsPanel(
+                          song: song,
+                          playerService: playerService,
+                          lyricsService: lyricsService,
+                        ),
                       ),
                     ),
                   ],
-                ),
+                  if (!lyricsMode) const Spacer(flex: 2),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.responsive(12.0, 16.0, 20.0),
+                    ),
+                    child: buildFileInfoRow(song, lyricsMode),
+                  ),
+                  SizedBox(height: context.responsive(12.0, 14.0, 16.0)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.responsive(12.0, 16.0, 20.0),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _WaveformLayer(
+                          playerService: playerService,
+                          positionNotifier: throttledPositionNotifier,
+                          currentSong: song,
+                        ),
+                        SizedBox(height: context.responsive(2.0, 3.0, 4.0)),
+                        _PlayerControls(
+                          playerService: playerService,
+                          formatDuration: formatDuration,
+                          currentSong: song,
+                          isShuffleNotifier: playerService.isShuffleNotifier,
+                          onPrevious: onPrevious,
+                          onNext: onNext,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: context.responsive(16.0, 20.0, 24.0)),
+                  buildDirectoryInfo(song),
+                ],
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );
@@ -1734,12 +1782,16 @@ class _PlayerControls extends StatelessWidget {
   final String Function(Duration) formatDuration;
   final Song? currentSong;
   final ValueNotifier<bool> isShuffleNotifier;
+  final Future<void> Function() onPrevious;
+  final Future<void> Function() onNext;
 
   const _PlayerControls({
     required this.playerService,
     required this.formatDuration,
     required this.currentSong,
     required this.isShuffleNotifier,
+    required this.onPrevious,
+    required this.onNext,
   });
 
   @override
@@ -1833,7 +1885,7 @@ class _PlayerControls extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          onPressed: () => playerService.previous(),
+                          onPressed: onPrevious,
                           iconSize: context.responsive(18.0, 20.0, 22.0),
                           padding: EdgeInsets.zero,
                           icon: Icon(LucideIcons.skipBack, color: Colors.white),
@@ -1852,7 +1904,7 @@ class _PlayerControls extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          onPressed: () => playerService.next(),
+                          onPressed: onNext,
                           iconSize: context.responsive(18.0, 20.0, 22.0),
                           padding: EdgeInsets.zero,
                           icon: Icon(
