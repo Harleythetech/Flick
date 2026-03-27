@@ -167,89 +167,68 @@ class LibraryScannerService {
     final metadataBatchSize = _recommendedMetadataBatchSize(
       urisToProcess.length,
     );
-    final metadataConcurrency = _recommendedMetadataConcurrency();
     final metadataChunks = _chunkList(urisToProcess, metadataBatchSize);
 
-    for (
-      var waveStart = 0;
-      waveStart < metadataChunks.length;
-      waveStart += metadataConcurrency
-    ) {
+    for (final chunkUris in metadataChunks) {
       if (_isCancelled) break;
 
-      final waveEnd = (waveStart + metadataConcurrency < metadataChunks.length)
-          ? waveStart + metadataConcurrency
-          : metadataChunks.length;
-      final chunkWave = metadataChunks.sublist(waveStart, waveEnd);
-
-      final metadataResults = await Future.wait(
-        chunkWave.map(_fetchMetadataChunk),
-      );
-
-      for (var waveIndex = 0; waveIndex < chunkWave.length; waveIndex++) {
-        if (_isCancelled) break;
-
-        final chunkUris = chunkWave[waveIndex];
-        final metadataList = metadataResults[waveIndex];
-        if (metadataList == null) {
-          continue;
-        }
-
-        final batch = <SongEntity>[];
-        for (final meta in metadataList) {
-          // Merge with basic info
-          final basic = fastScanMap[meta.uri];
-          if (basic == null) continue; // Should not happen
-
-          final song = SongEntity()
-            ..filePath = basic.uri
-            ..title = meta.title ?? basic.name
-            ..artist = meta.artist ?? 'Unknown Artist'
-            ..album = meta.album ?? 'Unknown Album'
-            ..albumArtist = (meta.albumArtist?.trim().isNotEmpty ?? false)
-                ? meta.albumArtist!.trim()
-                : (meta.artist ?? 'Unknown Artist')
-            // 0 is used as a persisted sentinel for "unknown track" so we can
-            // migrate old rows once without forcing rescans forever.
-            ..trackNumber = meta.trackNumber ?? 0
-            ..discNumber = meta.discNumber ?? 1
-            ..durationMs = meta.duration ?? 0
-            ..fileType = basic.extension.toUpperCase()
-            ..dateAdded = existingMap[basic.uri]?.dateAdded ?? DateTime.now()
-            ..lastModified = DateTime.fromMillisecondsSinceEpoch(
-              basic.lastModified,
-            )
-            ..folderUri = folderUri
-            ..fileSize = basic.size
-            ..albumArtPath = meta.albumArtPath
-            ..bitrate = meta.bitrate != null
-                ? int.tryParse(meta.bitrate!)
-                : null
-            ..bitDepth = meta.bitDepth
-            ..sampleRate = meta.sampleRate;
-
-          // Restore ID if updating
-          if (existingMap.containsKey(basic.uri)) {
-            song.id = existingMap[basic.uri]!.id;
-          }
-
-          batch.add(song);
-        }
-
-        if (batch.isNotEmpty) {
-          await _songRepository.upsertSongs(batch);
-        }
-
-        processed += chunkUris.length;
-
-        yield ScanProgress(
-          songsFound: initialSongCount + processed,
-          totalFiles: totalFiles,
-          currentFile: batch.isNotEmpty ? batch.last.title : null,
-          currentFolder: displayName,
-          isComplete: false,
-        );
+      final metadataList = await _fetchMetadataChunk(chunkUris);
+      if (metadataList == null) {
+        continue;
       }
+
+      final batch = <SongEntity>[];
+      for (final meta in metadataList) {
+        // Merge with basic info
+        final basic = fastScanMap[meta.uri];
+        if (basic == null) continue; // Should not happen
+
+        final song = SongEntity()
+          ..filePath = basic.uri
+          ..title = meta.title ?? basic.name
+          ..artist = meta.artist ?? 'Unknown Artist'
+          ..album = meta.album ?? 'Unknown Album'
+          ..albumArtist = (meta.albumArtist?.trim().isNotEmpty ?? false)
+              ? meta.albumArtist!.trim()
+              : (meta.artist ?? 'Unknown Artist')
+          // 0 is used as a persisted sentinel for "unknown track" so we can
+          // migrate old rows once without forcing rescans forever.
+          ..trackNumber = meta.trackNumber ?? 0
+          ..discNumber = meta.discNumber ?? 1
+          ..durationMs = meta.duration ?? 0
+          ..fileType = basic.extension.toUpperCase()
+          ..dateAdded = existingMap[basic.uri]?.dateAdded ?? DateTime.now()
+          ..lastModified = DateTime.fromMillisecondsSinceEpoch(
+            basic.lastModified,
+          )
+          ..folderUri = folderUri
+          ..fileSize = basic.size
+          ..albumArtPath = meta.albumArtPath
+          ..bitrate = meta.bitrate != null ? int.tryParse(meta.bitrate!) : null
+          ..bitDepth = meta.bitDepth
+          ..sampleRate = meta.sampleRate;
+
+        // Restore ID if updating
+        if (existingMap.containsKey(basic.uri)) {
+          song.id = existingMap[basic.uri]!.id;
+        }
+
+        batch.add(song);
+      }
+
+      if (batch.isNotEmpty) {
+        await _songRepository.upsertSongs(batch);
+      }
+
+      processed += chunkUris.length;
+
+      yield ScanProgress(
+        songsFound: initialSongCount + processed,
+        totalFiles: totalFiles,
+        currentFile: batch.isNotEmpty ? batch.last.title : null,
+        currentFolder: displayName,
+        isComplete: false,
+      );
     }
 
     // Update folder stats
@@ -461,24 +440,12 @@ class LibraryScannerService {
   }
 
   int _recommendedMetadataBatchSize(int pendingFiles) {
-    final workers = _recommendedMetadataConcurrency();
-    final targetBatchSize = (pendingFiles / (workers * 2)).ceil();
-    return _clampInt(targetBatchSize, 64, 256);
-  }
-
-  int _recommendedMetadataConcurrency() {
-    final cores = Platform.numberOfProcessors;
-    if (cores >= 8) {
-      return 4;
-    }
-    if (cores >= 6) {
-      return 3;
-    }
-    return 2;
+    final targetBatchSize = (pendingFiles / 3).ceil();
+    return _clampInt(targetBatchSize, 100, 450);
   }
 
   int _recommendedWriteBatchSize(int totalItems) {
-    return _clampInt(totalItems ~/ 4, 100, 400);
+    return _clampInt((totalItems / 3).ceil(), 100, 450);
   }
 
   int _clampInt(int value, int min, int max) {
