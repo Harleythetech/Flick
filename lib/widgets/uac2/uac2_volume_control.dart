@@ -56,8 +56,12 @@ class _Uac2VolumeControlState extends ConsumerState<Uac2VolumeControl> {
   Widget build(BuildContext context) {
     final deviceStatusNotifier = ref.watch(uac2DeviceStatusProvider);
     final deviceStatus = deviceStatusNotifier.status;
+    final effectiveVolume = deviceStatus?.volume ?? _volume;
+    final effectiveMuted = deviceStatus?.muted ?? _muted;
 
-    if (deviceStatus == null || deviceStatus.state != Uac2State.streaming) {
+    if (deviceStatus == null ||
+        deviceStatus.state == Uac2State.idle ||
+        !deviceStatus.hasVolumeControl) {
       return const SizedBox.shrink();
     }
 
@@ -89,24 +93,41 @@ class _Uac2VolumeControlState extends ConsumerState<Uac2VolumeControl> {
                 size: 20,
               ),
               const SizedBox(width: AppConstants.spacingSm),
-              Text(
-                'UAC2 Volume',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: context.adaptiveTextPrimary,
-                      fontWeight: FontWeight.w600,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      deviceStatus.isExternalRoute
+                          ? 'USB Route Volume'
+                          : 'Device DAC Volume',
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: context.adaptiveTextPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
+                    if ((deviceStatus.routeLabel?.isNotEmpty ?? false))
+                      Text(
+                        deviceStatus.routeLabel!,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: context.adaptiveTextTertiary,
+                            ),
+                      ),
+                  ],
+                ),
               ),
-              const Spacer(),
               IconButton(
                 icon: Icon(
-                  _muted ? LucideIcons.volumeX : LucideIcons.volume2,
+                  effectiveMuted ? LucideIcons.volumeX : LucideIcons.volume2,
                   size: 20,
                 ),
                 onPressed: _toggleMute,
-                color: _muted
+                color: effectiveMuted
                     ? Colors.red.shade400
                     : context.adaptiveTextSecondary,
-                tooltip: _muted ? 'Unmute' : 'Mute',
+                tooltip: effectiveMuted ? 'Unmute' : 'Mute',
               ),
             ],
           ),
@@ -120,12 +141,12 @@ class _Uac2VolumeControlState extends ConsumerState<Uac2VolumeControl> {
               ),
               Expanded(
                 child: Slider(
-                  value: _volume,
+                  value: effectiveVolume,
                   min: 0.0,
                   max: 1.0,
                   divisions: 100,
-                  label: '${(_volume * 100).round()}%',
-                  onChanged: _muted ? null : _setVolume,
+                  label: '${(effectiveVolume * 100).round()}%',
+                  onChanged: effectiveMuted ? null : _setVolume,
                   activeColor: AppColors.accent,
                   inactiveColor: AppColors.textTertiary.withValues(alpha: 0.3),
                 ),
@@ -139,7 +160,7 @@ class _Uac2VolumeControlState extends ConsumerState<Uac2VolumeControl> {
               SizedBox(
                 width: 40,
                 child: Text(
-                  '${(_volume * 100).round()}%',
+                  '${(effectiveVolume * 100).round()}%',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: context.adaptiveTextSecondary,
                         fontWeight: FontWeight.w500,

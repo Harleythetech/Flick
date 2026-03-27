@@ -2,9 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flick/models/song.dart';
 import 'package:flick/src/rust/api/uac2_api.dart' as rust_uac2;
 import 'package:flick/services/uac2_preferences_service.dart';
 import 'package:flick/services/uac2_exception.dart';
+
+const Object _unset = Object();
 
 enum Uac2State {
   idle,
@@ -12,6 +15,21 @@ enum Uac2State {
   connected,
   streaming,
   error,
+}
+
+enum Uac2RouteType {
+  internalDac,
+  externalUsb,
+  wired,
+  bluetooth,
+  dock,
+  unknown,
+}
+
+enum Uac2VolumeMode {
+  system,
+  hardware,
+  unavailable,
 }
 
 class Uac2AudioFormat {
@@ -59,25 +77,59 @@ class Uac2DeviceStatus {
   final Uac2State state;
   final String? errorMessage;
   final Uac2AudioFormat? currentFormat;
+  final Uac2RouteType routeType;
+  final String? routeLabel;
+  final bool isExternalRoute;
+  final Uac2VolumeMode volumeMode;
+  final bool hasVolumeControl;
+  final double? volume;
+  final bool? muted;
 
   const Uac2DeviceStatus({
     required this.device,
     required this.state,
     this.errorMessage,
     this.currentFormat,
+    this.routeType = Uac2RouteType.unknown,
+    this.routeLabel,
+    this.isExternalRoute = false,
+    this.volumeMode = Uac2VolumeMode.unavailable,
+    this.hasVolumeControl = false,
+    this.volume,
+    this.muted,
   });
 
   Uac2DeviceStatus copyWith({
     Uac2DeviceInfo? device,
     Uac2State? state,
-    String? errorMessage,
-    Uac2AudioFormat? currentFormat,
+    Object? errorMessage = _unset,
+    Object? currentFormat = _unset,
+    Uac2RouteType? routeType,
+    Object? routeLabel = _unset,
+    bool? isExternalRoute,
+    Uac2VolumeMode? volumeMode,
+    bool? hasVolumeControl,
+    Object? volume = _unset,
+    Object? muted = _unset,
   }) {
     return Uac2DeviceStatus(
       device: device ?? this.device,
       state: state ?? this.state,
-      errorMessage: errorMessage ?? this.errorMessage,
-      currentFormat: currentFormat ?? this.currentFormat,
+      errorMessage: identical(errorMessage, _unset)
+          ? this.errorMessage
+          : errorMessage as String?,
+      currentFormat: identical(currentFormat, _unset)
+          ? this.currentFormat
+          : currentFormat as Uac2AudioFormat?,
+      routeType: routeType ?? this.routeType,
+      routeLabel: identical(routeLabel, _unset)
+          ? this.routeLabel
+          : routeLabel as String?,
+      isExternalRoute: isExternalRoute ?? this.isExternalRoute,
+      volumeMode: volumeMode ?? this.volumeMode,
+      hasVolumeControl: hasVolumeControl ?? this.hasVolumeControl,
+      volume: identical(volume, _unset) ? this.volume : volume as double?,
+      muted: identical(muted, _unset) ? this.muted : muted as bool?,
     );
   }
 }
@@ -92,6 +144,10 @@ class Uac2Service {
   final _preferencesService = Uac2PreferencesService();
   Uac2DeviceStatus? _currentDeviceStatus;
   final List<ValueChanged<Uac2DeviceStatus?>> _statusListeners = [];
+  bool _androidChannelConfigured = false;
+  Uac2AudioFormat? _lastKnownFormat;
+  bool _lastKnownIsPlaying = false;
+  bool _lastKnownHasSong = false;
 
   Uac2DeviceStatus? get currentDeviceStatus => _currentDeviceStatus;
 
@@ -115,11 +171,13 @@ class Uac2Service {
   }
 
   Future<void> initialize() async {
-    final autoConnect = await _preferencesService.getAutoConnect();
-    if (!autoConnect) return;
+    if (Platform.isAndroid) {
+      _configureAndroidChannel();
+    }
 
+    final autoConnect = await _preferencesService.getAutoConnect();
     final savedDevice = await _preferencesService.loadSelectedDevice();
-    if (savedDevice == null) return;
+    if (!autoConnect || savedDevice == null) return;
 
     final devices = await listDevices();
     final matchingDevice = devices.firstWhere(
@@ -131,6 +189,23 @@ class Uac2Service {
     );
 
     await selectDevice(matchingDevice);
+  }
+
+  void _configureAndroidChannel() {
+    if (_androidChannelConfigured) return;
+    _androidChannelConfigured = true;
+    _channel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'onDeviceAttached':
+        case 'onDeviceDetached':
+          if (_currentDeviceStatus != null || _lastKnownHasSong) {
+            await _refreshAndroidRouteStatus();
+          }
+          return;
+        default:
+          return;
+      }
+    });
   }
 
   Future<List<Uac2DeviceInfo>> listDevices() async {
@@ -234,11 +309,14 @@ class Uac2Service {
             return false;
           }
         }
-        
+
         // On Android, we use native USB implementation, not Rust
         await _preferencesService.saveSelectedDevice(device);
-        _updateStatus(
-          Uac2DeviceStatus(device: device, state: Uac2State.connected),
+        await _refreshAndroidRouteStatus(
+          preferredDevice: device,
+          formatOverride: _lastKnownFormat,
+          isPlaying: _lastKnownIsPlaying,
+          hasActiveSong: _lastKnownHasSong,
         );
         return true;
       }
@@ -278,8 +356,19 @@ class Uac2Service {
     if (_currentDeviceStatus!.state != Uac2State.connected) return false;
 
     try {
-      // On Android, streaming is handled by native code
-      if (!Platform.isAndroid && !rust_uac2.uac2IsAvailable()) {
+      if (Platform.isAndroid) {
+        _lastKnownFormat = format;
+        _lastKnownIsPlaying = true;
+        _lastKnownHasSong = true;
+        await _refreshAndroidRouteStatus(
+          formatOverride: format,
+          isPlaying: true,
+          hasActiveSong: true,
+        );
+        return true;
+      }
+
+      if (!rust_uac2.uac2IsAvailable()) {
         return false;
       }
 
@@ -306,8 +395,19 @@ class Uac2Service {
     if (_currentDeviceStatus == null) return false;
 
     try {
-      // On Android, streaming is handled by native code
-      if (!Platform.isAndroid && !rust_uac2.uac2IsAvailable()) {
+      if (Platform.isAndroid) {
+        _lastKnownFormat = null;
+        _lastKnownIsPlaying = false;
+        _lastKnownHasSong = false;
+        await _refreshAndroidRouteStatus(
+          formatOverride: null,
+          isPlaying: false,
+          hasActiveSong: false,
+        );
+        return true;
+      }
+
+      if (!rust_uac2.uac2IsAvailable()) {
         return false;
       }
 
@@ -328,14 +428,23 @@ class Uac2Service {
     if (_currentDeviceStatus == null) return;
 
     try {
-      if (rust_uac2.uac2IsAvailable()) {
+      if (!Platform.isAndroid && rust_uac2.uac2IsAvailable()) {
         await rust_uac2.uac2Disconnect();
       }
       await _preferencesService.clearSelectedDevice();
     } catch (e) {
       debugPrint('Uac2Service.disconnect failed: $e');
     } finally {
-      _updateStatus(null);
+      if (Platform.isAndroid) {
+        await _refreshAndroidRouteStatus(
+          formatOverride: _lastKnownFormat,
+          isPlaying: _lastKnownIsPlaying,
+          hasActiveSong: _lastKnownHasSong,
+          preferredDevice: null,
+        );
+      } else {
+        _updateStatus(null);
+      }
     }
   }
 
@@ -345,7 +454,14 @@ class Uac2Service {
 
     try {
       if (Platform.isAndroid) {
-        return false;
+        final result = await _channel.invokeMethod<bool>(
+          'setRouteVolume',
+          {'volume': volume},
+        );
+        if (result == true) {
+          await _refreshAndroidRouteStatus();
+        }
+        return result ?? false;
       }
       if (!rust_uac2.uac2IsAvailable()) return false;
       await rust_uac2.uac2SetVolume(volume: volume);
@@ -361,7 +477,11 @@ class Uac2Service {
 
     try {
       if (Platform.isAndroid) {
-        return null;
+        final volume = await _channel.invokeMethod<double>('getRouteVolume');
+        if (volume != null) {
+          _updateStatus(_currentDeviceStatus!.copyWith(volume: volume));
+        }
+        return volume ?? _currentDeviceStatus?.volume;
       }
       if (!rust_uac2.uac2IsAvailable()) return null;
       return rust_uac2.uac2GetVolume();
@@ -376,7 +496,14 @@ class Uac2Service {
 
     try {
       if (Platform.isAndroid) {
-        return false;
+        final result = await _channel.invokeMethod<bool>(
+          'setRouteMuted',
+          {'muted': muted},
+        );
+        if (result == true) {
+          await _refreshAndroidRouteStatus();
+        }
+        return result ?? false;
       }
       if (!rust_uac2.uac2IsAvailable()) return false;
       await rust_uac2.uac2SetMute(muted: muted);
@@ -392,7 +519,11 @@ class Uac2Service {
 
     try {
       if (Platform.isAndroid) {
-        return null;
+        final muted = await _channel.invokeMethod<bool>('getRouteMuted');
+        if (muted != null) {
+          _updateStatus(_currentDeviceStatus!.copyWith(muted: muted));
+        }
+        return muted ?? _currentDeviceStatus?.muted;
       }
       if (!rust_uac2.uac2IsAvailable()) return null;
       return rust_uac2.uac2GetMute();
@@ -574,9 +705,279 @@ class Uac2Service {
     }
   }
 
+  Future<void> syncPlaybackStatus({
+    Song? song,
+    required bool isPlaying,
+    Uac2AudioFormat? formatOverride,
+  }) async {
+    _lastKnownFormat = formatOverride;
+    _lastKnownIsPlaying = isPlaying;
+    _lastKnownHasSong = song != null;
+
+    if (Platform.isAndroid) {
+      await _refreshAndroidRouteStatus(
+        formatOverride: formatOverride,
+        isPlaying: isPlaying,
+        hasActiveSong: song != null,
+      );
+      return;
+    }
+
+    if (_currentDeviceStatus == null) return;
+    _updateStatus(
+      _currentDeviceStatus!.copyWith(
+        state: isPlaying ? Uac2State.streaming : Uac2State.connected,
+        currentFormat: formatOverride,
+        errorMessage: null,
+      ),
+    );
+  }
+
+  Future<void> _refreshAndroidRouteStatus({
+    Uac2DeviceInfo? preferredDevice,
+    Uac2AudioFormat? formatOverride,
+    bool? isPlaying,
+    bool? hasActiveSong,
+  }) async {
+    final resolvedPreferredDevice = await _resolvePreferredAndroidDevice(
+      preferredDevice,
+    );
+    final routeStatus = await _getAndroidRouteStatus(
+      preferredDevice: resolvedPreferredDevice,
+    );
+    final effectiveFormat = formatOverride ?? _lastKnownFormat;
+    final effectiveIsPlaying = isPlaying ?? _lastKnownIsPlaying;
+    final effectiveHasSong = hasActiveSong ?? _lastKnownHasSong;
+    final prefersExternalDevice = resolvedPreferredDevice != null &&
+        (resolvedPreferredDevice.vendorId != 0 ||
+            resolvedPreferredDevice.productId != 0 ||
+            (resolvedPreferredDevice.deviceName?.isNotEmpty ?? false));
+
+    if (routeStatus == null) {
+      if (!effectiveHasSong && !effectiveIsPlaying) {
+        _updateStatus(null);
+        return;
+      }
+
+      final fallbackDevice = resolvedPreferredDevice ??
+          _currentDeviceStatus?.device ??
+          _buildSyntheticAndroidDevice(
+            routeType: Uac2RouteType.unknown,
+            routeLabel: 'Audio route unavailable',
+          );
+      _updateStatus(
+        Uac2DeviceStatus(
+          device: fallbackDevice,
+          state: Uac2State.error,
+          errorMessage: 'Audio route unavailable',
+          currentFormat: effectiveFormat,
+        ),
+      );
+      return;
+    }
+
+    final routeType = _routeTypeFromString(routeStatus['routeType'] as String?);
+    final routeLabel = routeStatus['routeLabel'] as String?;
+    final isExternal = routeStatus['isExternal'] == true;
+    final volumeMode = _volumeModeFromString(
+      routeStatus['volumeMode'] as String?,
+    );
+    final hasVolumeControl = routeStatus['hasVolumeControl'] == true;
+    final volume = (routeStatus['volume'] as num?)?.toDouble();
+    final muted = routeStatus['muted'] as bool?;
+
+    if (!effectiveHasSong &&
+        !effectiveIsPlaying &&
+        !isExternal &&
+        !prefersExternalDevice) {
+      _updateStatus(null);
+      return;
+    }
+
+    if (!effectiveHasSong &&
+        !effectiveIsPlaying &&
+        prefersExternalDevice &&
+        routeType != Uac2RouteType.externalUsb) {
+      _updateStatus(
+        Uac2DeviceStatus(
+          device: resolvedPreferredDevice,
+          state: Uac2State.error,
+          errorMessage: 'Selected USB DAC not detected',
+          currentFormat: effectiveFormat,
+          routeType: routeType,
+          routeLabel: routeLabel,
+          isExternalRoute: false,
+          volumeMode: volumeMode,
+          hasVolumeControl: hasVolumeControl,
+          volume: volume,
+          muted: muted,
+        ),
+      );
+      return;
+    }
+
+    final routeDevice = _deviceFromAndroidRoute(
+      routeStatus,
+      preferredDevice: routeType == Uac2RouteType.externalUsb
+          ? resolvedPreferredDevice
+          : null,
+    );
+
+    _updateStatus(
+      Uac2DeviceStatus(
+        device: routeDevice,
+        state: effectiveIsPlaying ? Uac2State.streaming : Uac2State.connected,
+        errorMessage: null,
+        currentFormat: effectiveFormat,
+        routeType: routeType,
+        routeLabel: routeLabel,
+        isExternalRoute: isExternal,
+        volumeMode: volumeMode,
+        hasVolumeControl: hasVolumeControl,
+        volume: volume,
+        muted: muted,
+      ),
+    );
+  }
+
+  Future<Uac2DeviceInfo?> _resolvePreferredAndroidDevice(
+    Uac2DeviceInfo? preferredDevice,
+  ) async {
+    if (preferredDevice != null &&
+        (preferredDevice.vendorId != 0 ||
+            preferredDevice.productId != 0 ||
+            (preferredDevice.deviceName?.isNotEmpty ?? false))) {
+      return preferredDevice;
+    }
+
+    final currentDevice = _currentDeviceStatus;
+    if (currentDevice != null && currentDevice.isExternalRoute) {
+      return currentDevice.device;
+    }
+
+    return _preferencesService.loadSelectedDevice();
+  }
+
+  Future<Map<String, dynamic>?> _getAndroidRouteStatus({
+    Uac2DeviceInfo? preferredDevice,
+  }) async {
+    try {
+      final raw = await _channel.invokeMapMethod<dynamic, dynamic>(
+        'getRouteStatus',
+        {
+          'deviceName': preferredDevice?.deviceName,
+          'productName': preferredDevice?.productName,
+          'vendorId': preferredDevice?.vendorId,
+          'productId': preferredDevice?.productId,
+          'serial': preferredDevice?.serial,
+        },
+      );
+      if (raw == null) return null;
+      return raw.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    } catch (e) {
+      debugPrint('Uac2Service._getAndroidRouteStatus failed: $e');
+      return null;
+    }
+  }
+
+  Uac2DeviceInfo _deviceFromAndroidRoute(
+    Map<String, dynamic> routeStatus, {
+    Uac2DeviceInfo? preferredDevice,
+  }) {
+    final routeType = _routeTypeFromString(routeStatus['routeType'] as String?);
+    final productName =
+        routeStatus['productName'] as String? ??
+        routeStatus['routeLabel'] as String? ??
+        preferredDevice?.productName ??
+        _defaultProductNameForRoute(routeType);
+
+    return Uac2DeviceInfo(
+      vendorId:
+          (routeStatus['vendorId'] as num?)?.toInt() ??
+          preferredDevice?.vendorId ??
+          0,
+      productId:
+          (routeStatus['productId'] as num?)?.toInt() ??
+          preferredDevice?.productId ??
+          0,
+      serial:
+          routeStatus['serial'] as String? ??
+          preferredDevice?.serial ??
+          routeStatus['deviceName'] as String?,
+      productName: productName,
+      manufacturer:
+          routeStatus['manufacturer'] as String? ??
+          preferredDevice?.manufacturer ??
+          '',
+      deviceName:
+          routeStatus['deviceName'] as String? ?? preferredDevice?.deviceName,
+    );
+  }
+
+  Uac2DeviceInfo _buildSyntheticAndroidDevice({
+    required Uac2RouteType routeType,
+    String? routeLabel,
+  }) {
+    return Uac2DeviceInfo(
+      vendorId: 0,
+      productId: 0,
+      serial: null,
+      productName: routeLabel ?? _defaultProductNameForRoute(routeType),
+      manufacturer: 'Android',
+      deviceName: null,
+    );
+  }
+
   void _updateStatus(Uac2DeviceStatus? status) {
     _currentDeviceStatus = status;
     _notifyStatusListeners();
+  }
+}
+
+Uac2RouteType _routeTypeFromString(String? value) {
+  switch (value) {
+    case 'internal':
+      return Uac2RouteType.internalDac;
+    case 'usb':
+      return Uac2RouteType.externalUsb;
+    case 'wired':
+      return Uac2RouteType.wired;
+    case 'bluetooth':
+      return Uac2RouteType.bluetooth;
+    case 'dock':
+      return Uac2RouteType.dock;
+    default:
+      return Uac2RouteType.unknown;
+  }
+}
+
+Uac2VolumeMode _volumeModeFromString(String? value) {
+  switch (value) {
+    case 'system':
+      return Uac2VolumeMode.system;
+    case 'hardware':
+      return Uac2VolumeMode.hardware;
+    default:
+      return Uac2VolumeMode.unavailable;
+  }
+}
+
+String _defaultProductNameForRoute(Uac2RouteType routeType) {
+  switch (routeType) {
+    case Uac2RouteType.internalDac:
+      return 'Device DAC';
+    case Uac2RouteType.externalUsb:
+      return 'USB DAC';
+    case Uac2RouteType.wired:
+      return 'Wired Output';
+    case Uac2RouteType.bluetooth:
+      return 'Bluetooth Output';
+    case Uac2RouteType.dock:
+      return 'Dock Audio';
+    case Uac2RouteType.unknown:
+      return 'Audio Output';
   }
 }
 

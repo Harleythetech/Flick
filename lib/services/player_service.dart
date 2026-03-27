@@ -8,6 +8,7 @@ import 'package:flick/services/last_played_service.dart';
 import 'package:flick/services/favorites_service.dart';
 import 'package:flick/data/repositories/recently_played_repository.dart';
 import 'package:flick/services/rust_audio_service.dart';
+import 'package:flick/services/uac2_service.dart';
 
 /// Loop mode for playback
 enum LoopMode { off, one, all }
@@ -33,6 +34,7 @@ class PlayerService {
   final LastPlayedService _lastPlayedService = LastPlayedService();
   final FavoritesService _favoritesService = FavoritesService();
   final RustAudioService _rustAudioService = RustAudioService();
+  final Uac2Service _uac2Service = Uac2Service.instance;
   final RecentlyPlayedRepository _recentlyPlayedRepository =
       RecentlyPlayedRepository();
   static const MethodChannel _storageChannel = MethodChannel(
@@ -191,8 +193,7 @@ class PlayerService {
 
     // Set initial loop mode
     await _updateLoopMode();
-
-    await _ensureRustBackendAvailable();
+    await _uac2Service.initialize();
   }
 
   Future<bool> _ensureRustBackendAvailable() async {
@@ -234,6 +235,44 @@ class PlayerService {
     return false;
   }
 
+  Uac2AudioFormat? _deriveUac2FormatFromSong(Song? song) {
+    if (song == null) return null;
+
+    final resolution = song.resolution ?? '';
+    final bitDepthMatch = RegExp(r'(\d+)-bit', caseSensitive: false).firstMatch(
+      resolution,
+    );
+    final sampleRateMatch = RegExp(
+      r'(\d+(?:\.\d+)?)\s*kHz',
+      caseSensitive: false,
+    ).firstMatch(resolution);
+
+    final bitDepth = int.tryParse(bitDepthMatch?.group(1) ?? '');
+    final sampleRateKhz = double.tryParse(sampleRateMatch?.group(1) ?? '');
+    final sampleRate = sampleRateKhz != null
+        ? (sampleRateKhz * 1000).round()
+        : null;
+
+    if (bitDepth == null && sampleRate == null) return null;
+
+    return Uac2AudioFormat(
+      sampleRate: sampleRate ?? 44100,
+      bitDepth: bitDepth ?? 16,
+      channels: 2,
+    );
+  }
+
+  Future<void> _syncUac2PlaybackStatus(
+    Song? song, {
+    required bool isPlaying,
+  }) async {
+    await _uac2Service.syncPlaybackStatus(
+      song: song,
+      isPlaying: isPlaying,
+      formatOverride: _deriveUac2FormatFromSong(song),
+    );
+  }
+
   void _setupJustAudioListeners() {
     _justAudioPlayer.errorStream.listen((error) {
       if (_usingRustBackend) return;
@@ -248,6 +287,12 @@ class PlayerService {
       if (_usingRustBackend) return;
       final wasPlaying = isPlayingNotifier.value;
       isPlayingNotifier.value = state.playing;
+      unawaited(
+        _syncUac2PlaybackStatus(
+          currentSongNotifier.value,
+          isPlaying: state.playing,
+        ),
+      );
 
       if (wasPlaying != state.playing && currentSongNotifier.value != null) {
         // Update full notification state to ensure icon and time update properly
@@ -319,6 +364,12 @@ class PlayerService {
             currentSongNotifier.value = newSong;
             _recentlyPlayedRepository.recordPlay(newSong.id);
             positionNotifier.value = Duration.zero;
+            unawaited(
+              _syncUac2PlaybackStatus(
+                newSong,
+                isPlaying: isPlayingNotifier.value,
+              ),
+            );
             _updateNotificationState();
           }
         }
@@ -339,6 +390,12 @@ class PlayerService {
           rustState == RustPlaybackState.crossfading;
 
       isPlayingNotifier.value = isPlaying;
+      unawaited(
+        _syncUac2PlaybackStatus(
+          currentSongNotifier.value,
+          isPlaying: isPlaying,
+        ),
+      );
     });
 
     _rustAudioService.positionNotifier.addListener(() {
@@ -420,6 +477,7 @@ class PlayerService {
     }
 
     cancelSleepTimer();
+    await _syncUac2PlaybackStatus(null, isPlaying: false);
     _notificationService.hideNotification();
   }
 
@@ -614,6 +672,7 @@ class PlayerService {
           : song.duration;
       bufferedPositionNotifier.value = Duration.zero;
       await _updateNotificationState();
+      await _syncUac2PlaybackStatus(song, isPlaying: isPlayingNotifier.value);
 
       _positionSaveTimer = Timer.periodic(
         const Duration(seconds: 5),
@@ -676,7 +735,7 @@ class PlayerService {
 
         // Prefer Rust backend up-front for formats that frequently fail or
         // silently decode incorrectly on some Android decoder stacks.
-        if (_rustBackendAvailable && _shouldUseRustFallback(song)) {
+        if (_shouldUseRustFallback(song)) {
           final usedRust = await _tryRustFallbackPlayback(song);
           if (usedRust) {
             return;
@@ -697,6 +756,7 @@ class PlayerService {
         await _justAudioPlayer.setSpeed(playbackSpeedNotifier.value);
         await _updateLoopMode();
         await _justAudioPlayer.play();
+        await _syncUac2PlaybackStatus(song, isPlaying: true);
 
         _positionSaveTimer = Timer.periodic(
           const Duration(seconds: 5),
@@ -763,6 +823,7 @@ class PlayerService {
             isShuffle: isShuffleNotifier.value,
             isFavorite: isFav,
           );
+          await _syncUac2PlaybackStatus(restoredSong, isPlaying: false);
         } catch (e) {
           debugPrint("Error restoring last played: $e");
         }
@@ -779,6 +840,7 @@ class PlayerService {
     } else {
       await _justAudioPlayer.pause();
     }
+    await _syncUac2PlaybackStatus(currentSongNotifier.value, isPlaying: false);
     _updateNotificationState();
   }
 
@@ -790,6 +852,7 @@ class PlayerService {
 
     if (_usingRustBackend) {
       await _rustAudioService.resume();
+      await _syncUac2PlaybackStatus(song, isPlaying: true);
       _updateNotificationState();
       return;
     }
@@ -806,6 +869,7 @@ class PlayerService {
       await _justAudioPlayer.seek(positionNotifier.value);
     }
     await _justAudioPlayer.play();
+    await _syncUac2PlaybackStatus(song, isPlaying: true);
     _updateNotificationState();
   }
 
