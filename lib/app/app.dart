@@ -54,7 +54,7 @@ class _MainShellState extends ConsumerState<MainShell>
   // Animation controller for smoother nav bar transitions
   late final AnimationController _navBarAnimationController;
   late final Animation<Offset> _navBarSlideAnimation;
-  final Set<int> _visitedTabs = <int>{0};
+  late final PageController _pageController;
   late final ProviderSubscription<bool> _navBarVisibilitySubscription;
   late final ProviderSubscription<bool> _navBarAlwaysVisibleSubscription;
   late final ProviderSubscription<Song?> _currentSongSubscription;
@@ -67,6 +67,8 @@ class _MainShellState extends ConsumerState<MainShell>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final initialIndex = ref.read(navigationIndexProvider);
+    _pageController = PageController(initialPage: initialIndex);
     _navBarAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 280),
@@ -126,8 +128,37 @@ class _MainShellState extends ConsumerState<MainShell>
     _navigationIndexSubscription = ref.listenManual<int>(
       navigationIndexProvider,
       (previous, next) {
-        if (_visitedTabs.add(next) && mounted) {
-          setState(() {});
+        if (!mounted) {
+          return;
+        }
+
+        void animateToTab() {
+          if (!_pageController.hasClients) {
+            return;
+          }
+
+          final currentPage =
+              (_pageController.page ?? _pageController.initialPage.toDouble())
+                  .round();
+          if (currentPage == next) {
+            return;
+          }
+
+          _pageController.animateToPage(
+            next,
+            duration: const Duration(milliseconds: 360),
+            curve: Curves.easeOutCubic,
+          );
+        }
+
+        if (_pageController.hasClients) {
+          animateToTab();
+        } else {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              animateToTab();
+            }
+          });
         }
       },
     );
@@ -140,6 +171,7 @@ class _MainShellState extends ConsumerState<MainShell>
     _navBarAlwaysVisibleSubscription.close();
     _currentSongSubscription.close();
     _navigationIndexSubscription.close();
+    _pageController.dispose();
     _navBarAnimationController.dispose();
     super.dispose();
   }
@@ -208,7 +240,6 @@ class _MainShellState extends ConsumerState<MainShell>
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(navigationIndexProvider);
     final backgroundColor = ref.watch(backgroundColorProvider);
-    _visitedTabs.add(currentIndex);
 
     return AdaptiveColorProvider(
       backgroundColor: backgroundColor,
@@ -241,9 +272,15 @@ class _MainShellState extends ConsumerState<MainShell>
                 ),
               ),
 
-              // Main content area with IndexedStack for faster tab switching
-              IndexedStack(
-                index: currentIndex,
+              // Main content area with swipeable page navigation.
+              PageView(
+                controller: _pageController,
+                physics: const ClampingScrollPhysics(),
+                onPageChanged: (index) {
+                  if (ref.read(navigationIndexProvider) != index) {
+                    ref.read(navigationIndexProvider.notifier).setIndex(index);
+                  }
+                },
                 children: [
                   _buildTab(
                     tabIndex: 0,
@@ -301,12 +338,7 @@ class _MainShellState extends ConsumerState<MainShell>
     required int currentIndex,
     required Widget child,
   }) {
-    return TickerMode(
-      enabled: currentIndex == tabIndex,
-      child: _visitedTabs.contains(tabIndex)
-          ? child
-          : const SizedBox.shrink(),
-    );
+    return TickerMode(enabled: currentIndex == tabIndex, child: child);
   }
 
   Widget _buildUnifiedBottomBar() {
