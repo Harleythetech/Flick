@@ -5,6 +5,72 @@ import 'package:flick/services/equalizer_service.dart';
 enum EqMode { graphic, parametric }
 
 @immutable
+class CompressorSettings {
+  final bool enabled;
+  final double thresholdDb;
+  final double ratio;
+  final double attackMs;
+  final double releaseMs;
+  final double makeupGainDb;
+
+  const CompressorSettings({
+    this.enabled = false,
+    this.thresholdDb = -18.0,
+    this.ratio = 3.0,
+    this.attackMs = 12.0,
+    this.releaseMs = 140.0,
+    this.makeupGainDb = 0.0,
+  });
+
+  CompressorSettings copyWith({
+    bool? enabled,
+    double? thresholdDb,
+    double? ratio,
+    double? attackMs,
+    double? releaseMs,
+    double? makeupGainDb,
+  }) {
+    return CompressorSettings(
+      enabled: enabled ?? this.enabled,
+      thresholdDb: thresholdDb ?? this.thresholdDb,
+      ratio: ratio ?? this.ratio,
+      attackMs: attackMs ?? this.attackMs,
+      releaseMs: releaseMs ?? this.releaseMs,
+      makeupGainDb: makeupGainDb ?? this.makeupGainDb,
+    );
+  }
+}
+
+@immutable
+class LimiterSettings {
+  final bool enabled;
+  final double inputGainDb;
+  final double ceilingDb;
+  final double releaseMs;
+
+  const LimiterSettings({
+    this.enabled = false,
+    this.inputGainDb = 0.0,
+    this.ceilingDb = -0.8,
+    this.releaseMs = 80.0,
+  });
+
+  LimiterSettings copyWith({
+    bool? enabled,
+    double? inputGainDb,
+    double? ceilingDb,
+    double? releaseMs,
+  }) {
+    return LimiterSettings(
+      enabled: enabled ?? this.enabled,
+      inputGainDb: inputGainDb ?? this.inputGainDb,
+      ceilingDb: ceilingDb ?? this.ceilingDb,
+      releaseMs: releaseMs ?? this.releaseMs,
+    );
+  }
+}
+
+@immutable
 class ParametricBand {
   final bool enabled;
   final double frequencyHz; // 20..20000
@@ -48,12 +114,17 @@ class EqualizerState {
   /// Active preset name (optional display).
   final String? activePresetName;
 
+  final CompressorSettings compressor;
+  final LimiterSettings limiter;
+
   const EqualizerState({
     this.enabled = true,
     this.mode = EqMode.graphic,
     required this.graphicGainsDb,
     required this.parametricBands,
     this.activePresetName,
+    this.compressor = const CompressorSettings(),
+    this.limiter = const LimiterSettings(),
   });
 
   EqualizerState copyWith({
@@ -62,6 +133,8 @@ class EqualizerState {
     List<double>? graphicGainsDb,
     List<ParametricBand>? parametricBands,
     String? activePresetName,
+    CompressorSettings? compressor,
+    LimiterSettings? limiter,
     bool clearActivePresetName = false,
   }) {
     return EqualizerState(
@@ -72,6 +145,8 @@ class EqualizerState {
       activePresetName: clearActivePresetName
           ? null
           : (activePresetName ?? this.activePresetName),
+      compressor: compressor ?? this.compressor,
+      limiter: limiter ?? this.limiter,
     );
   }
 
@@ -107,6 +182,8 @@ class EqualizerState {
         growable: false,
       ),
       activePresetName: null,
+      compressor: const CompressorSettings(),
+      limiter: const LimiterSettings(),
     );
   }
 }
@@ -127,6 +204,20 @@ final eqGraphRepaintControllerProvider = Provider<EqGraphRepaintController>((
 class EqualizerNotifier extends Notifier<EqualizerState> {
   static const double gainMinDb = -12.0;
   static const double gainMaxDb = 12.0;
+  static const double compressorThresholdMinDb = -36.0;
+  static const double compressorThresholdMaxDb = 0.0;
+  static const double compressorRatioMin = 1.0;
+  static const double compressorRatioMax = 12.0;
+  static const double compressorAttackMinMs = 1.0;
+  static const double compressorAttackMaxMs = 100.0;
+  static const double compressorReleaseMinMs = 20.0;
+  static const double compressorReleaseMaxMs = 500.0;
+  static const double limiterInputGainMinDb = 0.0;
+  static const double limiterInputGainMaxDb = 12.0;
+  static const double limiterCeilingMinDb = -12.0;
+  static const double limiterCeilingMaxDb = 0.0;
+  static const double limiterReleaseMinMs = 20.0;
+  static const double limiterReleaseMaxMs = 300.0;
   static const int maxParametricBands = 8;
 
   @override
@@ -221,6 +312,123 @@ class EqualizerNotifier extends Notifier<EqualizerState> {
     _syncToAudio();
   }
 
+  void setCompressorEnabled(bool enabled) {
+    state = state.copyWith(
+      compressor: state.compressor.copyWith(enabled: enabled),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
+  void setCompressorThresholdDb(double thresholdDb) {
+    state = state.copyWith(
+      compressor: state.compressor.copyWith(
+        thresholdDb: thresholdDb
+            .clamp(compressorThresholdMinDb, compressorThresholdMaxDb)
+            .toDouble(),
+      ),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
+  void setCompressorRatio(double ratio) {
+    state = state.copyWith(
+      compressor: state.compressor.copyWith(
+        ratio: ratio.clamp(compressorRatioMin, compressorRatioMax).toDouble(),
+      ),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
+  void setCompressorAttackMs(double attackMs) {
+    state = state.copyWith(
+      compressor: state.compressor.copyWith(
+        attackMs: attackMs
+            .clamp(compressorAttackMinMs, compressorAttackMaxMs)
+            .toDouble(),
+      ),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
+  void setCompressorReleaseMs(double releaseMs) {
+    state = state.copyWith(
+      compressor: state.compressor.copyWith(
+        releaseMs: releaseMs
+            .clamp(compressorReleaseMinMs, compressorReleaseMaxMs)
+            .toDouble(),
+      ),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
+  void setCompressorMakeupGainDb(double makeupGainDb) {
+    state = state.copyWith(
+      compressor: state.compressor.copyWith(
+        makeupGainDb: makeupGainDb.clamp(gainMinDb, gainMaxDb).toDouble(),
+      ),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
+  void setLimiterEnabled(bool enabled) {
+    state = state.copyWith(
+      limiter: state.limiter.copyWith(enabled: enabled),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
+  void setLimiterInputGainDb(double inputGainDb) {
+    state = state.copyWith(
+      limiter: state.limiter.copyWith(
+        inputGainDb: inputGainDb
+            .clamp(limiterInputGainMinDb, limiterInputGainMaxDb)
+            .toDouble(),
+      ),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
+  void setLimiterCeilingDb(double ceilingDb) {
+    state = state.copyWith(
+      limiter: state.limiter.copyWith(
+        ceilingDb: ceilingDb
+            .clamp(limiterCeilingMinDb, limiterCeilingMaxDb)
+            .toDouble(),
+      ),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
+  void setLimiterReleaseMs(double releaseMs) {
+    state = state.copyWith(
+      limiter: state.limiter.copyWith(
+        releaseMs: releaseMs
+            .clamp(limiterReleaseMinMs, limiterReleaseMaxMs)
+            .toDouble(),
+      ),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
+  void resetDynamics() {
+    state = state.copyWith(
+      compressor: const CompressorSettings(),
+      limiter: const LimiterSettings(),
+      clearActivePresetName: true,
+    );
+    _syncToAudio();
+  }
+
   void addParametricBand() {
     if (state.parametricBands.length >= maxParametricBands) {
       return;
@@ -244,6 +452,8 @@ class EqualizerNotifier extends Notifier<EqualizerState> {
     required EqMode mode,
     required List<double> graphicGainsDb,
     required List<ParametricBand> parametricBands,
+    CompressorSettings compressor = const CompressorSettings(),
+    LimiterSettings limiter = const LimiterSettings(),
   }) {
     state = state.copyWith(
       enabled: enabled,
@@ -254,6 +464,8 @@ class EqualizerNotifier extends Notifier<EqualizerState> {
         growable: false,
       ),
       activePresetName: presetName,
+      compressor: compressor,
+      limiter: limiter,
     );
     ref.read(eqGraphRepaintControllerProvider).bump();
     _syncToAudio();
@@ -286,4 +498,12 @@ final eqGraphicGainDbProvider = Provider.family<double, int>((ref, index) {
 
 final eqParamBandProvider = Provider.family<ParametricBand, int>((ref, index) {
   return ref.watch(equalizerProvider.select((s) => s.parametricBands[index]));
+});
+
+final eqCompressorProvider = Provider<CompressorSettings>((ref) {
+  return ref.watch(equalizerProvider.select((s) => s.compressor));
+});
+
+final eqLimiterProvider = Provider<LimiterSettings>((ref) {
+  return ref.watch(equalizerProvider.select((s) => s.limiter));
 });

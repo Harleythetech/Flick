@@ -11,6 +11,8 @@ class EqPreset {
   final EqMode mode;
   final List<double> graphicGainsDb;
   final List<ParametricBand> parametricBands;
+  final CompressorSettings compressor;
+  final LimiterSettings limiter;
 
   const EqPreset({
     required this.id,
@@ -19,6 +21,8 @@ class EqPreset {
     required this.mode,
     required this.graphicGainsDb,
     required this.parametricBands,
+    this.compressor = const CompressorSettings(),
+    this.limiter = const LimiterSettings(),
   });
 
   EqPreset copyWith({
@@ -28,6 +32,8 @@ class EqPreset {
     EqMode? mode,
     List<double>? graphicGainsDb,
     List<ParametricBand>? parametricBands,
+    CompressorSettings? compressor,
+    LimiterSettings? limiter,
   }) {
     return EqPreset(
       id: id ?? this.id,
@@ -36,6 +42,8 @@ class EqPreset {
       mode: mode ?? this.mode,
       graphicGainsDb: graphicGainsDb ?? this.graphicGainsDb,
       parametricBands: parametricBands ?? this.parametricBands,
+      compressor: compressor ?? this.compressor,
+      limiter: limiter ?? this.limiter,
     );
   }
 
@@ -55,6 +63,20 @@ class EqPreset {
           },
         )
         .toList(),
+    'compressor': {
+      'enabled': compressor.enabled,
+      'thresholdDb': compressor.thresholdDb,
+      'ratio': compressor.ratio,
+      'attackMs': compressor.attackMs,
+      'releaseMs': compressor.releaseMs,
+      'makeupGainDb': compressor.makeupGainDb,
+    },
+    'limiter': {
+      'enabled': limiter.enabled,
+      'inputGainDb': limiter.inputGainDb,
+      'ceilingDb': limiter.ceilingDb,
+      'releaseMs': limiter.releaseMs,
+    },
   };
 
   factory EqPreset.fromJson(Map<String, dynamic> json) {
@@ -81,6 +103,10 @@ class EqPreset {
         })
         .toList(growable: false);
 
+    final compressorJson = (json['compressor'] as Map?)
+        ?.cast<String, dynamic>();
+    final limiterJson = (json['limiter'] as Map?)?.cast<String, dynamic>();
+
     return EqPreset(
       id: (json['id'] as String?) ?? '',
       name: (json['name'] as String?) ?? 'Preset',
@@ -98,6 +124,22 @@ class EqPreset {
               growable: false,
             )
           : bands,
+      compressor: CompressorSettings(
+        enabled: (compressorJson?['enabled'] as bool?) ?? false,
+        thresholdDb:
+            (compressorJson?['thresholdDb'] as num?)?.toDouble() ?? -18.0,
+        ratio: (compressorJson?['ratio'] as num?)?.toDouble() ?? 3.0,
+        attackMs: (compressorJson?['attackMs'] as num?)?.toDouble() ?? 12.0,
+        releaseMs: (compressorJson?['releaseMs'] as num?)?.toDouble() ?? 140.0,
+        makeupGainDb:
+            (compressorJson?['makeupGainDb'] as num?)?.toDouble() ?? 0.0,
+      ),
+      limiter: LimiterSettings(
+        enabled: (limiterJson?['enabled'] as bool?) ?? false,
+        inputGainDb: (limiterJson?['inputGainDb'] as num?)?.toDouble() ?? 0.0,
+        ceilingDb: (limiterJson?['ceilingDb'] as num?)?.toDouble() ?? -0.8,
+        releaseMs: (limiterJson?['releaseMs'] as num?)?.toDouble() ?? 80.0,
+      ),
     );
   }
 }
