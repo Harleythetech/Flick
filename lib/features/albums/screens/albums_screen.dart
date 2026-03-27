@@ -54,6 +54,9 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
     return null;
   }
 
+  int get _totalTracks =>
+      _albums.fold(0, (count, album) => count + album.songs.length);
+
   void _openAlbumDetail(AlbumGroup album) {
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -92,69 +95,213 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
     return DisplayModeWrapper(
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              Expanded(
-                child: _isLoading
-                    ? _buildLoadingState()
-                    : _albums.isEmpty
-                    ? _buildEmptyState()
-                    : _buildAlbumsGrid(),
+        body: Stack(
+          children: [
+            _buildAmbientBackground(),
+            SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context),
+                  Expanded(
+                    child: _isLoading
+                        ? _buildLoadingState()
+                        : _albums.isEmpty
+                        ? _buildEmptyState()
+                        : _buildAlbumsGrid(),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.spacingLg,
-        vertical: AppConstants.spacingMd,
-      ),
-      child: Row(
-        children: [
-          // Back button
-          Container(
+  Widget _buildAmbientBackground() {
+    return Stack(
+      children: [
+        Positioned(
+          top: -120,
+          right: -80,
+          child: Container(
+            width: 260,
+            height: 260,
             decoration: BoxDecoration(
-              color: AppColors.glassBackground,
-              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-              border: Border.all(color: AppColors.glassBorder),
-            ),
-            child: IconButton(
-              icon: Icon(
-                LucideIcons.arrowLeft,
-                color: context.adaptiveTextPrimary,
-                size: context.responsiveIcon(AppConstants.iconSizeMd),
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppColors.accent.withValues(alpha: 0.16),
+                  Colors.transparent,
+                ],
               ),
-              onPressed: () => Navigator.of(context).pop(),
             ),
           ),
-          const SizedBox(width: AppConstants.spacingMd),
-          Expanded(
+        ),
+        Positioned(
+          top: 120,
+          left: -110,
+          child: Container(
+            width: 220,
+            height: 220,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppColors.surfaceLight.withValues(alpha: 0.22),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppConstants.spacingLg,
+        AppConstants.spacingMd,
+        AppConstants.spacingLg,
+        AppConstants.spacingLg,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.glassBackground,
+                  borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                  border: Border.all(color: AppColors.glassBorder),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    LucideIcons.arrowLeft,
+                    color: context.adaptiveTextPrimary,
+                    size: context.responsiveIcon(AppConstants.iconSizeMd),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              const SizedBox(width: AppConstants.spacingMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Albums',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: context.adaptiveTextPrimary,
+                      ),
+                    ),
+                    Text(
+                      '${_albums.length} albums',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.adaptiveTextTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppConstants.spacingLg),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppConstants.spacingLg),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppConstants.radiusXl),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.surfaceLight.withValues(alpha: 0.86),
+                  AppColors.surface.withValues(alpha: 0.96),
+                ],
+              ),
+              border: Border.all(color: AppColors.glassBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Albums',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                  'Your collection at a glance',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: context.adaptiveTextPrimary,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: AppConstants.spacingXs),
                 Text(
-                  '${_albums.length} albums',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: context.adaptiveTextTertiary,
+                  'Browse by artwork, open any album, and jump straight into the tracklist.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: context.adaptiveTextSecondary,
                   ),
+                ),
+                const SizedBox(height: AppConstants.spacingMd),
+                Wrap(
+                  spacing: AppConstants.spacingSm,
+                  runSpacing: AppConstants.spacingSm,
+                  children: [
+                    _buildInfoChip(
+                      context,
+                      icon: LucideIcons.disc3,
+                      label: '${_albums.length} albums',
+                    ),
+                    _buildInfoChip(
+                      context,
+                      icon: LucideIcons.music4,
+                      label: '$_totalTracks tracks',
+                    ),
+                  ],
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppConstants.spacingMd,
+        vertical: AppConstants.spacingSm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.glassBackgroundStrong,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.accent),
+          const SizedBox(width: AppConstants.spacingXs),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: context.adaptiveTextPrimary,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -199,29 +346,55 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
   }
 
   Widget _buildAlbumsGrid() {
-    return GridView.builder(
-      padding: EdgeInsets.only(
-        left: AppConstants.spacingMd,
-        right: AppConstants.spacingMd,
-        bottom: AppConstants.navBarHeight + 120,
-      ),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: context.gridColumns(compact: 2, phone: 2, tablet: 3),
-        childAspectRatio: 0.85,
-        crossAxisSpacing: AppConstants.spacingMd,
-        mainAxisSpacing: AppConstants.spacingMd,
-      ),
-      itemCount: _albums.length,
-      itemBuilder: (context, index) {
-        final album = _albums[index];
-        return _AlbumCard(
-          albumName: album.albumName,
-          albumArtist: album.albumArtist,
-          songs: album.songs,
-          albumArt: _getAlbumArt(album.songs),
-          onTap: () => _openAlbumDetail(album),
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppConstants.spacingLg,
+            0,
+            AppConstants.spacingLg,
+            AppConstants.spacingMd,
+          ),
+          child: Text(
+            'Collection',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: context.adaptiveTextSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Expanded(
+          child: GridView.builder(
+            padding: EdgeInsets.only(
+              left: AppConstants.spacingLg,
+              right: AppConstants.spacingLg,
+              bottom: AppConstants.navBarHeight + 120,
+            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: context.gridColumns(
+                compact: 2,
+                phone: 2,
+                tablet: 3,
+              ),
+              childAspectRatio: 0.78,
+              crossAxisSpacing: AppConstants.spacingMd,
+              mainAxisSpacing: AppConstants.spacingLg,
+            ),
+            itemCount: _albums.length,
+            itemBuilder: (context, index) {
+              final album = _albums[index];
+              return _AlbumCard(
+                albumName: album.albumName,
+                albumArtist: album.albumArtist,
+                songs: album.songs,
+                albumArt: _getAlbumArt(album.songs),
+                onTap: () => _openAlbumDetail(album),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -303,7 +476,7 @@ class _AlbumCardState extends State<_AlbumCard>
         },
         child: RepaintBoundary(
           child: Material(
-            color: AppColors.surface,
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(AppConstants.radiusLg),
             child: InkWell(
               onTap: widget.onTap,
@@ -320,14 +493,24 @@ class _AlbumCardState extends State<_AlbumCard>
                         aspectRatio: 1,
                         child: Container(
                           width: double.infinity,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: AppColors.surfaceLight,
                             borderRadius: BorderRadius.vertical(
                               top: Radius.circular(AppConstants.radiusLg),
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.18),
+                                blurRadius: 18,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
                           ),
-                          child: widget.albumArt != null
-                              ? ClipRRect(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              if (widget.albumArt != null)
+                                ClipRRect(
                                   borderRadius: const BorderRadius.vertical(
                                     top: Radius.circular(AppConstants.radiusLg),
                                   ),
@@ -342,12 +525,60 @@ class _AlbumCardState extends State<_AlbumCard>
                                         _buildPlaceholder(context),
                                   ),
                                 )
-                              : _buildPlaceholder(context),
+                              else
+                                _buildPlaceholder(context),
+                              Positioned.fill(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withValues(alpha: 0.1),
+                                        Colors.black.withValues(alpha: 0.45),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: AppConstants.spacingSm,
+                                bottom: AppConstants.spacingSm,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppConstants.spacingSm,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.55),
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.12),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '${widget.songs.length} tracks',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       // Album info
                       Padding(
-                        padding: const EdgeInsets.all(AppConstants.spacingSm),
+                        padding: const EdgeInsets.fromLTRB(
+                          AppConstants.spacingSm,
+                          AppConstants.spacingMd,
+                          AppConstants.spacingSm,
+                          AppConstants.spacingSm,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -370,14 +601,6 @@ class _AlbumCardState extends State<_AlbumCard>
                                   ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${widget.songs.length} ${widget.songs.length == 1 ? 'song' : 'songs'}',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: context.adaptiveTextTertiary,
-                                  ),
                             ),
                           ],
                         ),
