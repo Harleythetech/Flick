@@ -7,6 +7,7 @@ import 'package:flick/services/notification_service.dart';
 import 'package:flick/services/last_played_service.dart';
 import 'package:flick/services/favorites_service.dart';
 import 'package:flick/data/repositories/recently_played_repository.dart';
+import 'package:flick/services/equalizer_service.dart';
 import 'package:flick/services/rust_audio_service.dart';
 import 'package:flick/services/uac2_service.dart';
 
@@ -83,11 +84,12 @@ class PlayerService {
   final List<int?> _playlistQueueEntryIds = [];
   final List<_QueueEntry> _queuedEntries = [];
   int _currentIndex = -1;
-  bool _isRebuildingPlaylist = false; // Flag to prevent unwanted updates during rebuild
+  bool _isRebuildingPlaylist =
+      false; // Flag to prevent unwanted updates during rebuild
 
   // Track previous position to detect repeat wrap-around for notification progress
   Duration _lastPosition = Duration.zero;
-  
+
   // Track last notification update time to throttle updates
   DateTime _lastNotificationUpdate = DateTime.now();
 
@@ -115,8 +117,9 @@ class PlayerService {
   }
 
   void _notifyQueueChanged() {
-    queueNotifier.value =
-        List.unmodifiable(_queuedEntries.map((entry) => entry.song));
+    queueNotifier.value = List.unmodifiable(
+      _queuedEntries.map((entry) => entry.song),
+    );
   }
 
   void _setCurrentIndex(int newIndex) {
@@ -239,9 +242,10 @@ class PlayerService {
     if (song == null) return null;
 
     final resolution = song.resolution ?? '';
-    final bitDepthMatch = RegExp(r'(\d+)-bit', caseSensitive: false).firstMatch(
-      resolution,
-    );
+    final bitDepthMatch = RegExp(
+      r'(\d+)-bit',
+      caseSensitive: false,
+    ).firstMatch(resolution);
     final sampleRateMatch = RegExp(
       r'(\d+(?:\.\d+)?)\s*kHz',
       caseSensitive: false,
@@ -311,7 +315,7 @@ class PlayerService {
       final prev = _lastPosition;
       _lastPosition = pos;
       positionNotifier.value = pos;
-      
+
       // Update notification on loop wrap-around
       if (currentSongNotifier.value != null &&
           durationNotifier.value.inSeconds > 0 &&
@@ -319,7 +323,7 @@ class PlayerService {
           pos.inSeconds < 2) {
         _updateNotificationState();
       }
-      
+
       // Periodically update notification with current position (throttled to every 2 seconds)
       final now = DateTime.now();
       if (currentSongNotifier.value != null &&
@@ -350,7 +354,7 @@ class PlayerService {
       if (_usingRustBackend) return;
       // Skip updates during playlist rebuild to prevent wrong song display
       if (_isRebuildingPlaylist) return;
-      
+
       if (sequenceState.currentIndex != null) {
         final newIndex = sequenceState.currentIndex!;
         if (newIndex != _currentIndex && newIndex < _playlist.length) {
@@ -671,6 +675,7 @@ class PlayerService {
           ? _rustAudioService.durationNotifier.value
           : song.duration;
       bufferedPositionNotifier.value = Duration.zero;
+      await reapplyEqualizer();
       await _updateNotificationState();
       await _syncUac2PlaybackStatus(song, isPlaying: isPlayingNotifier.value);
 
@@ -756,6 +761,7 @@ class PlayerService {
         await _justAudioPlayer.setSpeed(playbackSpeedNotifier.value);
         await _updateLoopMode();
         await _justAudioPlayer.play();
+        await reapplyEqualizer();
         await _syncUac2PlaybackStatus(song, isPlaying: true);
 
         _positionSaveTimer = Timer.periodic(
@@ -1029,7 +1035,8 @@ class PlayerService {
       basePlaylist
         ..clear()
         ..addAll(_originalPlaylist);
-      if (current != null && !basePlaylist.any((song) => song.id == current.id)) {
+      if (current != null &&
+          !basePlaylist.any((song) => song.id == current.id)) {
         final insertionIndex = _currentIndex.clamp(0, basePlaylist.length);
         basePlaylist.insert(insertionIndex, current);
       }
@@ -1078,8 +1085,10 @@ class PlayerService {
     final entry = _QueueEntry(id: _nextQueueEntryId++, song: song);
     _queuedEntries.add(entry);
     if (_playlist.isNotEmpty) {
-      final insertIndex =
-          (_currentIndex + 1 + _queuedEntries.length - 1).clamp(0, _playlist.length);
+      final insertIndex = (_currentIndex + 1 + _queuedEntries.length - 1).clamp(
+        0,
+        _playlist.length,
+      );
       _playlist.insert(insertIndex, song);
       _playlistQueueEntryIds.insert(insertIndex, entry.id);
     }

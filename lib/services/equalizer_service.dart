@@ -8,10 +8,14 @@ const MethodChannel _androidEqualizerChannel = MethodChannel(
   'com.ultraelectronica.flick/equalizer',
 );
 
-/// Applies equalizer state to the active audio backend.
-/// Rust engine (desktop): graphic EQ is applied via Rust.
-/// Android: uses native AudioEffect API with just_audio's audio session ID.
+EqualizerState _lastRequestedState = EqualizerState.initial();
+
+/// Applies EQ and dynamics state to the active audio backend.
+/// Rust engine: graphic EQ, compressor, and limiter are applied natively.
+/// Android: uses the native AudioEffect API for EQ only.
 Future<void> applyEqualizer(EqualizerState state) async {
+  _lastRequestedState = _snapshotState(state);
+
   final useGraphic = state.mode == EqMode.graphic;
   final gains = useGraphic
       ? state.graphicGainsDb
@@ -43,7 +47,25 @@ Future<void> applyEqualizer(EqualizerState state) async {
       enabled: state.enabled,
       gainsDb: List<double>.from(gains),
     );
+    await rust_audio.audioSetCompressor(
+      enabled: state.enabled && state.compressor.enabled,
+      thresholdDb: state.compressor.thresholdDb,
+      ratio: state.compressor.ratio,
+      attackMs: state.compressor.attackMs,
+      releaseMs: state.compressor.releaseMs,
+      makeupGainDb: state.compressor.makeupGainDb,
+    );
+    await rust_audio.audioSetLimiter(
+      enabled: state.enabled && state.limiter.enabled,
+      inputGainDb: state.limiter.inputGainDb,
+      ceilingDb: state.limiter.ceilingDb,
+      releaseMs: state.limiter.releaseMs,
+    );
   } catch (_) {}
+}
+
+Future<void> reapplyEqualizer() async {
+  await applyEqualizer(_lastRequestedState);
 }
 
 /// Map parametric bands to 10-band gains for Rust engine (graphic-only).
@@ -63,4 +85,16 @@ List<double> _parametricToGraphicGains(List<ParametricBand> bands) {
     }
   }
   return out;
+}
+
+EqualizerState _snapshotState(EqualizerState state) {
+  return state.copyWith(
+    graphicGainsDb: List<double>.of(state.graphicGainsDb, growable: false),
+    parametricBands: List<ParametricBand>.of(
+      state.parametricBands,
+      growable: false,
+    ),
+    compressor: state.compressor.copyWith(),
+    limiter: state.limiter.copyWith(),
+  );
 }

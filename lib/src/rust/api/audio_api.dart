@@ -56,6 +56,36 @@ Future<void> audioSetEqualizer({
   gainsDb: gainsDb,
 );
 
+/// Configure compressor settings for the native audio engine.
+Future<void> audioSetCompressor({
+  required bool enabled,
+  required double thresholdDb,
+  required double ratio,
+  required double attackMs,
+  required double releaseMs,
+  required double makeupGainDb,
+}) => RustLib.instance.api.crateApiAudioApiAudioSetCompressor(
+  enabled: enabled,
+  thresholdDb: thresholdDb,
+  ratio: ratio,
+  attackMs: attackMs,
+  releaseMs: releaseMs,
+  makeupGainDb: makeupGainDb,
+);
+
+/// Configure limiter settings for the native audio engine.
+Future<void> audioSetLimiter({
+  required bool enabled,
+  required double inputGainDb,
+  required double ceilingDb,
+  required double releaseMs,
+}) => RustLib.instance.api.crateApiAudioApiAudioSetLimiter(
+  enabled: enabled,
+  inputGainDb: inputGainDb,
+  ceilingDb: ceilingDb,
+  releaseMs: releaseMs,
+);
+
 /// Configure crossfade settings.
 Future<void> audioSetCrossfade({
   required bool enabled,
