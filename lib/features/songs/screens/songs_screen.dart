@@ -628,20 +628,32 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
   Future<void> _queueSong(Song song) async {
     await ref.read(playerProvider.notifier).addToQueue(song);
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Queued "${song.title}"')));
+    _showSongActionSnackBar('Queued "${song.title}"');
   }
 
   Future<void> _favoriteSong(Song song) async {
-    final isFavorite = await ref
-        .read(favoritesProvider.notifier)
-        .toggleFavorite(song.id);
+    final favoritesService = ref.read(favoritesServiceProvider);
+    final isFavorite = await favoritesService.isFavorite(song.id);
+
+    if (!isFavorite) {
+      await ref.read(favoritesProvider.notifier).addFavorite(song.id);
+    }
+
     if (!mounted) return;
-    final label = isFavorite ? 'Added to favorites' : 'Removed from favorites';
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$label: "${song.title}"')));
+    final label = isFavorite ? 'Already in favorites' : 'Added to favorites';
+    _showSongActionSnackBar('$label: "${song.title}"');
+  }
+
+  void _showSongActionSnackBar(String message) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(milliseconds: 1800),
+      ),
+    );
   }
 
   Widget _buildLoadingState() {
