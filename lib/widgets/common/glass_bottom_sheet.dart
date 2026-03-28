@@ -1,10 +1,75 @@
-import 'dart:ui';
 import 'package:flick/core/constants/app_constants.dart';
 import 'package:flick/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
-/// A reusable glassmorphic bottom sheet dialog with Product Sans font.
-/// Matches the design language of [GlassDialog] for consistency.
+class AppBottomSheetSurface extends StatelessWidget {
+  final Widget child;
+  final double? maxHeightRatio;
+  final EdgeInsetsGeometry? padding;
+
+  const AppBottomSheetSurface({
+    super.key,
+    required this.child,
+    this.maxHeightRatio,
+    this.padding,
+  });
+
+  static final BoxDecoration decoration = BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        AppColors.surfaceLight.withValues(alpha: 0.98),
+        AppColors.surface.withValues(alpha: 0.98),
+      ],
+    ),
+    borderRadius: const BorderRadius.vertical(
+      top: Radius.circular(AppConstants.radiusXl),
+    ),
+    border: Border.all(color: AppColors.glassBorder),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.28),
+        blurRadius: 20,
+        offset: const Offset(0, -6),
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final maxHeight = maxHeightRatio != null
+        ? mediaQuery.size.height * maxHeightRatio!
+        : mediaQuery.size.height * 0.85;
+
+    return RepaintBoundary(
+      child: SafeArea(
+        top: false,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Container(
+              decoration: decoration,
+              padding:
+                  padding ??
+                  EdgeInsets.fromLTRB(
+                    AppConstants.spacingLg,
+                    AppConstants.spacingSm,
+                    AppConstants.spacingLg,
+                    mediaQuery.padding.bottom + AppConstants.spacingLg,
+                  ),
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A reusable bottom sheet dialog with Product Sans font.
 class GlassBottomSheet extends StatelessWidget {
   /// Title displayed at the top of the bottom sheet
   final String? title;
@@ -91,86 +156,39 @@ class GlassBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final maxHeight = maxHeightRatio != null
-        ? mediaQuery.size.height * maxHeightRatio!
-        : mediaQuery.size.height * 0.85;
 
-    return RepaintBoundary(
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(AppConstants.radiusXl),
-                topRight: Radius.circular(AppConstants.radiusXl),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  blurRadius: 20,
-                  offset: const Offset(0, -6),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(AppConstants.radiusXl),
-                topRight: Radius.circular(AppConstants.radiusXl),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: AppConstants.glassBlurSigma,
-                  sigmaY: AppConstants.glassBlurSigma,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.glassBackground,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(AppConstants.radiusXl),
-                      topRight: Radius.circular(AppConstants.radiusXl),
+    return AppBottomSheetSurface(
+      maxHeightRatio: maxHeightRatio,
+      padding: EdgeInsets.only(
+        bottom: mediaQuery.padding.bottom + AppConstants.spacingLg,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showDragHandle) _buildDragHandle(),
+          if (title != null) _buildTitle(context),
+          if (content != null)
+            Flexible(
+              fit: FlexFit.loose,
+              child: Padding(
+                padding:
+                    contentPadding ??
+                    const EdgeInsets.symmetric(
+                      horizontal: AppConstants.spacingLg,
                     ),
-                    border: Border.all(color: AppColors.glassBorder, width: 1),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (showDragHandle) _buildDragHandle(),
-                      if (title != null) _buildTitle(context),
-                      if (content != null)
-                        Flexible(
-                          fit: FlexFit.loose,
-                          child: Padding(
-                            padding:
-                                contentPadding ??
-                                const EdgeInsets.symmetric(
-                                  horizontal: AppConstants.spacingLg,
-                                ),
-                            child: DefaultTextStyle(
-                              style: Theme.of(context).textTheme.bodyMedium!,
-                              child: RepaintBoundary(
-                                child: SingleChildScrollView(
-                                  physics: const BouncingScrollPhysics(),
-                                  child: content!,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (actions != null && actions!.isNotEmpty)
-                        _buildActions(context),
-                      SizedBox(
-                        height:
-                            mediaQuery.padding.bottom + AppConstants.spacingLg,
-                      ),
-                    ],
+                child: DefaultTextStyle(
+                  style: Theme.of(context).textTheme.bodyMedium!,
+                  child: RepaintBoundary(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: content!,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ),
+          if (actions != null && actions!.isNotEmpty) _buildActions(context),
+        ],
       ),
     );
   }
@@ -216,8 +234,9 @@ class GlassBottomSheet extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(AppConstants.spacingXs),
                 decoration: BoxDecoration(
-                  color: AppColors.glassBackground,
+                  color: AppColors.surfaceLight,
                   borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                  border: Border.all(color: AppColors.glassBorder),
                 ),
                 child: const Icon(
                   Icons.close_rounded,

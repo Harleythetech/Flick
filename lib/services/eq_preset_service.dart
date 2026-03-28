@@ -191,12 +191,30 @@ class EqPresetService {
 class BuiltInEqPresets {
   BuiltInEqPresets._();
 
-  static const List<EqPreset> presets = [
-    EqPreset(
-      id: 'builtin_flat',
-      name: 'Flat',
+  static EqPreset _graphicPreset({
+    required String id,
+    required String name,
+    required List<double> graphicGainsDb,
+    required List<ParametricBand> parametricBands,
+    CompressorSettings compressor = const CompressorSettings(),
+    LimiterSettings limiter = const LimiterSettings(),
+  }) {
+    return EqPreset(
+      id: id,
+      name: name,
       enabled: true,
       mode: EqMode.graphic,
+      graphicGainsDb: List<double>.unmodifiable(graphicGainsDb),
+      parametricBands: List<ParametricBand>.unmodifiable(parametricBands),
+      compressor: compressor,
+      limiter: limiter,
+    );
+  }
+
+  static final List<EqPreset> presets = [
+    _graphicPreset(
+      id: 'builtin_flat',
+      name: 'Flat',
       graphicGainsDb: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       parametricBands: [
         ParametricBand(frequencyHz: 80, gainDb: 0, q: 1),
@@ -206,11 +224,21 @@ class BuiltInEqPresets {
         ParametricBand(frequencyHz: 12000, gainDb: 0, q: 1),
       ],
     ),
-    EqPreset(
+    _graphicPreset(
+      id: 'builtin_minimal_audio_morph',
+      name: 'Minimal Audio Morph EQ',
+      graphicGainsDb: [-0.5, -0.2, 0.3, 0.8, 1.1, 0.7, 0.2, 0.9, 1.2, 0.8],
+      parametricBands: [
+        ParametricBand(frequencyHz: 90, gainDb: 1.0, q: 0.85),
+        ParametricBand(frequencyHz: 280, gainDb: 0.6, q: 1.0),
+        ParametricBand(frequencyHz: 1200, gainDb: 0.2, q: 1.1),
+        ParametricBand(frequencyHz: 4200, gainDb: 0.9, q: 0.95),
+        ParametricBand(frequencyHz: 11000, gainDb: 1.1, q: 0.8),
+      ],
+    ),
+    _graphicPreset(
       id: 'builtin_bass_boost',
       name: 'Bass Boost',
-      enabled: true,
-      mode: EqMode.graphic,
       graphicGainsDb: [6, 5, 4, 2, 0, -1, -2, -2, -2, -2],
       parametricBands: [
         ParametricBand(frequencyHz: 80, gainDb: 6, q: 0.8),
@@ -220,11 +248,9 @@ class BuiltInEqPresets {
         ParametricBand(frequencyHz: 12000, gainDb: -2, q: 1.0),
       ],
     ),
-    EqPreset(
+    _graphicPreset(
       id: 'builtin_vocal',
       name: 'Vocal',
-      enabled: true,
-      mode: EqMode.graphic,
       graphicGainsDb: [-2, -2, -1, 1, 3, 4, 3, 1, -1, -2],
       parametricBands: [
         ParametricBand(frequencyHz: 250, gainDb: -1, q: 1.0),
@@ -234,11 +260,9 @@ class BuiltInEqPresets {
         ParametricBand(frequencyHz: 12000, gainDb: -1, q: 1.0),
       ],
     ),
-    EqPreset(
+    _graphicPreset(
       id: 'builtin_treble_boost',
       name: 'Treble Boost',
-      enabled: true,
-      mode: EqMode.graphic,
       graphicGainsDb: [-2, -2, -2, -1, 0, 1, 3, 4, 5, 6],
       parametricBands: [
         ParametricBand(frequencyHz: 80, gainDb: -2, q: 1.0),

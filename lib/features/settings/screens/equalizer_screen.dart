@@ -904,9 +904,9 @@ class _GraphicBandSlider extends ConsumerWidget {
             width: 88,
             padding: const EdgeInsets.all(AppConstants.spacingSm),
             decoration: BoxDecoration(
-              color: const Color(0xFF121212).withValues(
-                alpha: enabled ? 1.0 : 0.82,
-              ),
+              color: const Color(
+                0xFF121212,
+              ).withValues(alpha: enabled ? 1.0 : 0.82),
               borderRadius: BorderRadius.circular(AppConstants.radiusMd),
               border: Border.all(
                 color: gainDb.abs() >= 0.1
@@ -1231,9 +1231,9 @@ class _ParametricBandEditor extends ConsumerWidget {
           duration: AppConstants.animationFast,
           padding: const EdgeInsets.all(AppConstants.spacingMd),
           decoration: BoxDecoration(
-            color: const Color(0xFF121212).withValues(
-              alpha: editable ? 1.0 : 0.82,
-            ),
+            color: const Color(
+              0xFF121212,
+            ).withValues(alpha: editable ? 1.0 : 0.82),
             borderRadius: BorderRadius.circular(AppConstants.radiusMd),
             border: Border.all(
               color: editable

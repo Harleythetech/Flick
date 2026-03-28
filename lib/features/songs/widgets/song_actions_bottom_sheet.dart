@@ -6,6 +6,7 @@ import 'package:flick/core/constants/app_constants.dart';
 import 'package:flick/models/song.dart';
 import 'package:flick/providers/providers.dart';
 import 'package:flick/widgets/common/cached_image_widget.dart';
+import 'package:flick/widgets/common/glass_bottom_sheet.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Bottom sheet with actions for a song (add to playlist, favorites, view metadata, etc.)
@@ -20,23 +21,8 @@ class SongActionsBottomSheet extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: AppColors.glassBorder),
-          ),
-          padding: EdgeInsets.fromLTRB(
-            AppConstants.spacingLg,
-            AppConstants.spacingSm,
-            AppConstants.spacingLg,
-            MediaQuery.of(sheetContext).padding.bottom + AppConstants.spacingLg,
-          ),
-          child: SongActionsBottomSheet(song: song),
-        ),
-      ),
+      builder: (sheetContext) =>
+          AppBottomSheetSurface(child: SongActionsBottomSheet(song: song)),
     );
   }
 
@@ -284,129 +270,75 @@ class SongActionsBottomSheet extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        final maxHeight = MediaQuery.of(sheetContext).size.height * 0.72;
-        final bottomPadding =
-            MediaQuery.of(sheetContext).padding.bottom + AppConstants.spacingLg;
-
-        return SafeArea(
-          top: false,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
-                ),
-                border: Border.all(color: AppColors.glassBorder),
-              ),
-              padding: EdgeInsets.fromLTRB(
-                AppConstants.spacingLg,
-                AppConstants.spacingSm,
-                AppConstants.spacingLg,
-                bottomPadding,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+        return AppBottomSheetSurface(
+          maxHeightRatio: 0.72,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDragHandle(),
+              const SizedBox(height: AppConstants.spacingMd),
+              Row(
                 children: [
-                  _buildDragHandle(),
-                  const SizedBox(height: AppConstants.spacingMd),
-                  Row(
-                    children: [
-                      Icon(
-                        LucideIcons.listPlus,
-                        color: sheetContext.adaptiveTextSecondary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: AppConstants.spacingSm),
-                      Text(
-                        'Add to Playlist',
-                        style: TextStyle(
-                          fontFamily: 'ProductSans',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: sheetContext.adaptiveTextPrimary,
+                  Icon(
+                    LucideIcons.listPlus,
+                    color: sheetContext.adaptiveTextSecondary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: AppConstants.spacingSm),
+                  Text(
+                    'Add to Playlist',
+                    style: TextStyle(
+                      fontFamily: 'ProductSans',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: sheetContext.adaptiveTextPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppConstants.spacingSm),
+              Flexible(
+                fit: FlexFit.loose,
+                child: Consumer(
+                  builder: (context, sheetRef, _) {
+                    final playlistsAsync = sheetRef.watch(playlistsProvider);
+                    return playlistsAsync.when(
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(AppConstants.spacingXl),
+                          child: CircularProgressIndicator(),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: AppConstants.spacingSm),
-                  Flexible(
-                    fit: FlexFit.loose,
-                    child: Consumer(
-                      builder: (context, sheetRef, _) {
-                        final playlistsAsync = sheetRef.watch(
-                          playlistsProvider,
-                        );
-                        return playlistsAsync.when(
-                          loading: () => const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(AppConstants.spacingXl),
-                              child: CircularProgressIndicator(),
-                            ),
-                          ),
-                          error: (error, _) => Padding(
+                      error: (error, _) => Padding(
+                        padding: const EdgeInsets.all(AppConstants.spacingXl),
+                        child: Text('Error loading playlists: $error'),
+                      ),
+                      data: (state) {
+                        if (state.playlists.isEmpty) {
+                          return Padding(
                             padding: const EdgeInsets.all(
                               AppConstants.spacingXl,
                             ),
-                            child: Text('Error loading playlists: $error'),
-                          ),
-                          data: (state) {
-                            if (state.playlists.isEmpty) {
-                              return Padding(
-                                padding: const EdgeInsets.all(
-                                  AppConstants.spacingXl,
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      LucideIcons.listMusic,
-                                      size: 48,
-                                      color: context.adaptiveTextTertiary
-                                          .withValues(alpha: 0.5),
-                                    ),
-                                    const SizedBox(
-                                      height: AppConstants.spacingMd,
-                                    ),
-                                    Text(
-                                      'No playlists yet',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            color:
-                                                context.adaptiveTextSecondary,
-                                          ),
-                                    ),
-                                    const SizedBox(
-                                      height: AppConstants.spacingLg,
-                                    ),
-                                    ElevatedButton.icon(
-                                      onPressed: () {
-                                        final rootContext = Navigator.of(
-                                          context,
-                                          rootNavigator: true,
-                                        ).context;
-                                        Navigator.pop(context);
-                                        _showCreatePlaylistDialog(rootContext);
-                                      },
-                                      icon: const Icon(LucideIcons.plus),
-                                      label: const Text('Create Playlist'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-
-                            return ListView(
-                              shrinkWrap: true,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                _buildActionTile(
-                                  context: context,
-                                  icon: LucideIcons.plus,
-                                  label: 'Create New Playlist',
-                                  onTap: () {
+                                Icon(
+                                  LucideIcons.listMusic,
+                                  size: 48,
+                                  color: context.adaptiveTextTertiary
+                                      .withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(height: AppConstants.spacingMd),
+                                Text(
+                                  'No playlists yet',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        color: context.adaptiveTextSecondary,
+                                      ),
+                                ),
+                                const SizedBox(height: AppConstants.spacingLg),
+                                ElevatedButton.icon(
+                                  onPressed: () {
                                     final rootContext = Navigator.of(
                                       context,
                                       rootNavigator: true,
@@ -414,49 +346,65 @@ class SongActionsBottomSheet extends ConsumerWidget {
                                     Navigator.pop(context);
                                     _showCreatePlaylistDialog(rootContext);
                                   },
+                                  icon: const Icon(LucideIcons.plus),
+                                  label: const Text('Create Playlist'),
                                 ),
-                                Divider(
-                                  height: 1,
-                                  color: AppColors.glassBorderStrong,
-                                ),
-                                const SizedBox(height: AppConstants.spacingSm),
-                                ...state.playlists.map((playlist) {
-                                  return _buildActionTile(
-                                    context: context,
-                                    icon: LucideIcons.listMusic,
-                                    label: playlist.name,
-                                    onTap: () async {
-                                      await sheetRef
-                                          .read(playlistsProvider.notifier)
-                                          .addSongToPlaylist(
-                                            playlist.id,
-                                            song.id,
-                                          );
-                                      if (context.mounted) {
-                                        Navigator.pop(context);
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Added to ${playlist.name}',
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  );
-                                }),
                               ],
-                            );
-                          },
+                            ),
+                          );
+                        }
+
+                        return ListView(
+                          shrinkWrap: true,
+                          children: [
+                            _buildActionTile(
+                              context: context,
+                              icon: LucideIcons.plus,
+                              label: 'Create New Playlist',
+                              onTap: () {
+                                final rootContext = Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).context;
+                                Navigator.pop(context);
+                                _showCreatePlaylistDialog(rootContext);
+                              },
+                            ),
+                            Divider(
+                              height: 1,
+                              color: AppColors.glassBorderStrong,
+                            ),
+                            const SizedBox(height: AppConstants.spacingSm),
+                            ...state.playlists.map((playlist) {
+                              return _buildActionTile(
+                                context: context,
+                                icon: LucideIcons.listMusic,
+                                label: playlist.name,
+                                onTap: () async {
+                                  await sheetRef
+                                      .read(playlistsProvider.notifier)
+                                      .addSongToPlaylist(playlist.id, song.id);
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Added to ${playlist.name}',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              );
+                            }),
+                          ],
                         );
                       },
-                    ),
-                  ),
-                ],
+                    );
+                  },
+                ),
               ),
-            ),
+            ],
           ),
         );
       },
@@ -537,112 +485,82 @@ class SongActionsBottomSheet extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        final bottomPadding =
-            MediaQuery.of(sheetContext).padding.bottom + AppConstants.spacingLg;
-        final maxHeight = MediaQuery.of(sheetContext).size.height * 0.72;
-
-        return SafeArea(
-          top: false,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
-                ),
-                border: Border.all(color: AppColors.glassBorder),
-              ),
-              padding: EdgeInsets.fromLTRB(
-                AppConstants.spacingLg,
-                AppConstants.spacingSm,
-                AppConstants.spacingLg,
-                bottomPadding,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+        return AppBottomSheetSurface(
+          maxHeightRatio: 0.72,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDragHandle(),
+              const SizedBox(height: AppConstants.spacingMd),
+              Row(
                 children: [
-                  _buildDragHandle(),
-                  const SizedBox(height: AppConstants.spacingMd),
-                  Row(
-                    children: [
-                      Icon(
-                        LucideIcons.info,
-                        size: 20,
-                        color: sheetContext.adaptiveTextSecondary,
-                      ),
-                      const SizedBox(width: AppConstants.spacingSm),
-                      Text(
-                        'Song Metadata',
-                        style: TextStyle(
-                          fontFamily: 'ProductSans',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: sheetContext.adaptiveTextPrimary,
-                        ),
-                      ),
-                    ],
+                  Icon(
+                    LucideIcons.info,
+                    size: 20,
+                    color: sheetContext.adaptiveTextSecondary,
                   ),
-                  const SizedBox(height: AppConstants.spacingSm),
-                  Flexible(
-                    fit: FlexFit.loose,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildMetadataRow(sheetContext, 'Title', song.title),
-                          _buildMetadataRow(
-                            sheetContext,
-                            'Artist',
-                            song.artist,
-                          ),
-                          if (song.album != null)
-                            _buildMetadataRow(
-                              sheetContext,
-                              'Album',
-                              song.album!,
-                            ),
-                          if (song.albumArtist != null)
-                            _buildMetadataRow(
-                              sheetContext,
-                              'Album Artist',
-                              song.albumArtist!,
-                            ),
-                          _buildMetadataRow(
-                            sheetContext,
-                            'Duration',
-                            song.formattedDuration,
-                          ),
-                          _buildMetadataRow(
-                            sheetContext,
-                            'Format',
-                            song.fileType.toUpperCase(),
-                          ),
-                          if (song.resolution != null)
-                            _buildMetadataRow(
-                              sheetContext,
-                              'Resolution',
-                              song.resolution!,
-                            ),
-                          if (song.filePath != null)
-                            _buildMetadataRow(
-                              sheetContext,
-                              'File Path',
-                              song.filePath!,
-                            ),
-                          if (song.dateAdded != null)
-                            _buildMetadataRow(
-                              sheetContext,
-                              'Date Added',
-                              '${song.dateAdded!.year}-${song.dateAdded!.month.toString().padLeft(2, '0')}-${song.dateAdded!.day.toString().padLeft(2, '0')}',
-                            ),
-                        ],
-                      ),
+                  const SizedBox(width: AppConstants.spacingSm),
+                  Text(
+                    'Song Metadata',
+                    style: TextStyle(
+                      fontFamily: 'ProductSans',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: sheetContext.adaptiveTextPrimary,
                     ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: AppConstants.spacingSm),
+              Flexible(
+                fit: FlexFit.loose,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildMetadataRow(sheetContext, 'Title', song.title),
+                      _buildMetadataRow(sheetContext, 'Artist', song.artist),
+                      if (song.album != null)
+                        _buildMetadataRow(sheetContext, 'Album', song.album!),
+                      if (song.albumArtist != null)
+                        _buildMetadataRow(
+                          sheetContext,
+                          'Album Artist',
+                          song.albumArtist!,
+                        ),
+                      _buildMetadataRow(
+                        sheetContext,
+                        'Duration',
+                        song.formattedDuration,
+                      ),
+                      _buildMetadataRow(
+                        sheetContext,
+                        'Format',
+                        song.fileType.toUpperCase(),
+                      ),
+                      if (song.resolution != null)
+                        _buildMetadataRow(
+                          sheetContext,
+                          'Resolution',
+                          song.resolution!,
+                        ),
+                      if (song.filePath != null)
+                        _buildMetadataRow(
+                          sheetContext,
+                          'File Path',
+                          song.filePath!,
+                        ),
+                      if (song.dateAdded != null)
+                        _buildMetadataRow(
+                          sheetContext,
+                          'Date Added',
+                          '${song.dateAdded!.year}-${song.dateAdded!.month.toString().padLeft(2, '0')}-${song.dateAdded!.day.toString().padLeft(2, '0')}',
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
