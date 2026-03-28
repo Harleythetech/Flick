@@ -755,13 +755,6 @@ extension _RecapRankingPosterTypeX on _RecapRankingPosterType {
     };
   }
 
-  String get footerLine {
-    return switch (this) {
-      _RecapRankingPosterType.topSongs => 'Captured from Flick Replay.',
-      _RecapRankingPosterType.topArtists => 'Captured from Flick Replay.',
-    };
-  }
-
   Color get accent {
     return switch (this) {
       _RecapRankingPosterType.topSongs => const Color(0xFF8AB7FF),
@@ -1001,10 +994,8 @@ class _RecapRankingPosterScreenState extends State<_RecapRankingPosterScreen> {
                   const SizedBox(height: AppConstants.spacingLg),
                   Expanded(
                     child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: math.min(context.screenWidth - 48, 420),
-                        ),
+                      child: FittedBox(
+                        fit: BoxFit.contain,
                         child: RepaintBoundary(
                           key: _posterBoundaryKey,
                           child: _RecapRankingPosterCard(
@@ -1034,6 +1025,9 @@ class _RecapRankingPosterScreenState extends State<_RecapRankingPosterScreen> {
 }
 
 class _RecapRankingPosterCard extends StatelessWidget {
+  static const double posterWidth = 420;
+  static const double posterHeight = 760;
+
   final ListeningRecap recap;
   final _RecapRankingPosterType type;
 
@@ -1046,8 +1040,9 @@ class _RecapRankingPosterCard extends StatelessWidget {
       _RecapRankingPosterType.topArtists => recap.topArtists.isNotEmpty,
     };
 
-    return AspectRatio(
-      aspectRatio: 0.72,
+    return SizedBox(
+      width: posterWidth,
+      height: posterHeight,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: DecoratedBox(
@@ -1171,13 +1166,6 @@ class _RecapRankingPosterCard extends StatelessWidget {
                           const SizedBox(height: AppConstants.spacingSm),
                           ..._buildRankingRows(context),
                           const Spacer(),
-                          Text(
-                            type.footerLine,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.64),
-                                ),
-                          ),
                         ],
                       ),
                     ),
