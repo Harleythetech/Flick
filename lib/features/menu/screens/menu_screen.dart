@@ -8,6 +8,7 @@ import 'package:flick/features/songs/screens/songs_screen.dart';
 import 'package:flick/features/playlists/screens/playlists_screen.dart';
 import 'package:flick/features/favorites/screens/favorites_screen.dart';
 import 'package:flick/features/queue/screens/queue_screen.dart';
+import 'package:flick/features/recap/screens/listening_recap_screen.dart';
 import 'package:flick/features/recently_played/screens/recently_played_screen.dart';
 import 'package:flick/features/folders/screens/folders_screen.dart';
 import 'package:flick/features/albums/screens/albums_screen.dart';
@@ -102,6 +103,14 @@ class MenuScreen extends StatelessWidget {
                     title: 'Queue',
                     subtitle: 'See what plays next',
                     onTap: () => _navigateTo(context, const QueueScreen()),
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.auto_graph_rounded,
+                    title: 'Flick Replay',
+                    subtitle: 'Daily, weekly, monthly, and yearly recaps',
+                    onTap: () =>
+                        _navigateTo(context, const ListeningRecapScreen()),
                   ),
                   _buildMenuItem(
                     context,

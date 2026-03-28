@@ -1,10 +1,13 @@
 package com.ultraelectronica.flick
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.hardware.usb.UsbConstants
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
@@ -16,6 +19,7 @@ import android.media.audiofx.AudioEffect
 import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import androidx.documentfile.provider.DocumentFile
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -137,6 +141,32 @@ class MainActivity: FlutterActivity() {
                 "getPersistedUriPermissions" -> {
                     val uris = getPersistedUriPermissions()
                     result.success(uris)
+                }
+                "saveImageToGallery" -> {
+                    val bytes = call.argument<ByteArray>("bytes")
+                    val fileName = call.argument<String>("fileName") ?: "flick_recap.png"
+                    val albumName = call.argument<String>("albumName") ?: "Flick"
+                    if (bytes == null || bytes.isEmpty()) {
+                        result.error("INVALID_ARGUMENT", "bytes are required", null)
+                    } else {
+                        val imageBytes = bytes
+                        mainScope.launch {
+                            try {
+                                val savedUri = withContext(Dispatchers.IO) {
+                                    saveImageToGallery(imageBytes, fileName, albumName)
+                                }
+                                result.success(savedUri)
+                            } catch (e: SecurityException) {
+                                result.error(
+                                    "STORAGE_PERMISSION_REQUIRED",
+                                    "Storage permission is required to save images on this Android version.",
+                                    null
+                                )
+                            } catch (e: Exception) {
+                                result.error("SAVE_IMAGE_ERROR", "Failed to save image: ${e.message}", null)
+                            }
+                        }
+                    }
                 }
                 "listAudioFiles" -> {
                     val uri = call.argument<String>("uri")
@@ -661,6 +691,58 @@ class MainActivity: FlutterActivity() {
 
     private fun getPersistedUriPermissions(): List<String> {
         return contentResolver.persistedUriPermissions.map { it.uri.toString() }
+    }
+
+    private fun saveImageToGallery(bytes: ByteArray, fileName: String, albumName: String): String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            throw SecurityException("WRITE_EXTERNAL_STORAGE permission is required on Android 9 and below.")
+        }
+
+        val resolver = contentResolver
+        val safeFileName = if (fileName.lowercase().endsWith(".png")) {
+            fileName
+        } else {
+            "$fileName.png"
+        }
+        val safeAlbumName = albumName.ifBlank { "Flick" }
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        } else {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, safeFileName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/$safeAlbumName")
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+        }
+
+        val itemUri = resolver.insert(collection, values)
+            ?: throw IllegalStateException("Unable to create a gallery entry.")
+
+        try {
+            resolver.openOutputStream(itemUri)?.use { output ->
+                output.write(bytes)
+                output.flush()
+            } ?: throw IllegalStateException("Unable to open an output stream.")
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val publishValues = ContentValues().apply {
+                    put(MediaStore.Images.Media.IS_PENDING, 0)
+                }
+                resolver.update(itemUri, publishValues, null, null)
+            }
+
+            return itemUri.toString()
+        } catch (e: Exception) {
+            resolver.delete(itemUri, null, null)
+            throw e
+        }
     }
 
     private fun getDocumentDisplayName(uriString: String): String? {
