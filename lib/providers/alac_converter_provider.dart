@@ -1,34 +1,36 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flick/services/alac_converter_service.dart';
-// Import will be available after running: flutter_rust_bridge_codegen generate
-// ignore: depend_on_referenced_packages, uri_does_not_exist
-import 'package:rust_lib_flick_player/src/rust/api/alac_converter_api.dart'
-    as alac_api;
+import 'package:flick/src/rust/api/alac_converter_api.dart' as alac_api;
 
 /// Provider for ALAC converter service
 final alacConverterServiceProvider = Provider<AlacConverterService>((ref) {
   return AlacConverterService();
 });
 
-/// Provider for checking if a file needs ALAC conversion
-final needsAlacConversionProvider = Provider.family<bool, String>((ref, filePath) {
-  return AlacConverterService.isAlacOrM4a(filePath);
+/// Provider for checking if a file needs WAV conversion before playback.
+final needsAlacConversionProvider = Provider.family<bool, String>((
+  ref,
+  filePath,
+) {
+  return AlacConverterService.requiresWavConversion(filePath);
 });
 
 /// Provider for ALAC audio metadata
 final alacMetadataProvider =
-    FutureProvider.family<alac_api.AlacAudioMetadata?, String>(
-        (ref, filePath) async {
-  if (!AlacConverterService.isAlacOrM4a(filePath)) {
-    return null;
-  }
+    FutureProvider.family<alac_api.AlacAudioMetadata?, String>((
+      ref,
+      filePath,
+    ) async {
+      if (!AlacConverterService.requiresWavConversion(filePath)) {
+        return null;
+      }
 
-  try {
-    return await AlacConverterService.probeMetadata(filePath);
-  } catch (e) {
-    return null;
-  }
-});
+      try {
+        return await AlacConverterService.probeMetadata(filePath);
+      } catch (e) {
+        return null;
+      }
+    });
 
 /// State for tracking conversion progress
 class ConversionProgress {
@@ -76,15 +78,13 @@ class AlacConversionNotifier extends Notifier<Map<String, ConversionProgress>> {
     // Start conversion
     state = {
       ...state,
-      filePath: ConversionProgress(
-        filePath: filePath,
-        isConverting: true,
-      ),
+      filePath: ConversionProgress(filePath: filePath, isConverting: true),
     };
 
     try {
-      final convertedPath =
-          await AlacConverterService.convertToWavFile(filePath);
+      final convertedPath = await AlacConverterService.convertToWavFile(
+        filePath,
+      );
 
       state = {
         ...state,
@@ -125,6 +125,7 @@ class AlacConversionNotifier extends Notifier<Map<String, ConversionProgress>> {
 /// Provider for ALAC conversion state management
 final alacConversionProvider =
     NotifierProvider<AlacConversionNotifier, Map<String, ConversionProgress>>(
-        () {
-  return AlacConversionNotifier();
-});
+      () {
+        return AlacConversionNotifier();
+      },
+    );

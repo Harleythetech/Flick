@@ -1,51 +1,53 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-// Import will be available after running: flutter_rust_bridge_codegen generate
-// ignore: depend_on_referenced_packages, uri_does_not_exist
-import 'package:rust_lib_flick_player/src/rust/api/alac_converter_api.dart'
-    as alac_api;
+import '../src/rust/api/alac_converter_api.dart' as alac_api;
 
-/// Service for converting ALAC/M4A files to WAV/PCM format
+/// Service for converting ALAC/M4A/AIFF files to WAV/PCM format
 ///
 /// This service provides both one-shot and streaming conversion modes:
 /// - One-shot: Convert entire file to WAV in memory (for small files)
 /// - Streaming: Decode chunks progressively (for large files)
 class AlacConverterService {
-  /// Convert ALAC/M4A file to WAV and save to temporary file
+  /// Convert a supported source file to WAV and save to a temporary file.
   ///
   /// Returns the path to the converted WAV file
   static Future<String> convertToWavFile(String sourcePath) async {
-    return compute(_convertToWavFileIsolate, sourcePath);
+    final tempDir = await getTemporaryDirectory();
+    return _convertToWavFile(sourcePath: sourcePath, tempDirPath: tempDir.path);
   }
 
-  /// Isolate function for converting to WAV file
-  static Future<String> _convertToWavFileIsolate(String sourcePath) async {
+  static Future<String> _convertToWavFile({
+    required String sourcePath,
+    required String tempDirPath,
+  }) async {
     // Read source file
     final sourceFile = File(sourcePath);
     final fileBytes = await sourceFile.readAsBytes();
 
     // Convert to WAV
-    final wavBytes = await alac_api.alacConvertToWav(fileBytes: fileBytes);
+    final wavBytes = alac_api.alacConvertToWav(fileBytes: fileBytes);
+    if (wavBytes.isEmpty) {
+      throw StateError('Rust converter returned empty WAV data');
+    }
 
     // Save to temporary file
-    final tempDir = await getTemporaryDirectory();
-    final fileName = sourcePath.split('/').last.replaceAll(RegExp(r'\.(alac|m4a)$', caseSensitive: false), '.wav');
-    final wavPath = '${tempDir.path}/$fileName';
+    final sourceName = sourcePath.split('/').last;
+    final baseName = sourceName.replaceAll(
+      RegExp(r'\.(alac|m4a|aiff|aif)$', caseSensitive: false),
+      '',
+    );
+    final wavPath = '$tempDirPath/${baseName}_${sourcePath.hashCode.abs()}.wav';
     final wavFile = File(wavPath);
     await wavFile.writeAsBytes(wavBytes);
 
     return wavPath;
   }
 
-  /// Probe ALAC/M4A file metadata without converting
-  static Future<alac_api.AlacAudioMetadata> probeMetadata(String filePath) async {
-    return compute(_probeMetadataIsolate, filePath);
-  }
-
-  /// Isolate function for probing metadata
-  static Future<alac_api.AlacAudioMetadata> _probeMetadataIsolate(String filePath) async {
+  /// Probe a supported file's metadata without converting.
+  static Future<alac_api.AlacAudioMetadata> probeMetadata(
+    String filePath,
+  ) async {
     final file = File(filePath);
     final fileBytes = await file.readAsBytes();
     return alac_api.alacProbeMetadata(fileBytes: fileBytes);
@@ -55,6 +57,17 @@ class AlacConverterService {
   static bool isAlacOrM4a(String filePath) {
     final extension = filePath.toLowerCase().split('.').last;
     return extension == 'alac' || extension == 'm4a';
+  }
+
+  /// Check if a file is AIFF format.
+  static bool isAiff(String filePath) {
+    final extension = filePath.toLowerCase().split('.').last;
+    return extension == 'aiff' || extension == 'aif';
+  }
+
+  /// Check if a file should be converted to WAV before playback.
+  static bool requiresWavConversion(String filePath) {
+    return isAlacOrM4a(filePath) || isAiff(filePath);
   }
 }
 
@@ -71,7 +84,7 @@ class AlacConverterService {
 /// await converter.close();
 /// ```
 class StreamingAlacConverter {
-  int? _sessionId;
+  BigInt? _sessionId;
   alac_api.AlacAudioMetadata? _metadata;
 
   /// Open a file for streaming conversion
@@ -79,8 +92,8 @@ class StreamingAlacConverter {
     final file = File(filePath);
     final fileBytes = await file.readAsBytes();
 
-    _sessionId = await alac_api.alacCreateSession(fileBytes: fileBytes);
-    _metadata = await alac_api.alacGetMetadata(sessionId: _sessionId!);
+    _sessionId = alac_api.alacCreateSession(fileBytes: fileBytes);
+    _metadata = alac_api.alacGetMetadata(sessionId: _sessionId!);
   }
 
   /// Get audio metadata
@@ -91,8 +104,7 @@ class StreamingAlacConverter {
     if (_sessionId == null) {
       throw StateError('Session not opened');
     }
-    final header = await alac_api.alacGetWavHeader(sessionId: _sessionId!);
-    return Uint8List.fromList(header);
+    return alac_api.alacGetWavHeader(sessionId: _sessionId!);
   }
 
   /// Stream PCM chunks
@@ -102,11 +114,11 @@ class StreamingAlacConverter {
     }
 
     while (true) {
-      final chunk = await alac_api.alacDecodeNextChunk(sessionId: _sessionId!);
+      final chunk = alac_api.alacDecodeNextChunk(sessionId: _sessionId!);
       if (chunk == null) {
         break;
       }
-      yield Uint8List.fromList(chunk);
+      yield chunk;
     }
   }
 
@@ -115,13 +127,13 @@ class StreamingAlacConverter {
     if (_sessionId == null) {
       throw StateError('Session not opened');
     }
-    await alac_api.alacSeek(sessionId: _sessionId!, timeSeconds: timeSeconds);
+    alac_api.alacSeek(sessionId: _sessionId!, timeSeconds: timeSeconds);
   }
 
   /// Close the conversion session
   Future<void> close() async {
     if (_sessionId != null) {
-      await alac_api.alacCloseSession(sessionId: _sessionId!);
+      alac_api.alacCloseSession(sessionId: _sessionId!);
       _sessionId = null;
       _metadata = null;
     }
@@ -136,7 +148,10 @@ class StreamingAlacConverter {
       final fileName = sourcePath
           .split('/')
           .last
-          .replaceAll(RegExp(r'\.(alac|m4a)$', caseSensitive: false), '.wav');
+          .replaceAll(
+            RegExp(r'\.(alac|m4a|aiff|aif)$', caseSensitive: false),
+            '.wav',
+          );
       final wavPath = '${tempDir.path}/$fileName';
       final wavFile = File(wavPath);
 
@@ -156,10 +171,10 @@ class StreamingAlacConverter {
   }
 }
 
-/// Custom audio source for just_audio that converts ALAC on-the-fly
+/// Custom audio source for just_audio that converts supported files on-the-fly.
 ///
-/// This allows playing ALAC files through just_audio by converting them
-/// to WAV format transparently.
+/// This allows playing formats like ALAC/M4A/AIFF through just_audio by
+/// converting them to WAV format transparently.
 class AlacAudioSource {
   final String sourcePath;
   String? _convertedPath;
@@ -172,7 +187,7 @@ class AlacAudioSource {
       return _convertedPath!;
     }
 
-    if (AlacConverterService.isAlacOrM4a(sourcePath)) {
+    if (AlacConverterService.requiresWavConversion(sourcePath)) {
       _convertedPath = await AlacConverterService.convertToWavFile(sourcePath);
       return _convertedPath!;
     }

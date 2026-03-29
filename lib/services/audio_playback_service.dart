@@ -3,9 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flick/services/alac_converter_service.dart';
 
-/// Enhanced audio playback service with ALAC support
+/// Enhanced audio playback service with lossless conversion support.
 ///
-/// This service automatically converts ALAC/M4A files to WAV before playback
+/// This service automatically converts supported files to WAV before playback
 /// to ensure compatibility across all platforms, especially Android.
 class AudioPlaybackService {
   final AudioPlayer _player;
@@ -22,9 +22,9 @@ class AudioPlaybackService {
 
       String playablePath = filePath;
 
-      // Check if ALAC/M4A conversion is needed
-      if (AlacConverterService.isAlacOrM4a(filePath)) {
-        debugPrint('ALAC/M4A file detected, converting to WAV...');
+      // Check if WAV conversion is needed.
+      if (AlacConverterService.requiresWavConversion(filePath)) {
+        debugPrint('Lossless source detected, converting to WAV...');
 
         // Check cache first
         if (_conversionCache.containsKey(filePath)) {
