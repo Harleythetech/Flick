@@ -403,7 +403,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                                     ),
                                   )
                                 : SizedBox(
-                                    height: 208,
+                                    height: 236,
                                     child: ListView.separated(
                                       scrollDirection: Axis.horizontal,
                                       itemCount: homeData.playlistPreviews.length,
@@ -1982,9 +1982,9 @@ class _PlaylistArtworkGrid extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
-      child: SizedBox(
-        width: double.infinity,
-        height: 112,
+        child: SizedBox(
+          width: double.infinity,
+          height: 136,
         child: artPaths.isEmpty
             ? Container(
                 decoration: const BoxDecoration(

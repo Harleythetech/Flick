@@ -180,15 +180,33 @@ class _ListeningRecapScreenState extends State<ListeningRecapScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Center(
-                                      child: FittedBox(
-                                        fit: BoxFit.contain,
-                                        child: RepaintBoundary(
-                                          key: _cardBoundaryKey,
-                                          child: _ListeningRecapHeroCard(
-                                            recap: recap,
-                                            posterSized: true,
-                                          ),
-                                        ),
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final previewWidth =
+                                              _RecapPosterDimensions.compactPreviewWidth(
+                                                constraints.maxWidth,
+                                              );
+
+                                          return SizedBox(
+                                            width: previewWidth,
+                                            height:
+                                                previewWidth /
+                                                _RecapPosterDimensions
+                                                    .aspectRatio,
+                                            child: FittedBox(
+                                              fit: BoxFit.contain,
+                                              child: RepaintBoundary(
+                                                key: _cardBoundaryKey,
+                                                child: _ListeningRecapHeroCard(
+                                                  recap: recap,
+                                                  frameSize:
+                                                      _RecapPosterDimensions
+                                                          .referenceSize,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                     const SizedBox(
@@ -546,12 +564,9 @@ class _ListeningRecapScreenState extends State<ListeningRecapScreen> {
 
 class _ListeningRecapHeroCard extends StatelessWidget {
   final ListeningRecap recap;
-  final bool posterSized;
+  final Size? frameSize;
 
-  const _ListeningRecapHeroCard({
-    required this.recap,
-    this.posterSized = false,
-  });
+  const _ListeningRecapHeroCard({required this.recap, this.frameSize});
 
   @override
   Widget build(BuildContext context) {
@@ -740,10 +755,10 @@ class _ListeningRecapHeroCard extends StatelessWidget {
       ),
     );
 
-    if (posterSized) {
+    if (frameSize != null) {
       return SizedBox(
-        width: _RecapPosterDimensions.posterWidth,
-        height: _RecapPosterDimensions.posterHeight,
+        width: frameSize!.width,
+        height: frameSize!.height,
         child: card,
       );
     }
@@ -881,17 +896,32 @@ class _ListeningRecapPosterScreenState
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final posterSize = _RecapPosterDimensions.fullViewSize(
+      maxWidth: mediaQuery.size.width - mediaQuery.padding.horizontal,
+      maxHeight: mediaQuery.size.height - mediaQuery.padding.vertical,
+    );
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
           const Positioned.fill(child: _RecapBackdrop()),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(AppConstants.spacingLg),
-              child: Column(
-                children: [
-                  Row(
+            child: Stack(
+              children: [
+                Center(
+                  child: RepaintBoundary(
+                    key: _posterBoundaryKey,
+                    child: _ListeningRecapHeroCard(
+                      recap: widget.recap,
+                      frameSize: posterSize,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(AppConstants.spacingMd),
+                  child: Row(
                     children: [
                       _PosterActionIcon(
                         icon: LucideIcons.arrowLeft,
@@ -906,31 +936,37 @@ class _ListeningRecapPosterScreenState
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppConstants.spacingLg),
-                  Expanded(
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.contain,
-                        child: RepaintBoundary(
-                          key: _posterBoundaryKey,
-                          child: _ListeningRecapHeroCard(
-                            recap: widget.recap,
-                            posterSized: true,
-                          ),
+                ),
+                Positioned(
+                  left: AppConstants.spacingLg,
+                  right: AppConstants.spacingLg,
+                  bottom: AppConstants.spacingLg,
+                  child: IgnorePointer(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppConstants.spacingMd,
+                        vertical: AppConstants.spacingSm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.36),
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.radiusRound,
+                        ),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      child: Text(
+                        'Use your device screenshot gesture here, or save the poster directly to your gallery.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: AppConstants.spacingMd),
-                  Text(
-                    'Use your device screenshot gesture here, or save the poster directly to your gallery.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.72),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -993,17 +1029,33 @@ class _RecapRankingPosterScreenState extends State<_RecapRankingPosterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final posterSize = _RecapPosterDimensions.fullViewSize(
+      maxWidth: mediaQuery.size.width - mediaQuery.padding.horizontal,
+      maxHeight: mediaQuery.size.height - mediaQuery.padding.vertical,
+    );
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
           const Positioned.fill(child: _RecapBackdrop()),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(AppConstants.spacingLg),
-              child: Column(
-                children: [
-                  Row(
+            child: Stack(
+              children: [
+                Center(
+                  child: RepaintBoundary(
+                    key: _posterBoundaryKey,
+                    child: _RecapRankingPosterCard(
+                      recap: widget.recap,
+                      type: widget.type,
+                      frameSize: posterSize,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(AppConstants.spacingMd),
+                  child: Row(
                     children: [
                       _PosterActionIcon(
                         icon: LucideIcons.arrowLeft,
@@ -1018,31 +1070,37 @@ class _RecapRankingPosterScreenState extends State<_RecapRankingPosterScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppConstants.spacingLg),
-                  Expanded(
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.contain,
-                        child: RepaintBoundary(
-                          key: _posterBoundaryKey,
-                          child: _RecapRankingPosterCard(
-                            recap: widget.recap,
-                            type: widget.type,
-                          ),
+                ),
+                Positioned(
+                  left: AppConstants.spacingLg,
+                  right: AppConstants.spacingLg,
+                  bottom: AppConstants.spacingLg,
+                  child: IgnorePointer(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppConstants.spacingMd,
+                        vertical: AppConstants.spacingSm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.36),
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.radiusRound,
+                        ),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      child: Text(
+                        'Use your device screenshot gesture here, or save the poster directly to your gallery.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: AppConstants.spacingMd),
-                  Text(
-                    'Use your device screenshot gesture here, or save the poster directly to your gallery.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.72),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1054,8 +1112,13 @@ class _RecapRankingPosterScreenState extends State<_RecapRankingPosterScreen> {
 class _RecapRankingPosterCard extends StatelessWidget {
   final ListeningRecap recap;
   final _RecapRankingPosterType type;
+  final Size? frameSize;
 
-  const _RecapRankingPosterCard({required this.recap, required this.type});
+  const _RecapRankingPosterCard({
+    required this.recap,
+    required this.type,
+    this.frameSize,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1065,8 +1128,8 @@ class _RecapRankingPosterCard extends StatelessWidget {
     };
 
     return SizedBox(
-      width: _RecapPosterDimensions.posterWidth,
-      height: _RecapPosterDimensions.posterHeight,
+      width: frameSize?.width ?? _RecapPosterDimensions.referenceWidth,
+      height: frameSize?.height ?? _RecapPosterDimensions.referenceHeight,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: DecoratedBox(
@@ -1441,9 +1504,26 @@ class _RecapRankingPosterCard extends StatelessWidget {
 }
 
 class _RecapPosterDimensions {
-  static const double posterWidth = 420;
-  static const double posterHeight = 760;
-  static const double aspectRatio = posterWidth / posterHeight;
+  static const double referenceWidth = 420;
+  static const double referenceHeight = 760;
+  static const Size referenceSize = Size(referenceWidth, referenceHeight);
+  static const double compactPreviewMaxWidth = 304;
+  static const double aspectRatio = referenceWidth / referenceHeight;
+
+  static double compactPreviewWidth(double maxWidth) {
+    return math.min(maxWidth, compactPreviewMaxWidth);
+  }
+
+  static Size fullViewSize({
+    required double maxWidth,
+    required double maxHeight,
+  }) {
+    final fittedWidth = maxWidth * 0.98;
+    final fittedHeight = maxHeight * 0.98;
+    final width = math.min(fittedWidth, fittedHeight * aspectRatio);
+
+    return Size(width, width / aspectRatio);
+  }
 }
 
 class _RecapBackdrop extends StatelessWidget {
