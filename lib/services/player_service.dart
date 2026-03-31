@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart' as just_audio;
@@ -16,6 +17,49 @@ import 'package:flick/services/alac_converter_service.dart';
 
 /// Loop mode for playback
 enum LoopMode { off, one, all }
+
+@visibleForTesting
+List<Song> buildShufflePlaybackOrder({
+  required List<Song> songs,
+  required Song? current,
+  math.Random? random,
+}) {
+  final reordered = List<Song>.from(songs);
+  if (reordered.length < 2) return reordered;
+
+  if (current == null) {
+    reordered.shuffle(random);
+    return reordered;
+  }
+
+  final currentIndex = reordered.indexWhere((song) => song.id == current.id);
+  if (currentIndex == -1) {
+    reordered.shuffle(random);
+    return reordered;
+  }
+
+  final currentSong = reordered.removeAt(currentIndex);
+  reordered.shuffle(random);
+  return <Song>[currentSong, ...reordered];
+}
+
+@visibleForTesting
+List<Song> restorePlaybackOrder({
+  required List<Song> originalPlaylist,
+  required Song? current,
+  required int insertionIndex,
+}) {
+  final restored = List<Song>.from(originalPlaylist);
+  if (current == null) {
+    return restored;
+  }
+
+  final alreadyPresent = restored.any((song) => song.id == current.id);
+  if (!alreadyPresent) {
+    restored.insert(insertionIndex.clamp(0, restored.length), current);
+  }
+  return restored;
+}
 
 /// Singleton service to manage global audio playback state.
 ///
@@ -1279,25 +1323,20 @@ class PlayerService {
       }
     }
 
-    if (enable) {
-      basePlaylist.shuffle();
-    } else {
-      basePlaylist
-        ..clear()
-        ..addAll(_originalPlaylist);
-      if (current != null &&
-          !basePlaylist.any((song) => song.id == current.id)) {
-        final insertionIndex = _currentIndex.clamp(0, basePlaylist.length);
-        basePlaylist.insert(insertionIndex, current);
-      }
-    }
+    final reorderedBasePlaylist = enable
+        ? buildShufflePlaybackOrder(songs: basePlaylist, current: current)
+        : restorePlaybackOrder(
+            originalPlaylist: _originalPlaylist,
+            current: current,
+            insertionIndex: _currentIndex,
+          );
 
     _playlist
       ..clear()
-      ..addAll(basePlaylist);
+      ..addAll(reorderedBasePlaylist);
     _playlistQueueEntryIds
       ..clear()
-      ..addAll(List<int?>.filled(basePlaylist.length, null));
+      ..addAll(List<int?>.filled(reorderedBasePlaylist.length, null));
     if (current != null) {
       _setCurrentIndex(_playlist.indexWhere((song) => song.id == current.id));
     }
