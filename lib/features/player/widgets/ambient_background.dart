@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flick/models/song.dart';
+import 'package:flick/services/album_art_service.dart';
 
 // ---------------------------------------------------------------------------
 // AmbientBackground
@@ -40,15 +41,16 @@ class _AmbientBackgroundState extends State<AmbientBackground> {
   @override
   void initState() {
     super.initState();
-    _updateBlur(widget.song?.albumArt);
+    _updateBlur(widget.song?.albumArt, widget.song?.filePath);
   }
 
   @override
   void didUpdateWidget(AmbientBackground old) {
     super.didUpdateWidget(old);
     final newPath = widget.song?.albumArt;
-    if (newPath != old.song?.albumArt) {
-      _updateBlur(newPath);
+    final newSourcePath = widget.song?.filePath;
+    if (newPath != old.song?.albumArt || newSourcePath != old.song?.filePath) {
+      _updateBlur(newPath, newSourcePath);
     }
   }
 
@@ -58,8 +60,9 @@ class _AmbientBackgroundState extends State<AmbientBackground> {
     super.dispose();
   }
 
-  Future<void> _updateBlur(String? path) async {
-    if (path == null) {
+  Future<void> _updateBlur(String? path, String? audioSourcePath) async {
+    final resolvedPath = await _resolveArtworkPath(path, audioSourcePath);
+    if (resolvedPath == null) {
       if (mounted) {
         final old = _blurredImage;
         setState(() {
@@ -72,14 +75,14 @@ class _AmbientBackgroundState extends State<AmbientBackground> {
     }
 
     // Debounce: already computing for this exact path
-    if (_computing && _currentPath == path) return;
+    if (_computing && _currentPath == resolvedPath) return;
 
-    _currentPath = path;
+    _currentPath = resolvedPath;
     _computing = true;
 
     try {
       // 1. Read raw bytes from disk (async IO — does not block UI thread)
-      final file = File(path);
+      final file = File(resolvedPath);
       if (!await file.exists()) {
         _computing = false;
         return;
@@ -87,7 +90,7 @@ class _AmbientBackgroundState extends State<AmbientBackground> {
       final bytes = await file.readAsBytes();
 
       // Bail if widget disposed or song changed while we were reading
-      if (!mounted || path != widget.song?.albumArt) {
+      if (!mounted || resolvedPath != _currentPath) {
         _computing = false;
         return;
       }
@@ -101,7 +104,7 @@ class _AmbientBackgroundState extends State<AmbientBackground> {
       final frame = await codec.getNextFrame();
       final srcImage = frame.image;
 
-      if (!mounted || path != widget.song?.albumArt) {
+      if (!mounted || resolvedPath != _currentPath) {
         srcImage.dispose();
         _computing = false;
         return;
@@ -131,7 +134,7 @@ class _AmbientBackgroundState extends State<AmbientBackground> {
       final blurred = await picture.toImage(imgW, imgH);
       picture.dispose();
 
-      if (!mounted || path != widget.song?.albumArt) {
+      if (!mounted || resolvedPath != _currentPath) {
         blurred.dispose();
         _computing = false;
         return;
@@ -147,9 +150,29 @@ class _AmbientBackgroundState extends State<AmbientBackground> {
     }
   }
 
+  Future<String?> _resolveArtworkPath(
+    String? path,
+    String? audioSourcePath,
+  ) async {
+    if (path != null && path.isNotEmpty && File(path).existsSync()) {
+      return path;
+    }
+
+    if (audioSourcePath == null || audioSourcePath.isEmpty) {
+      return null;
+    }
+
+    return AlbumArtService.instance.resolveArtworkPath(
+      existingPath: path,
+      audioSourcePath: audioSourcePath,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (widget.song?.albumArt == null) return const SizedBox.shrink();
+    if (widget.song?.albumArt == null && widget.song?.filePath == null) {
+      return const SizedBox.shrink();
+    }
 
     return RepaintBoundary(
       child: AnimatedSwitcher(
@@ -167,9 +190,7 @@ class _AmbientBackgroundState extends State<AmbientBackground> {
                       opacity: const AlwaysStoppedAnimation(0.6),
                     ),
                     // Dark scrim for readability
-                    ColoredBox(
-                      color: Colors.black.withValues(alpha: 0.3),
-                    ),
+                    ColoredBox(color: Colors.black.withValues(alpha: 0.3)),
                   ],
                 ),
               )

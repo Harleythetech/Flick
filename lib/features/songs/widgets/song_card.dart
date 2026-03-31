@@ -287,14 +287,12 @@ class _SongCardState extends State<SongCard> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (widget.song.albumArt != null)
-          _buildRawImage(
-            widget.song.albumArt!,
-            fit: BoxFit.cover,
-            artSize: size,
-          )
-        else
-          _buildPlaceholderArt(),
+        _buildRawImage(
+          widget.song.albumArt ?? '',
+          audioSourcePath: widget.song.filePath,
+          fit: BoxFit.cover,
+          artSize: size,
+        ),
         Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -311,6 +309,7 @@ class _SongCardState extends State<SongCard> {
 
   Widget _buildRawImage(
     String path, {
+    String? audioSourcePath,
     BoxFit fit = BoxFit.cover,
     required double artSize,
   }) {
@@ -318,6 +317,7 @@ class _SongCardState extends State<SongCard> {
 
     return CachedImageWidget(
       imagePath: path,
+      audioSourcePath: audioSourcePath,
       fit: fit,
       placeholder: _buildPlaceholderArt(),
       errorWidget: _buildPlaceholderArt(),

@@ -118,6 +118,32 @@ class AudioFileInfo {
   }
 }
 
+class PlaylistFileInfo {
+  final String uri;
+  final String name;
+  final int size;
+  final int lastModified;
+  final String extension;
+
+  const PlaylistFileInfo({
+    required this.uri,
+    required this.name,
+    required this.size,
+    required this.lastModified,
+    required this.extension,
+  });
+
+  factory PlaylistFileInfo.fromMap(Map<String, dynamic> map) {
+    return PlaylistFileInfo(
+      uri: map['uri'] as String,
+      name: map['name'] as String? ?? '',
+      size: (map['size'] as num?)?.toInt() ?? 0,
+      lastModified: (map['lastModified'] as num?)?.toInt() ?? 0,
+      extension: map['extension'] as String? ?? '',
+    );
+  }
+}
+
 /// Represents a watched music folder.
 class MusicFolder {
   final String uri;
@@ -238,12 +264,16 @@ class MusicFolderService {
 
   /// Scan a folder for audio files (Fast Scan - no metadata).
   /// Returns a list of discovered audio files with basic info.
-  Future<List<AudioFileInfo>> scanFolder(String folderUri) async {
+  Future<List<AudioFileInfo>> scanFolder(
+    String folderUri, {
+    bool filterNonMusicFilesAndFolders = true,
+  }) async {
     try {
-      final result = await _channel.invokeMethod<List<dynamic>>(
-        'listAudioFiles',
-        {'uri': folderUri},
-      );
+      final result = await _channel
+          .invokeMethod<List<dynamic>>('listAudioFiles', {
+            'uri': folderUri,
+            'filterNonMusicFilesAndFolders': filterNonMusicFilesAndFolders,
+          });
 
       if (result == null) return [];
 
@@ -253,6 +283,28 @@ class MusicFolderService {
           .toList();
     } on PlatformException catch (e) {
       throw StorageException('Failed to scan folder: ${e.message}');
+    }
+  }
+
+  Future<List<PlaylistFileInfo>> scanPlaylistFiles(
+    String folderUri, {
+    bool filterNonMusicFilesAndFolders = true,
+  }) async {
+    try {
+      final result = await _channel
+          .invokeMethod<List<dynamic>>('listPlaylistFiles', {
+            'uri': folderUri,
+            'filterNonMusicFilesAndFolders': filterNonMusicFilesAndFolders,
+          });
+
+      if (result == null) return [];
+
+      return result
+          .cast<Map<dynamic, dynamic>>()
+          .map((map) => PlaylistFileInfo.fromMap(map.cast<String, dynamic>()))
+          .toList();
+    } on PlatformException catch (e) {
+      throw StorageException('Failed to scan playlists: ${e.message}');
     }
   }
 
@@ -272,6 +324,16 @@ class MusicFolderService {
           .toList();
     } on PlatformException catch (e) {
       throw StorageException('Failed to fetch metadata: ${e.message}');
+    }
+  }
+
+  Future<Uint8List?> fetchEmbeddedArtwork(String uri) async {
+    try {
+      return await _channel.invokeMethod<Uint8List>('fetchEmbeddedArtwork', {
+        'uri': uri,
+      });
+    } on PlatformException catch (e) {
+      throw StorageException('Failed to fetch album art: ${e.message}');
     }
   }
 
@@ -300,6 +362,20 @@ class MusicFolderService {
   Future<String?> _getDisplayName(String uri) async {
     try {
       return await _channel.invokeMethod<String>('getDocumentDisplayName', {
+        'uri': uri,
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<String?> resolveFilesystemPath(String uri) async {
+    try {
+      if (!uri.startsWith('content://')) {
+        return uri;
+      }
+
+      return await _channel.invokeMethod<String>('resolveTreeUriToPath', {
         'uri': uri,
       });
     } catch (e) {

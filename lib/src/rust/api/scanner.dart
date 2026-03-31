@@ -6,41 +6,70 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `is_supported_audio_path`
+// These functions are ignored because they are not marked as `pub`: `classify_scan_work`, `collect_file_entries`, `collect_playlist_file_entries`, `collect_scan_file_entries`, `directory_is_nomedia_blocked`, `extract_text_metadata_only`, `is_in_nomedia_subtree`, `is_supported_audio_path`, `is_supported_playlist_path`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FileScanEntry`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 Future<ScanResult> scanRootDir({
   required String rootPath,
   required Map<String, PlatformInt64> knownFiles,
+  required ScanOptions scanOptions,
 }) => RustLib.instance.api.crateApiScannerScanRootDir(
   rootPath: rootPath,
   knownFiles: knownFiles,
+  scanOptions: scanOptions,
 );
+
+Stream<ScanChunk> scanMusicLibrary({
+  required String rootPath,
+  required Map<String, PlatformInt64> knownFiles,
+  required ScanOptions scanOptions,
+}) => RustLib.instance.api.crateApiScannerScanMusicLibrary(
+  rootPath: rootPath,
+  knownFiles: knownFiles,
+  scanOptions: scanOptions,
+);
+
+Future<List<String>> discoverPlaylistFiles({
+  required String rootPath,
+  required ScanOptions scanOptions,
+}) => RustLib.instance.api.crateApiScannerDiscoverPlaylistFiles(
+  rootPath: rootPath,
+  scanOptions: scanOptions,
+);
+
+Future<Uint8List?> extractEmbeddedArtwork({required String path}) =>
+    RustLib.instance.api.crateApiScannerExtractEmbeddedArtwork(path: path);
 
 class AudioFileMetadata {
   final String path;
   final String? title;
   final String? artist;
   final String? album;
-  final BigInt? durationSecs;
+  final BigInt? durationMs;
   final String format;
   final PlatformInt64 lastModified;
   final int? bitDepth;
   final int? sampleRate;
   final int? bitrate;
+  final int? trackNumber;
+  final int? discNumber;
+  final BigInt fileSize;
 
   const AudioFileMetadata({
     required this.path,
     this.title,
     this.artist,
     this.album,
-    this.durationSecs,
+    this.durationMs,
     required this.format,
     required this.lastModified,
     this.bitDepth,
     this.sampleRate,
     this.bitrate,
+    this.trackNumber,
+    this.discNumber,
+    required this.fileSize,
   });
 
   @override
@@ -49,12 +78,15 @@ class AudioFileMetadata {
       title.hashCode ^
       artist.hashCode ^
       album.hashCode ^
-      durationSecs.hashCode ^
+      durationMs.hashCode ^
       format.hashCode ^
       lastModified.hashCode ^
       bitDepth.hashCode ^
       sampleRate.hashCode ^
-      bitrate.hashCode;
+      bitrate.hashCode ^
+      trackNumber.hashCode ^
+      discNumber.hashCode ^
+      fileSize.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -65,22 +97,78 @@ class AudioFileMetadata {
           title == other.title &&
           artist == other.artist &&
           album == other.album &&
-          durationSecs == other.durationSecs &&
+          durationMs == other.durationMs &&
           format == other.format &&
           lastModified == other.lastModified &&
           bitDepth == other.bitDepth &&
           sampleRate == other.sampleRate &&
-          bitrate == other.bitrate;
+          bitrate == other.bitrate &&
+          trackNumber == other.trackNumber &&
+          discNumber == other.discNumber &&
+          fileSize == other.fileSize;
+}
+
+class ScanChunk {
+  final List<AudioFileMetadata> newOrModified;
+  final List<String> deletedPaths;
+  final int totalFiles;
+  final bool isComplete;
+
+  const ScanChunk({
+    required this.newOrModified,
+    required this.deletedPaths,
+    required this.totalFiles,
+    required this.isComplete,
+  });
+
+  @override
+  int get hashCode =>
+      newOrModified.hashCode ^
+      deletedPaths.hashCode ^
+      totalFiles.hashCode ^
+      isComplete.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ScanChunk &&
+          runtimeType == other.runtimeType &&
+          newOrModified == other.newOrModified &&
+          deletedPaths == other.deletedPaths &&
+          totalFiles == other.totalFiles &&
+          isComplete == other.isComplete;
+}
+
+class ScanOptions {
+  final bool filterNonMusicFilesAndFolders;
+
+  const ScanOptions({required this.filterNonMusicFilesAndFolders});
+
+  @override
+  int get hashCode => filterNonMusicFilesAndFolders.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ScanOptions &&
+          runtimeType == other.runtimeType &&
+          filterNonMusicFilesAndFolders == other.filterNonMusicFilesAndFolders;
 }
 
 class ScanResult {
   final List<AudioFileMetadata> newOrModified;
   final List<String> deletedPaths;
+  final int totalFiles;
 
-  const ScanResult({required this.newOrModified, required this.deletedPaths});
+  const ScanResult({
+    required this.newOrModified,
+    required this.deletedPaths,
+    required this.totalFiles,
+  });
 
   @override
-  int get hashCode => newOrModified.hashCode ^ deletedPaths.hashCode;
+  int get hashCode =>
+      newOrModified.hashCode ^ deletedPaths.hashCode ^ totalFiles.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -88,5 +176,6 @@ class ScanResult {
       other is ScanResult &&
           runtimeType == other.runtimeType &&
           newOrModified == other.newOrModified &&
-          deletedPaths == other.deletedPaths;
+          deletedPaths == other.deletedPaths &&
+          totalFiles == other.totalFiles;
 }

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -13,6 +11,7 @@ import 'package:flick/models/playlist.dart';
 import 'package:flick/services/player_service.dart';
 import 'package:flick/data/repositories/song_repository.dart';
 import 'package:flick/providers/playlist_provider.dart';
+import 'package:flick/widgets/common/cached_image_widget.dart';
 import 'package:flick/widgets/common/display_mode_wrapper.dart';
 
 class PlaylistDetailScreen extends ConsumerStatefulWidget {
@@ -296,12 +295,21 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   }
 
   Widget _buildCoverImage(List<Song> songs, int index) {
-    if (index < songs.length && songs[index].albumArt != null) {
+    if (index < songs.length) {
       return Expanded(
-        child: Image.file(
-          File(songs[index].albumArt!),
+        child: CachedImageWidget(
+          imagePath: songs[index].albumArt,
+          audioSourcePath: songs[index].filePath,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => Container(
+          errorWidget: Container(
+            color: AppColors.surfaceLight,
+            child: Icon(
+              LucideIcons.music,
+              color: context.adaptiveTextTertiary,
+              size: 20,
+            ),
+          ),
+          placeholder: Container(
             color: AppColors.surfaceLight,
             child: Icon(
               LucideIcons.music,
@@ -370,26 +378,24 @@ class _SongTile extends StatelessWidget {
                   color: AppColors.glassBackground,
                   borderRadius: BorderRadius.circular(AppConstants.radiusSm),
                 ),
-                child: song.albumArt != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                          AppConstants.radiusSm,
-                        ),
-                        child: Image.file(
-                          File(song.albumArt!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Icon(
-                            LucideIcons.music,
-                            color: context.adaptiveTextTertiary,
-                            size: 20,
-                          ),
-                        ),
-                      )
-                    : Icon(
-                        LucideIcons.music,
-                        color: context.adaptiveTextTertiary,
-                        size: 20,
-                      ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+                  child: CachedImageWidget(
+                    imagePath: song.albumArt,
+                    audioSourcePath: song.filePath,
+                    fit: BoxFit.cover,
+                    placeholder: Icon(
+                      LucideIcons.music,
+                      color: context.adaptiveTextTertiary,
+                      size: 20,
+                    ),
+                    errorWidget: Icon(
+                      LucideIcons.music,
+                      color: context.adaptiveTextTertiary,
+                      size: 20,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: AppConstants.spacingMd),
               Expanded(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flick/data/repositories/song_repository.dart';
@@ -35,6 +36,13 @@ class PlaylistExportResult {
   });
 }
 
+class PlaylistSourceFile {
+  final String sourcePath;
+  final String? displayName;
+
+  const PlaylistSourceFile({required this.sourcePath, this.displayName});
+}
+
 class PlaylistService {
   static const String _playlistsKey = 'playlists';
   static const MethodChannel _storageChannel = MethodChannel(
@@ -51,6 +59,10 @@ class PlaylistService {
   List<Playlist> _playlists = [];
   bool _isLoaded = false;
   bool _importInProgress = false;
+  final SongRepository _songRepository;
+
+  PlaylistService({SongRepository? songRepository})
+    : _songRepository = songRepository ?? SongRepository();
 
   Future<void> _ensureLoaded() async {
     if (_isLoaded) return;
@@ -201,7 +213,7 @@ class PlaylistService {
       final uri = await _storageChannel.invokeMethod<String>('openDocument', {
         'mimeTypes': _playlistMimeTypes,
       });
-      print('[PlaylistService] Selected URI: $uri');
+      debugPrint('[PlaylistService] Selected URI: $uri');
       if (uri == null || uri.trim().isEmpty) return null;
 
       final parsedUri = Uri.tryParse(uri);
@@ -213,7 +225,7 @@ class PlaylistService {
         'readTextDocument',
         {'uri': uri},
       );
-      print('[PlaylistService] Content length: ${content?.length ?? 0}');
+      debugPrint('[PlaylistService] Content length: ${content?.length ?? 0}');
       if (content == null || content.trim().isEmpty) {
         throw const FormatException('Selected playlist file is empty');
       }
@@ -222,43 +234,124 @@ class PlaylistService {
         'getDocumentDisplayName',
         {'uri': uri},
       );
-      print('[PlaylistService] Display name: $displayName');
+      debugPrint('[PlaylistService] Display name: $displayName');
 
-      final playlistName = await _nextAvailablePlaylistName(
-        _extractPlaylistNameFromFilename(displayName),
-      );
-      print('[PlaylistService] Playlist name: $playlistName');
-      final entries = _parseM3uEntries(content);
-      print('[PlaylistService] Parsed ${entries.length} entries');
-      final resolved = await _resolveSongIds(entries);
-      print(
-        '[PlaylistService] Resolved ${resolved.ids.length} songs, ${resolved.unmatchedEntries.length} unmatched',
-      );
-
-      final created = await createPlaylist(playlistName);
-      if (created == null) {
-        throw StateError('Failed to create imported playlist "$playlistName"');
-      }
-
-      final updated = await updatePlaylist(
-        created.copyWith(songIds: resolved.ids),
-      );
-      final playlist = updated ?? created;
-
-      return PlaylistImportResult(
-        playlist: playlist,
-        totalEntries: entries.length,
-        importedSongs: resolved.ids.length,
-        unmatchedEntries: resolved.unmatchedEntries.length,
-        unmatchedSamples: resolved.unmatchedEntries.take(5).toList(),
+      return _upsertPlaylistFromSource(
+        PlaylistSourceFile(sourcePath: uri, displayName: displayName),
+        content: content,
       );
     } catch (e, st) {
-      print('[PlaylistService] Import error: $e');
-      print('[PlaylistService] Import stack: $st');
+      debugPrint('[PlaylistService] Import error: $e');
+      debugPrint('[PlaylistService] Import stack: $st');
       rethrow;
     } finally {
       _importInProgress = false;
     }
+  }
+
+  Future<List<PlaylistImportResult>> syncPlaylistsFromSources(
+    List<PlaylistSourceFile> sources,
+  ) async {
+    await _ensureLoaded();
+    if (sources.isEmpty) return const [];
+
+    final lookup = await _buildSongLookup();
+    final results = <PlaylistImportResult>[];
+
+    for (final source in sources) {
+      try {
+        final content = await _readPlaylistSource(source.sourcePath);
+        if (content.trim().isEmpty) {
+          continue;
+        }
+
+        final imported = await _upsertPlaylistFromSource(
+          source,
+          content: content,
+          songLookup: lookup,
+          saveAfter: false,
+        );
+        if (imported != null) {
+          results.add(imported);
+        }
+      } catch (e, st) {
+        debugPrint(
+          '[PlaylistService] Failed to sync playlist source "${source.sourcePath}": $e',
+        );
+        debugPrint('[PlaylistService] Playlist sync stack: $st');
+      }
+    }
+
+    if (results.isNotEmpty) {
+      await _savePlaylists();
+    }
+
+    return results;
+  }
+
+  Future<PlaylistImportResult?> _upsertPlaylistFromSource(
+    PlaylistSourceFile source, {
+    required String content,
+    _SongLookup? songLookup,
+    bool saveAfter = true,
+  }) async {
+    await _ensureLoaded();
+
+    final baseName = _extractPlaylistNameFromFilename(
+      source.displayName ?? _extractPlaylistNameLabel(source.sourcePath),
+    );
+    final existing = _findPlaylistBySourcePath(source.sourcePath);
+    final playlistName = await _nextAvailablePlaylistName(
+      baseName,
+      excludeId: existing?.id,
+    );
+    debugPrint('[PlaylistService] Playlist name: $playlistName');
+
+    final entries = _parseM3uEntries(content);
+    debugPrint('[PlaylistService] Parsed ${entries.length} entries');
+    final lookup = songLookup ?? await _buildSongLookup();
+    final resolved = _resolveSongIdsWithLookup(entries, lookup);
+    debugPrint(
+      '[PlaylistService] Resolved ${resolved.ids.length} songs, ${resolved.unmatchedEntries.length} unmatched',
+    );
+
+    final now = DateTime.now();
+    late final Playlist playlist;
+    if (existing != null) {
+      final updated = existing.copyWith(
+        name: playlistName,
+        songIds: resolved.ids,
+        updatedAt: now,
+        sourcePath: source.sourcePath,
+      );
+      final index = _playlists.indexWhere((item) => item.id == existing.id);
+      if (index >= 0) {
+        _playlists[index] = updated;
+      }
+      playlist = updated;
+    } else {
+      playlist = Playlist(
+        id: now.millisecondsSinceEpoch.toString(),
+        name: playlistName,
+        songIds: resolved.ids,
+        createdAt: now,
+        updatedAt: now,
+        sourcePath: source.sourcePath,
+      );
+      _playlists.add(playlist);
+    }
+
+    if (saveAfter) {
+      await _savePlaylists();
+    }
+
+    return PlaylistImportResult(
+      playlist: playlist,
+      totalEntries: entries.length,
+      importedSongs: resolved.ids.length,
+      unmatchedEntries: resolved.unmatchedEntries.length,
+      unmatchedSamples: resolved.unmatchedEntries.take(5).toList(),
+    );
   }
 
   Future<PlaylistExportResult?> exportPlaylistAsM3u(
@@ -308,7 +401,7 @@ class PlaylistService {
   Future<List<Song>> _getOrderedSongs(List<String> songIds) async {
     if (songIds.isEmpty) return [];
 
-    final songs = await SongRepository().getAllSongs();
+    final songs = await _songRepository.getAllSongs();
     final byId = {for (final song in songs) song.id: song};
 
     final ordered = <Song>[];
@@ -338,16 +431,19 @@ class PlaylistService {
     return buffer.toString();
   }
 
-  Future<String> _nextAvailablePlaylistName(String baseName) async {
+  Future<String> _nextAvailablePlaylistName(
+    String baseName, {
+    String? excludeId,
+  }) async {
     await _ensureLoaded();
     final trimmed = baseName.trim().isEmpty
         ? 'Imported Playlist'
         : baseName.trim();
 
-    if (!_playlistNameExists(trimmed)) return trimmed;
+    if (!_playlistNameExists(trimmed, excludeId: excludeId)) return trimmed;
 
     var index = 2;
-    while (_playlistNameExists('$trimmed ($index)')) {
+    while (_playlistNameExists('$trimmed ($index)', excludeId: excludeId)) {
       index += 1;
     }
     return '$trimmed ($index)';
@@ -409,15 +505,11 @@ class PlaylistService {
     return value.isEmpty ? null : value;
   }
 
-  Future<_ResolvedM3uImport> _resolveSongIds(List<_M3uEntry> entries) async {
-    if (entries.isEmpty) {
-      return const _ResolvedM3uImport(ids: [], unmatchedEntries: []);
-    }
-
-    final songs = await SongRepository().getAllSongs();
-
+  Future<_SongLookup> _buildSongLookup() async {
+    final songs = await _songRepository.getAllSongs();
     final byPath = <String, List<Song>>{};
     final byFileName = <String, List<Song>>{};
+
     for (final song in songs) {
       final filePath = song.filePath;
       if (filePath == null || filePath.trim().isEmpty) continue;
@@ -431,11 +523,22 @@ class PlaylistService {
           byFileName.putIfAbsent(fileName, () => []).add(song);
         }
       } catch (e, st) {
-        print(
+        debugPrint(
           '[PlaylistService] Skipping song during import matching: path="$filePath", error=$e',
         );
-        print('[PlaylistService] Song matching stack: $st');
+        debugPrint('[PlaylistService] Song matching stack: $st');
       }
+    }
+
+    return _SongLookup(byPath: byPath, byFileName: byFileName);
+  }
+
+  _ResolvedM3uImport _resolveSongIdsWithLookup(
+    List<_M3uEntry> entries,
+    _SongLookup lookup,
+  ) {
+    if (entries.isEmpty) {
+      return const _ResolvedM3uImport(ids: [], unmatchedEntries: []);
     }
 
     final ids = <String>[];
@@ -446,7 +549,7 @@ class PlaylistService {
       try {
         final pathCandidates = <Song>{};
         for (final key in _pathLookupKeys(entry.pathOrUri)) {
-          final matches = byPath[key];
+          final matches = lookup.byPath[key];
           if (matches != null) {
             pathCandidates.addAll(matches);
           }
@@ -458,7 +561,7 @@ class PlaylistService {
         );
         if (match == null) {
           final candidates =
-              byFileName[_extractFileName(entry.pathOrUri)] ?? [];
+              lookup.byFileName[_extractFileName(entry.pathOrUri)] ?? [];
           match = _pickBestCandidate(candidates, entry.extInfTitle);
         }
 
@@ -471,15 +574,25 @@ class PlaylistService {
           ids.add(match.id);
         }
       } catch (e, st) {
-        print(
+        debugPrint(
           '[PlaylistService] Failed to resolve playlist entry: "${entry.pathOrUri}", error=$e',
         );
-        print('[PlaylistService] Entry matching stack: $st');
+        debugPrint('[PlaylistService] Entry matching stack: $st');
         unmatched.add(entry.pathOrUri);
       }
     }
 
     return _ResolvedM3uImport(ids: ids, unmatchedEntries: unmatched);
+  }
+
+  Playlist? _findPlaylistBySourcePath(String sourcePath) {
+    try {
+      return _playlists.firstWhere(
+        (playlist) => playlist.sourcePath == sourcePath,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Song? _pickBestCandidate(List<Song> candidates, String? extInfTitle) {
@@ -646,7 +759,7 @@ class PlaylistService {
       }
       return uri;
     } on FormatException catch (e) {
-      print('[PlaylistService] URI parse error for "$value": $e');
+      debugPrint('[PlaylistService] URI parse error for "$value": $e');
       return null;
     }
   }
@@ -655,7 +768,7 @@ class PlaylistService {
     try {
       return Uri.decodeFull(value);
     } on FormatException catch (e) {
-      print('[PlaylistService] URI decode error for "$value": $e');
+      debugPrint('[PlaylistService] URI decode error for "$value": $e');
       return value;
     }
   }
@@ -666,6 +779,39 @@ class PlaylistService {
         .replaceAll(RegExp(r'\s+'), ' ')
         .replaceAll(RegExp(r'[^\w\s-]'), '')
         .trim();
+  }
+
+  String _extractPlaylistNameLabel(String value) {
+    final trimmed = _stripWrappingQuotes(value.trim());
+    if (trimmed.isEmpty) return 'Imported Playlist';
+
+    final uri = _tryParseUri(trimmed);
+    if (uri != null && uri.pathSegments.isNotEmpty) {
+      return Uri.decodeComponent(uri.pathSegments.last);
+    }
+
+    final normalized = trimmed.replaceAll('\\', '/');
+    final index = normalized.lastIndexOf('/');
+    if (index >= 0 && index < normalized.length - 1) {
+      return normalized.substring(index + 1);
+    }
+    return normalized;
+  }
+
+  Future<String> _readPlaylistSource(String sourcePath) async {
+    final uri = Uri.tryParse(sourcePath);
+    if (uri != null && uri.scheme == 'content') {
+      final content = await _storageChannel.invokeMethod<String>(
+        'readTextDocument',
+        {'uri': sourcePath},
+      );
+      if (content == null) {
+        throw const FormatException('Selected playlist file is empty');
+      }
+      return content;
+    }
+
+    return File(sourcePath).readAsString();
   }
 
   Future<void> _savePlaylists() async {
@@ -692,4 +838,11 @@ class _ResolvedM3uImport {
   final List<String> unmatchedEntries;
 
   const _ResolvedM3uImport({required this.ids, required this.unmatchedEntries});
+}
+
+class _SongLookup {
+  final Map<String, List<Song>> byPath;
+  final Map<String, List<Song>> byFileName;
+
+  const _SongLookup({required this.byPath, required this.byFileName});
 }

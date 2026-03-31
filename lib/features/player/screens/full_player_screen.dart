@@ -684,22 +684,30 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                     child: SizedBox(
                       width: 68,
                       height: 68,
-                      child: song.albumArt != null
-                          ? CachedImageWidget(
-                              imagePath: song.albumArt!,
-                              fit: BoxFit.cover,
-                              useThumbnail: true,
-                              thumbnailWidth: 136,
-                              thumbnailHeight: 136,
-                            )
-                          : Container(
-                              color: AppColors.surfaceLight,
-                              child: const Icon(
-                                LucideIcons.music,
-                                color: AppColors.textTertiary,
-                                size: 24,
-                              ),
-                            ),
+                      child: CachedImageWidget(
+                        imagePath: song.albumArt,
+                        audioSourcePath: song.filePath,
+                        fit: BoxFit.cover,
+                        useThumbnail: true,
+                        thumbnailWidth: 136,
+                        thumbnailHeight: 136,
+                        placeholder: Container(
+                          color: AppColors.surfaceLight,
+                          child: const Icon(
+                            LucideIcons.music,
+                            color: AppColors.textTertiary,
+                            size: 24,
+                          ),
+                        ),
+                        errorWidget: Container(
+                          color: AppColors.surfaceLight,
+                          child: const Icon(
+                            LucideIcons.music,
+                            color: AppColors.textTertiary,
+                            size: 24,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1029,6 +1037,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
           artistName: artistName,
           songs: artistSongs,
           artistArt: _firstArt(artistSongs),
+          artistArtSourcePath: _firstSourcePath(artistSongs),
           playerService: _playerService,
         ),
       ),
@@ -1053,6 +1062,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
           albumArtist: albumGroup.albumArtist,
           songs: albumGroup.songs,
           albumArt: _firstArt(albumGroup.songs),
+          albumArtSourcePath: _firstSourcePath(albumGroup.songs),
           playerService: _playerService,
         ),
       ),
@@ -1064,6 +1074,16 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
       final art = item.albumArt;
       if (art != null && art.isNotEmpty) {
         return art;
+      }
+    }
+    return null;
+  }
+
+  String? _firstSourcePath(List<Song> songs) {
+    for (final item in songs) {
+      final filePath = item.filePath;
+      if (filePath != null && filePath.isNotEmpty) {
+        return filePath;
       }
     }
     return null;
@@ -1447,7 +1467,7 @@ class _AnimatedSongScene extends StatelessWidget {
       return Stack(
         children: [
           Positioned.fill(
-            child: song.albumArt != null
+            child: (song.albumArt != null || song.filePath != null)
                 ? AmbientBackground(song: song)
                 : Container(
                     decoration: const BoxDecoration(
@@ -1487,16 +1507,27 @@ class _AnimatedSongScene extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: song.albumArt != null
-              ? CachedImageWidget(imagePath: song.albumArt!, fit: BoxFit.cover)
-              : Container(
-                  color: AppColors.background,
-                  child: Icon(
-                    LucideIcons.music,
-                    size: 120,
-                    color: AppColors.textTertiary.withValues(alpha: 0.3),
-                  ),
-                ),
+          child: CachedImageWidget(
+            imagePath: song.albumArt,
+            audioSourcePath: song.filePath,
+            fit: BoxFit.cover,
+            placeholder: Container(
+              color: AppColors.background,
+              child: Icon(
+                LucideIcons.music,
+                size: 120,
+                color: AppColors.textTertiary.withValues(alpha: 0.3),
+              ),
+            ),
+            errorWidget: Container(
+              color: AppColors.background,
+              child: Icon(
+                LucideIcons.music,
+                size: 120,
+                color: AppColors.textTertiary.withValues(alpha: 0.3),
+              ),
+            ),
+          ),
         ),
         Positioned.fill(
           child: Container(
@@ -2006,16 +2037,27 @@ class _AlbumArtBox extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(innerRadius),
-          child: song.albumArt != null
-              ? CachedImageWidget(imagePath: song.albumArt!, fit: BoxFit.cover)
-              : Container(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  child: Icon(
-                    LucideIcons.music,
-                    size: iconSize,
-                    color: Colors.white.withValues(alpha: 0.68),
-                  ),
-                ),
+          child: CachedImageWidget(
+            imagePath: song.albumArt,
+            audioSourcePath: song.filePath,
+            fit: BoxFit.cover,
+            placeholder: Container(
+              color: Colors.white.withValues(alpha: 0.08),
+              child: Icon(
+                LucideIcons.music,
+                size: iconSize,
+                color: Colors.white.withValues(alpha: 0.68),
+              ),
+            ),
+            errorWidget: Container(
+              color: Colors.white.withValues(alpha: 0.08),
+              child: Icon(
+                LucideIcons.music,
+                size: iconSize,
+                color: Colors.white.withValues(alpha: 0.68),
+              ),
+            ),
+          ),
         ),
       ),
     );

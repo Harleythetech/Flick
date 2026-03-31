@@ -125,22 +125,30 @@ class SongActionsBottomSheet extends ConsumerWidget {
           child: SizedBox(
             width: 68,
             height: 68,
-            child: song.albumArt != null
-                ? CachedImageWidget(
-                    imagePath: song.albumArt!,
-                    fit: BoxFit.cover,
-                    useThumbnail: true,
-                    thumbnailWidth: 136,
-                    thumbnailHeight: 136,
-                  )
-                : const ColoredBox(
-                    color: AppColors.surfaceLight,
-                    child: Icon(
-                      LucideIcons.music,
-                      color: AppColors.textTertiary,
-                      size: 24,
-                    ),
-                  ),
+            child: CachedImageWidget(
+              imagePath: song.albumArt,
+              audioSourcePath: song.filePath,
+              fit: BoxFit.cover,
+              useThumbnail: true,
+              thumbnailWidth: 136,
+              thumbnailHeight: 136,
+              placeholder: const ColoredBox(
+                color: AppColors.surfaceLight,
+                child: Icon(
+                  LucideIcons.music,
+                  color: AppColors.textTertiary,
+                  size: 24,
+                ),
+              ),
+              errorWidget: const ColoredBox(
+                color: AppColors.surfaceLight,
+                child: Icon(
+                  LucideIcons.music,
+                  color: AppColors.textTertiary,
+                  size: 24,
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 12),

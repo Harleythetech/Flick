@@ -4,12 +4,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flick/core/theme/app_colors.dart';
+import 'package:flick/services/album_art_service.dart';
 
 /// A cached image widget that handles both file and network images with caching,
 /// placeholders, and optional thumbnail support.
-class CachedImageWidget extends StatelessWidget {
+class CachedImageWidget extends StatefulWidget {
   /// Image path (file path or network URL)
   final String? imagePath;
+
+  /// Audio source path used to lazily resolve embedded artwork on demand.
+  final String? audioSourcePath;
 
   /// BoxFit for the image
   final BoxFit fit;
@@ -38,6 +42,7 @@ class CachedImageWidget extends StatelessWidget {
   const CachedImageWidget({
     super.key,
     this.imagePath,
+    this.audioSourcePath,
     this.fit = BoxFit.cover,
     this.placeholder,
     this.errorWidget,
@@ -74,80 +79,155 @@ class CachedImageWidget extends StatelessWidget {
   }
 
   @override
+  State<CachedImageWidget> createState() => _CachedImageWidgetState();
+}
+
+class _CachedImageWidgetState extends State<CachedImageWidget> {
+  String? _resolvedImagePath;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedImagePath = _usablePath(widget.imagePath);
+    _resolveEmbeddedArtwork();
+  }
+
+  @override
+  void didUpdateWidget(covariant CachedImageWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imagePath != widget.imagePath ||
+        oldWidget.audioSourcePath != widget.audioSourcePath) {
+      _resolvedImagePath = _usablePath(widget.imagePath);
+      _resolveEmbeddedArtwork();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (imagePath == null || imagePath!.isEmpty) {
+    final imagePath = _resolvedImagePath ?? _usablePath(widget.imagePath);
+    if (imagePath == null) {
       return SizedBox(
-        width: width,
-        height: height,
-        child: errorWidget ?? defaultErrorWidget(),
+        width: widget.width,
+        height: widget.height,
+        child: widget.errorWidget ?? CachedImageWidget.defaultErrorWidget(),
       );
     }
 
     // For file paths, use FileImage with caching
-    if (!imagePath!.startsWith('http')) {
-      return _buildFileImage();
+    if (!imagePath.startsWith('http')) {
+      return _buildFileImage(imagePath);
     }
 
     // For network URLs, use cached network image
-    return _buildNetworkImage();
+    return _buildNetworkImage(imagePath);
   }
 
-  Widget _buildFileImage() {
-    final file = File(imagePath!);
+  Future<void> _resolveEmbeddedArtwork() async {
+    final directPath = _usablePath(widget.imagePath);
+    if (directPath != null) {
+      if (_resolvedImagePath != directPath && mounted) {
+        setState(() {
+          _resolvedImagePath = directPath;
+        });
+      }
+      return;
+    }
+
+    final audioSourcePath = widget.audioSourcePath;
+    if (audioSourcePath == null || audioSourcePath.isEmpty) {
+      if (_resolvedImagePath != null && mounted) {
+        setState(() {
+          _resolvedImagePath = null;
+        });
+      }
+      return;
+    }
+
+    final resolvedPath = await AlbumArtService.instance.resolveArtworkPath(
+      existingPath: widget.imagePath,
+      audioSourcePath: audioSourcePath,
+    );
+
+    if (!mounted || audioSourcePath != widget.audioSourcePath) {
+      return;
+    }
+
+    final usablePath = _usablePath(resolvedPath);
+    if (_resolvedImagePath != usablePath) {
+      setState(() {
+        _resolvedImagePath = usablePath;
+      });
+    }
+  }
+
+  String? _usablePath(String? path) {
+    if (path == null || path.isEmpty) {
+      return null;
+    }
+
+    if (path.startsWith('http')) {
+      return path;
+    }
+
+    return File(path).existsSync() ? path : null;
+  }
+
+  Widget _buildFileImage(String imagePath) {
+    final file = File(imagePath);
 
     return Image.file(
       file,
-      width: width,
-      height: height,
-      fit: fit,
+      width: widget.width,
+      height: widget.height,
+      fit: widget.fit,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
         if (wasSynchronouslyLoaded || frame != null) {
           return child;
         }
         return SizedBox(
-          width: width,
-          height: height,
-          child: placeholder ?? defaultPlaceholder(),
+          width: widget.width,
+          height: widget.height,
+          child: widget.placeholder ?? CachedImageWidget.defaultPlaceholder(),
         );
       },
       errorBuilder: (context, error, stackTrace) {
         return SizedBox(
-          width: width,
-          height: height,
-          child: errorWidget ?? defaultErrorWidget(),
+          width: widget.width,
+          height: widget.height,
+          child: widget.errorWidget ?? CachedImageWidget.defaultErrorWidget(),
         );
       },
       // Use lower resolution for thumbnails
-      cacheWidth: useThumbnail && thumbnailWidth != null
-          ? thumbnailWidth
+      cacheWidth: widget.useThumbnail && widget.thumbnailWidth != null
+          ? widget.thumbnailWidth
           : null,
-      cacheHeight: useThumbnail && thumbnailHeight != null
-          ? thumbnailHeight
+      cacheHeight: widget.useThumbnail && widget.thumbnailHeight != null
+          ? widget.thumbnailHeight
           : null,
     );
   }
 
-  Widget _buildNetworkImage() {
+  Widget _buildNetworkImage(String imagePath) {
     return Image.network(
-      imagePath!,
-      width: width,
-      height: height,
-      fit: fit,
+      imagePath,
+      width: widget.width,
+      height: widget.height,
+      fit: widget.fit,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
         if (wasSynchronouslyLoaded || frame != null) {
           return child;
         }
         return SizedBox(
-          width: width,
-          height: height,
-          child: placeholder ?? defaultPlaceholder(),
+          width: widget.width,
+          height: widget.height,
+          child: widget.placeholder ?? CachedImageWidget.defaultPlaceholder(),
         );
       },
       errorBuilder: (context, error, stackTrace) {
         return SizedBox(
-          width: width,
-          height: height,
-          child: errorWidget ?? defaultErrorWidget(),
+          width: widget.width,
+          height: widget.height,
+          child: widget.errorWidget ?? CachedImageWidget.defaultErrorWidget(),
         );
       },
       loadingBuilder: (context, child, loadingProgress) {
@@ -155,17 +235,17 @@ class CachedImageWidget extends StatelessWidget {
           return child;
         }
         return SizedBox(
-          width: width,
-          height: height,
-          child: placeholder ?? defaultPlaceholder(),
+          width: widget.width,
+          height: widget.height,
+          child: widget.placeholder ?? CachedImageWidget.defaultPlaceholder(),
         );
       },
       // Use lower resolution for thumbnails
-      cacheWidth: useThumbnail && thumbnailWidth != null
-          ? thumbnailWidth
+      cacheWidth: widget.useThumbnail && widget.thumbnailWidth != null
+          ? widget.thumbnailWidth
           : null,
-      cacheHeight: useThumbnail && thumbnailHeight != null
-          ? thumbnailHeight
+      cacheHeight: widget.useThumbnail && widget.thumbnailHeight != null
+          ? widget.thumbnailHeight
           : null,
     );
   }

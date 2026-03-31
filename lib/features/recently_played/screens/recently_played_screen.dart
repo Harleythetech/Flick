@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -11,6 +10,7 @@ import 'package:flick/core/utils/navigation_helper.dart';
 import 'package:flick/models/song.dart';
 import 'package:flick/services/player_service.dart';
 import 'package:flick/data/repositories/recently_played_repository.dart';
+import 'package:flick/widgets/common/cached_image_widget.dart';
 import 'package:flick/widgets/common/display_mode_wrapper.dart';
 
 /// Recently Played screen with timeline-style layout.
@@ -502,22 +502,21 @@ class _RecentlyPlayedCardState extends State<_RecentlyPlayedCard>
                             top: Radius.circular(AppConstants.radiusLg),
                           ),
                         ),
-                        child: widget.song.albumArt != null
-                            ? ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(AppConstants.radiusLg),
-                                ),
-                                child: Image.file(
-                                  File(widget.song.albumArt!),
-                                  fit: BoxFit.cover,
-                                  cacheWidth: artworkTargetWidth,
-                                  filterQuality: FilterQuality.low,
-                                  gaplessPlayback: true,
-                                  errorBuilder: (_, _, _) =>
-                                      _buildPlaceholder(context),
-                                ),
-                              )
-                            : _buildPlaceholder(context),
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(AppConstants.radiusLg),
+                          ),
+                          child: CachedImageWidget(
+                            imagePath: widget.song.albumArt,
+                            audioSourcePath: widget.song.filePath,
+                            fit: BoxFit.cover,
+                            useThumbnail: true,
+                            thumbnailWidth: artworkTargetWidth,
+                            thumbnailHeight: artworkTargetWidth,
+                            placeholder: _buildPlaceholder(context),
+                            errorWidget: _buildPlaceholder(context),
+                          ),
+                        ),
                       ),
                     ),
                     // Song info

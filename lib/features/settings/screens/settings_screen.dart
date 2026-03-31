@@ -9,6 +9,7 @@ import 'package:flick/core/utils/responsive.dart';
 import 'package:flick/models/song_view_mode.dart';
 import 'package:flick/services/music_folder_service.dart';
 import 'package:flick/services/library_scanner_service.dart';
+import 'package:flick/services/library_scan_preferences_service.dart';
 import 'package:flick/services/permission_service.dart';
 import 'package:flick/data/repositories/song_repository.dart';
 import 'package:flick/data/repositories/folder_repository.dart';
@@ -519,6 +520,7 @@ SOFTWARE.
     final ambientBackgroundEnabled = ref.watch(
       ambientBackgroundEnabledProvider,
     );
+    final libraryScanPreferences = ref.watch(libraryScanPreferencesProvider);
 
     return DisplayModeWrapper(
       child: SafeArea(
@@ -543,7 +545,7 @@ SOFTWARE.
                     children: [
                       // Library section
                       _buildSectionHeader(context, 'Library'),
-                      _buildLibraryCard(context),
+                      _buildLibraryCard(context, libraryScanPreferences),
 
                       const SizedBox(height: AppConstants.spacingLg),
 
@@ -746,7 +748,10 @@ SOFTWARE.
     );
   }
 
-  Widget _buildLibraryCard(BuildContext context) {
+  Widget _buildLibraryCard(
+    BuildContext context,
+    LibraryScanPreferences libraryScanPreferences,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.6),
@@ -805,6 +810,59 @@ SOFTWARE.
             _buildDivider(),
             _buildAutoSyncToggle(context),
           ],
+          _buildDivider(),
+          _buildToggleSetting(
+            context,
+            icon: LucideIcons.scanSearch,
+            title: 'Filter Non-Music Files & Folders',
+            subtitle: 'Skip unsupported files and hidden .nomedia directories',
+            value: libraryScanPreferences.filterNonMusicFilesAndFolders,
+            onChanged: (value) {
+              ref
+                  .read(libraryScanPreferencesProvider.notifier)
+                  .setFilterNonMusicFilesAndFolders(value);
+            },
+          ),
+          _buildDivider(),
+          _buildToggleSetting(
+            context,
+            icon: LucideIcons.fileMinus,
+            title: 'Ignore Tracks Under 500 KB',
+            subtitle: 'Exclude tiny clips, previews, and accidental scraps',
+            value: libraryScanPreferences.ignoreTracksSmallerThan500Kb,
+            onChanged: (value) {
+              ref
+                  .read(libraryScanPreferencesProvider.notifier)
+                  .setIgnoreTracksSmallerThan500Kb(value);
+            },
+          ),
+          _buildDivider(),
+          _buildToggleSetting(
+            context,
+            icon: LucideIcons.timerOff,
+            title: 'Ignore Tracks Under 60 Seconds',
+            subtitle: 'Hide short stingers, ringtones, and voice fragments',
+            value: libraryScanPreferences.ignoreTracksShorterThan60Seconds,
+            onChanged: (value) {
+              ref
+                  .read(libraryScanPreferencesProvider.notifier)
+                  .setIgnoreTracksShorterThan60Seconds(value);
+            },
+          ),
+          _buildDivider(),
+          _buildToggleSetting(
+            context,
+            icon: LucideIcons.listMusic,
+            title: 'Import M3U/M3U8 Playlists',
+            subtitle:
+                'Create or refresh playlists found inside scanned folders',
+            value: libraryScanPreferences.createPlaylistsFromM3uFiles,
+            onChanged: (value) {
+              ref
+                  .read(libraryScanPreferencesProvider.notifier)
+                  .setCreatePlaylistsFromM3uFiles(value);
+            },
+          ),
         ],
       ),
     );

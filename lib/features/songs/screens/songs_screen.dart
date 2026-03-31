@@ -369,22 +369,30 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
                         child: SizedBox(
                           width: 46,
                           height: 46,
-                          child: song.albumArt != null
-                              ? CachedImageWidget(
-                                  imagePath: song.albumArt!,
-                                  fit: BoxFit.cover,
-                                  useThumbnail: true,
-                                  thumbnailWidth: 92,
-                                  thumbnailHeight: 92,
-                                )
-                              : const ColoredBox(
-                                  color: AppColors.surface,
-                                  child: Icon(
-                                    LucideIcons.music,
-                                    color: AppColors.textTertiary,
-                                    size: 18,
-                                  ),
-                                ),
+                          child: CachedImageWidget(
+                            imagePath: song.albumArt,
+                            audioSourcePath: song.filePath,
+                            fit: BoxFit.cover,
+                            useThumbnail: true,
+                            thumbnailWidth: 92,
+                            thumbnailHeight: 92,
+                            placeholder: const ColoredBox(
+                              color: AppColors.surface,
+                              child: Icon(
+                                LucideIcons.music,
+                                color: AppColors.textTertiary,
+                                size: 18,
+                              ),
+                            ),
+                            errorWidget: const ColoredBox(
+                              color: AppColors.surface,
+                              child: Icon(
+                                LucideIcons.music,
+                                color: AppColors.textTertiary,
+                                size: 18,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: AppConstants.spacingMd),

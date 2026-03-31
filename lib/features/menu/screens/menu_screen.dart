@@ -327,6 +327,10 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                                           artistName: artist.name,
                                           songs: artist.songs,
                                           artistArt: artist.artPath,
+                                          artistArtSourcePath: artist
+                                              .songs
+                                              .firstOrNull
+                                              ?.filePath,
                                           playerService: _playerService,
                                         ),
                                       );
@@ -1411,21 +1415,28 @@ class _HeroFeatureTile extends StatelessWidget {
             child: SizedBox(
               width: 74,
               height: 74,
-              child: song?.albumArt != null
-                  ? CachedImageWidget(
-                      imagePath: song!.albumArt!,
-                      fit: BoxFit.cover,
-                      useThumbnail: true,
-                      thumbnailWidth: 160,
-                      thumbnailHeight: 160,
-                    )
-                  : Container(
-                      color: Colors.white.withValues(alpha: 0.06),
-                      child: Icon(
-                        LucideIcons.music4,
-                        color: Colors.white.withValues(alpha: 0.72),
-                      ),
-                    ),
+              child: CachedImageWidget(
+                imagePath: song?.albumArt,
+                audioSourcePath: song?.filePath,
+                fit: BoxFit.cover,
+                useThumbnail: true,
+                thumbnailWidth: 160,
+                thumbnailHeight: 160,
+                placeholder: Container(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  child: Icon(
+                    LucideIcons.music4,
+                    color: Colors.white.withValues(alpha: 0.72),
+                  ),
+                ),
+                errorWidget: Container(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  child: Icon(
+                    LucideIcons.music4,
+                    color: Colors.white.withValues(alpha: 0.72),
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: AppConstants.spacingMd),
@@ -1854,21 +1865,28 @@ class _RecentTrackCard extends StatelessWidget {
                 child: SizedBox(
                   width: double.infinity,
                   height: 108,
-                  child: song.albumArt != null
-                      ? CachedImageWidget(
-                          imagePath: song.albumArt!,
-                          fit: BoxFit.cover,
-                          useThumbnail: true,
-                          thumbnailWidth: 240,
-                          thumbnailHeight: 240,
-                        )
-                      : Container(
-                          color: AppColors.glassBackgroundStrong,
-                          child: Icon(
-                            LucideIcons.music4,
-                            color: context.adaptiveTextSecondary,
-                          ),
-                        ),
+                  child: CachedImageWidget(
+                    imagePath: song.albumArt,
+                    audioSourcePath: song.filePath,
+                    fit: BoxFit.cover,
+                    useThumbnail: true,
+                    thumbnailWidth: 240,
+                    thumbnailHeight: 240,
+                    placeholder: Container(
+                      color: AppColors.glassBackgroundStrong,
+                      child: Icon(
+                        LucideIcons.music4,
+                        color: context.adaptiveTextSecondary,
+                      ),
+                    ),
+                    errorWidget: Container(
+                      color: AppColors.glassBackgroundStrong,
+                      child: Icon(
+                        LucideIcons.music4,
+                        color: context.adaptiveTextSecondary,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: AppConstants.spacingSm),
@@ -2409,23 +2427,28 @@ class _SmartMixDetailScreen extends StatelessWidget {
                                 child: SizedBox(
                                   width: 60,
                                   height: 60,
-                                  child: song.albumArt != null
-                                      ? CachedImageWidget(
-                                          imagePath: song.albumArt!,
-                                          fit: BoxFit.cover,
-                                          useThumbnail: true,
-                                          thumbnailWidth: 140,
-                                          thumbnailHeight: 140,
-                                        )
-                                      : Container(
-                                          color:
-                                              AppColors.glassBackgroundStrong,
-                                          child: Icon(
-                                            LucideIcons.music4,
-                                            color:
-                                                context.adaptiveTextSecondary,
-                                          ),
-                                        ),
+                                  child: CachedImageWidget(
+                                    imagePath: song.albumArt,
+                                    audioSourcePath: song.filePath,
+                                    fit: BoxFit.cover,
+                                    useThumbnail: true,
+                                    thumbnailWidth: 140,
+                                    thumbnailHeight: 140,
+                                    placeholder: Container(
+                                      color: AppColors.glassBackgroundStrong,
+                                      child: Icon(
+                                        LucideIcons.music4,
+                                        color: context.adaptiveTextSecondary,
+                                      ),
+                                    ),
+                                    errorWidget: Container(
+                                      color: AppColors.glassBackgroundStrong,
+                                      child: Icon(
+                                        LucideIcons.music4,
+                                        color: context.adaptiveTextSecondary,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: AppConstants.spacingMd),

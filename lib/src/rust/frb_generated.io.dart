@@ -29,6 +29,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Map<String, PlatformInt64> dco_decode_Map_String_i_64_None(dynamic raw);
 
   @protected
+  RustStreamSink<ScanChunk> dco_decode_StreamSink_scan_chunk_Sse(dynamic raw);
+
+  @protected
   String dco_decode_String(dynamic raw);
 
   @protected
@@ -66,6 +69,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   double dco_decode_box_autoadd_f_64(dynamic raw);
+
+  @protected
+  ScanOptions dco_decode_box_autoadd_scan_options(dynamic raw);
 
   @protected
   int dco_decode_box_autoadd_u_32(dynamic raw);
@@ -167,6 +173,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   (String, PlatformInt64) dco_decode_record_string_i_64(dynamic raw);
 
   @protected
+  ScanChunk dco_decode_scan_chunk(dynamic raw);
+
+  @protected
+  ScanOptions dco_decode_scan_options(dynamic raw);
+
+  @protected
   ScanResult dco_decode_scan_result(dynamic raw);
 
   @protected
@@ -216,6 +228,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Map<String, PlatformInt64> sse_decode_Map_String_i_64_None(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustStreamSink<ScanChunk> sse_decode_StreamSink_scan_chunk_Sse(
     SseDeserializer deserializer,
   );
 
@@ -271,6 +288,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   double sse_decode_box_autoadd_f_64(SseDeserializer deserializer);
+
+  @protected
+  ScanOptions sse_decode_box_autoadd_scan_options(SseDeserializer deserializer);
 
   @protected
   int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
@@ -392,6 +412,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ScanChunk sse_decode_scan_chunk(SseDeserializer deserializer);
+
+  @protected
+  ScanOptions sse_decode_scan_options(SseDeserializer deserializer);
+
+  @protected
   ScanResult sse_decode_scan_result(SseDeserializer deserializer);
 
   @protected
@@ -451,6 +477,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_Map_String_i_64_None(
     Map<String, PlatformInt64> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_scan_chunk_Sse(
+    RustStreamSink<ScanChunk> self,
     SseSerializer serializer,
   );
 
@@ -516,6 +548,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_scan_options(
+    ScanOptions self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
@@ -663,6 +701,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     (String, PlatformInt64) self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_scan_chunk(ScanChunk self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_scan_options(ScanOptions self, SseSerializer serializer);
 
   @protected
   void sse_encode_scan_result(ScanResult self, SseSerializer serializer);
