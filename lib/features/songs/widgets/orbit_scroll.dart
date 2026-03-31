@@ -160,8 +160,8 @@ class _OrbitScrollState extends State<OrbitScroll>
     if (delta == 0) return;
 
     final direction = delta > 0
-        ? ScrollDirection.reverse
-        : ScrollDirection.forward;
+        ? ScrollDirection.forward
+        : ScrollDirection.reverse;
 
     UserScrollNotification(
       metrics: FixedScrollMetrics(

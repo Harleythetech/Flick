@@ -232,9 +232,9 @@ class _MainShellState extends ConsumerState<MainShell>
       final direction = notification.direction;
       final currentVisibility = ref.read(navBarVisibleProvider);
 
-      if (direction == ScrollDirection.forward && currentVisibility) {
+      if (direction == ScrollDirection.reverse && currentVisibility) {
         ref.read(navBarVisibleProvider.notifier).setVisible(false);
-      } else if (direction == ScrollDirection.reverse && !currentVisibility) {
+      } else if (direction == ScrollDirection.forward && !currentVisibility) {
         ref.read(navBarVisibleProvider.notifier).setVisible(true);
       }
     }
