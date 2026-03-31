@@ -174,6 +174,7 @@ class PlayerService {
   bool _uac2RouteListenerAttached = false;
   bool _audioInitialized = false;
   Future<void>? _audioInitInFlight;
+  Future<void>? _appLaunchPreparationInFlight;
   Future<void>? _playStartupInFlight;
   Future<bool>? _rustInitInFlight;
   Future<void>? _backendHandoffInFlight;
@@ -339,6 +340,26 @@ class PlayerService {
     await future;
   }
 
+  Future<void> prepareForAppLaunch() async {
+    final inFlight = _appLaunchPreparationInFlight;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final future = () async {
+      await initAudio();
+      await _uac2Service.initialize();
+    }();
+
+    _appLaunchPreparationInFlight = future;
+    try {
+      await future;
+    } finally {
+      _appLaunchPreparationInFlight = null;
+    }
+  }
+
   Future<void> _initializeAudio() async {
     debugPrint('Initializing just_audio with gapless playback support');
 
@@ -349,12 +370,6 @@ class PlayerService {
       await _justAudioPlayer.setVolume(_currentVolume);
       await _updateLoopMode();
       _audioInitialized = true;
-
-      unawaited(
-        _uac2Service.initialize().catchError(
-          (Object e) => debugPrint('UAC2 init failed: $e'),
-        ),
-      );
     } finally {
       _audioInitInFlight = null;
     }
@@ -1182,10 +1197,6 @@ class PlayerService {
     }
   }
 
-  bool _requiresRustFormatFallback(Song song) {
-    return _playbackFileType(song) == 'm4a';
-  }
-
   String _playbackFileType(Song song) {
     return canonicalPlaybackFileType(
       fileType: song.fileType,
@@ -1194,15 +1205,20 @@ class PlayerService {
   }
 
   Future<bool> _shouldPreferRustBackend(Song song) async {
-    if (_requiresRustFormatFallback(song)) {
+    if (_rustAudioService.isHighResModeEnabled) {
       return true;
     }
 
-    if (!Platform.isAndroid) {
-      return false;
+    final preferredSampleRate = _deriveUac2FormatFromSong(song)?.sampleRate;
+
+    if (Platform.isAndroid) {
+      final capabilityInfo = await _uac2Service.getAndroidAudioCapabilityInfo();
+      await _rustAudioService.setCapabilityInfo(capabilityInfo);
     }
 
-    return _uac2Service.isAndroidExternalUsbRouteActive();
+    return _rustAudioService.shouldPreferRustEngine(
+      preferredSampleRate: preferredSampleRate,
+    );
   }
 
   Future<String?> _resolveRustPath(Song song) async {
@@ -1338,8 +1354,8 @@ class PlayerService {
         if (song.filePath != null) {
           await _prepareImmediatePlaybackAsset(song);
 
-          // Prefer the native backend for USB DAC playback and for formats that
-          // are unreliable on the platform decoder stack.
+          // Prefer the native backend when the active route exposes a
+          // high-capability path, such as USB DAC or hi-res internal playback.
           if (await _shouldPreferRustBackend(song)) {
             final usedRust = await _tryRustFallbackPlayback(song, force: true);
             if (usedRust) {

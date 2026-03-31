@@ -448,6 +448,17 @@ class MainActivity: FlutterActivity() {
                         )
                     )
                 }
+                "getAudioCapabilities" -> {
+                    result.success(
+                        getAudioCapabilities(
+                            preferredDeviceName = call.argument<String>("deviceName"),
+                            preferredProductName = call.argument<String>("productName"),
+                            preferredVendorId = call.argument<Number>("vendorId")?.toInt(),
+                            preferredProductId = call.argument<Number>("productId")?.toInt(),
+                            preferredSerial = call.argument<String>("serial"),
+                        )
+                    )
+                }
                 "setRouteVolume" -> {
                     val volume = call.argument<Double>("volume")
                     if (volume != null) {
@@ -1945,26 +1956,31 @@ class MainActivity: FlutterActivity() {
         } ?: candidates.firstOrNull()
     }
 
-    private fun describeCurrentOutputRoute(audioManager: AudioManager?): Map<String, Any?> {
-        if (audioManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val bestOutput = audioManager
-                .getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-                .minByOrNull { device -> outputRoutePriority(device.type) }
+    private fun currentBestOutputDevice(audioManager: AudioManager?): AudioDeviceInfo? {
+        if (audioManager == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return null
+        }
 
-            if (bestOutput != null) {
-                val routeType = routeTypeForAudioDevice(bestOutput.type)
-                val label = bestOutput.productName
-                    ?.toString()
-                    ?.takeIf { it.isNotBlank() }
-                    ?: defaultRouteLabel(routeType)
-                return mutableMapOf(
-                    "routeType" to routeType,
-                    "routeLabel" to label,
-                    "isExternal" to isExternalRouteType(routeType),
-                    "productName" to defaultProductName(routeType, label),
-                    "manufacturer" to Build.MANUFACTURER,
-                )
-            }
+        return audioManager
+            .getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            .minByOrNull { device -> outputRoutePriority(device.type) }
+    }
+
+    private fun describeCurrentOutputRoute(audioManager: AudioManager?): Map<String, Any?> {
+        val bestOutput = currentBestOutputDevice(audioManager)
+        if (bestOutput != null) {
+            val routeType = routeTypeForAudioDevice(bestOutput.type)
+            val label = bestOutput.productName
+                ?.toString()
+                ?.takeIf { it.isNotBlank() }
+                ?: defaultRouteLabel(routeType)
+            return mutableMapOf(
+                "routeType" to routeType,
+                "routeLabel" to label,
+                "isExternal" to isExternalRouteType(routeType),
+                "productName" to defaultProductName(routeType, label),
+                "manufacturer" to Build.MANUFACTURER,
+            )
         }
 
         return mutableMapOf(
@@ -1989,6 +2005,64 @@ class MainActivity: FlutterActivity() {
             "vendorId" to device.vendorId,
             "productId" to device.productId,
             "serial" to safeUsbSerial(device),
+        )
+    }
+
+    private fun getAudioCapabilities(
+        preferredDeviceName: String? = null,
+        preferredProductName: String? = null,
+        preferredVendorId: Int? = null,
+        preferredProductId: Int? = null,
+        preferredSerial: String? = null,
+    ): Map<String, Any?> {
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val routeStatus = getRouteStatus(
+            preferredDeviceName = preferredDeviceName,
+            preferredProductName = preferredProductName,
+            preferredVendorId = preferredVendorId,
+            preferredProductId = preferredProductId,
+            preferredSerial = preferredSerial,
+        )
+        val routeType = routeStatus["routeType"] as? String ?: "unknown"
+        val bestOutput = currentBestOutputDevice(audioManager)
+        val supportedSampleRates = bestOutput
+            ?.sampleRates
+            ?.filter { it > 0 }
+            ?.distinct()
+            ?.sorted()
+            ?: emptyList()
+        val nativeSampleRate = audioManager
+            ?.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)
+            ?.toIntOrNull()
+        val maxSupportedSampleRate = listOfNotNull(
+            supportedSampleRates.maxOrNull(),
+            nativeSampleRate,
+        ).maxOrNull()
+        val hasProAudio = packageManager.hasSystemFeature(PackageManager.FEATURE_AUDIO_PRO)
+        val hasLowLatency = packageManager.hasSystemFeature(PackageManager.FEATURE_AUDIO_LOW_LATENCY)
+        val hiResInternal = (routeType == "internal" || routeType == "wired") &&
+            ((maxSupportedSampleRate ?: 0) > 48_000 || (hasProAudio && (nativeSampleRate ?: 0) > 48_000))
+
+        val capabilities = mutableListOf<String>()
+        if (routeType == "usb") {
+            capabilities += "usbDac"
+        }
+        if (hiResInternal) {
+            capabilities += "hiResInternal"
+        }
+        if (capabilities.isEmpty()) {
+            capabilities += "standard"
+        }
+
+        return mutableMapOf(
+            "capabilities" to capabilities,
+            "routeType" to routeType,
+            "routeLabel" to routeStatus["routeLabel"],
+            "maxSupportedSampleRate" to maxSupportedSampleRate,
+            "nativeSampleRate" to nativeSampleRate,
+            "supportedSampleRates" to supportedSampleRates,
+            "hasProAudio" to hasProAudio,
+            "hasLowLatency" to hasLowLatency,
         )
     }
 

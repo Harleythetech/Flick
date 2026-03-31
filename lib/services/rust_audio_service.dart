@@ -44,6 +44,7 @@ class RustAudioService {
   Timer? _progressTimer;
   Timer? _eventPollTimer;
   bool _initialized = false;
+  bool _highResModeEnabled = false;
   String? _currentPath;
   String? _nextPath;
 
@@ -51,21 +52,24 @@ class RustAudioService {
   bool get isNativeAvailable => rust_audio.audioIsNativeAvailable();
 
   /// Initialize the Rust audio engine.
-  /// Must be called once at app startup after RustLib.init().
-  /// Returns true if initialization succeeded, false if native audio is not available.
+  /// This only boots the manager and event bridge. The heavy native engine is
+  /// created lazily on first Rust playback request.
   Future<bool> init() async {
     if (_initialized) return true;
 
     // Check if native audio is available on this platform
     if (!rust_audio.audioIsNativeAvailable()) {
-      debugPrint('Native audio engine not available (expected on mobile platforms)');
+      debugPrint(
+        'Native audio engine not available (expected on mobile platforms)',
+      );
       return false;
     }
 
     try {
       rust_audio.audioInit();
+      rust_audio.audioSetHighResMode(enabled: _highResModeEnabled);
       _initialized = true;
-      debugPrint('Rust audio engine initialized');
+      debugPrint('Rust audio engine manager initialized');
 
       // Start event polling
       _startEventPolling();
@@ -78,6 +82,86 @@ class RustAudioService {
 
   /// Check if the engine is initialized.
   bool get isInitialized => _initialized;
+
+  /// Whether the user explicitly requested the native high-res engine path.
+  bool get isHighResModeEnabled => _highResModeEnabled;
+
+  /// The engine currently selected by the Rust-side manager.
+  String get activeEngine => rust_audio.audioGetActiveEngine();
+
+  /// Enable or disable high-res mode.
+  Future<void> setHighResMode(bool enabled) async {
+    _highResModeEnabled = enabled;
+    rust_audio.audioSetHighResMode(enabled: enabled);
+  }
+
+  /// Detect whether a DAC is available for the requested output rate.
+  Future<bool> isDacAvailable({int? preferredSampleRate}) async {
+    if (!isNativeAvailable) return false;
+
+    try {
+      return await rust_audio.audioIsDacAvailable(
+        preferredSampleRate: preferredSampleRate,
+      );
+    } catch (e) {
+      debugPrint('Error detecting DAC availability: $e');
+      return false;
+    }
+  }
+
+  /// Update the current route capability hint used by the Rust engine manager.
+  Future<void> setCapabilityInfo(rust_audio.AudioCapabilityInfo info) async {
+    if (!isNativeAvailable) return;
+
+    try {
+      rust_audio.audioSetCapabilityInfo(info: info);
+    } catch (e) {
+      debugPrint('Error updating audio capability info: $e');
+    }
+  }
+
+  /// Get the merged capability snapshot after local detection and platform hints.
+  Future<rust_audio.AudioCapabilityInfo> getCapabilityInfo({
+    int? preferredSampleRate,
+  }) async {
+    if (!isNativeAvailable) {
+      return const rust_audio.AudioCapabilityInfo(
+        capabilities: [rust_audio.AudioCapabilityType.standard],
+        routeType: 'unknown',
+        routeLabel: null,
+        maxSampleRate: null,
+      );
+    }
+
+    try {
+      return await rust_audio.audioGetCapabilityInfo(
+        preferredSampleRate: preferredSampleRate,
+      );
+    } catch (e) {
+      debugPrint('Error reading audio capability info: $e');
+      return const rust_audio.AudioCapabilityInfo(
+        capabilities: [rust_audio.AudioCapabilityType.standard],
+        routeType: 'unknown',
+        routeLabel: null,
+        maxSampleRate: null,
+      );
+    }
+  }
+
+  bool capabilityInfoPrefersRust(rust_audio.AudioCapabilityInfo info) {
+    return info.capabilities.contains(rust_audio.AudioCapabilityType.usbDac) ||
+        info.capabilities.contains(
+          rust_audio.AudioCapabilityType.hiResInternal,
+        );
+  }
+
+  /// Resolve whether the native Rust backend should be preferred for playback.
+  Future<bool> shouldPreferRustEngine({int? preferredSampleRate}) async {
+    final info = await getCapabilityInfo(
+      preferredSampleRate: preferredSampleRate,
+    );
+    return capabilityInfoPrefersRust(info);
+  }
 
   /// Get the current playback state.
   RustPlaybackState get state => stateNotifier.value;

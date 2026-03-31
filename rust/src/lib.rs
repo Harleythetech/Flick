@@ -2,6 +2,7 @@ pub mod api;
 
 // Audio engine is now available on all platforms including Android (using CPAL with Oboe backend)
 pub mod audio;
+pub mod library_scan;
 
 /// Custom UAC 2.0 USB Audio (DAC/AMP detection and bit-perfect playback).
 /// Real implementation is gated by the `uac2` feature.

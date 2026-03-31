@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flick/models/song.dart';
+import 'package:flick/src/rust/api/audio_api.dart' as rust_audio;
 import 'package:flick/src/rust/api/uac2_api.dart' as rust_uac2;
 import 'package:flick/services/uac2_preferences_service.dart';
 import 'package:flick/services/uac2_exception.dart';
@@ -135,6 +136,7 @@ class Uac2Service {
   Uac2DeviceStatus? _currentDeviceStatus;
   final List<ValueChanged<Uac2DeviceStatus?>> _statusListeners = [];
   bool _androidChannelConfigured = false;
+  Future<void>? _initializeInFlight;
   Uac2AudioFormat? _lastKnownFormat;
   bool _lastKnownIsPlaying = false;
   bool _lastKnownHasSong = false;
@@ -167,8 +169,29 @@ class Uac2Service {
   }
 
   Future<void> initialize() async {
+    final inFlight = _initializeInFlight;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final future = _initializeInternal();
+    _initializeInFlight = future;
+    try {
+      await future;
+    } finally {
+      _initializeInFlight = null;
+    }
+  }
+
+  Future<void> _initializeInternal() async {
     if (Platform.isAndroid) {
       _configureAndroidChannel();
+      await _refreshAndroidRouteStatus(
+        formatOverride: _lastKnownFormat,
+        isPlaying: _lastKnownIsPlaying,
+        hasActiveSong: _lastKnownHasSong,
+      );
     }
 
     final autoConnect = await _preferencesService.getAutoConnect();
@@ -194,9 +217,7 @@ class Uac2Service {
       switch (call.method) {
         case 'onDeviceAttached':
         case 'onDeviceDetached':
-          if (_currentDeviceStatus != null || _lastKnownHasSong) {
-            _scheduleAndroidRouteRefresh();
-          }
+          _scheduleAndroidRouteRefresh();
           return;
         default:
           return;
@@ -926,17 +947,63 @@ class Uac2Service {
     );
   }
 
-  Future<bool> isAndroidExternalUsbRouteActive() async {
+  Future<rust_audio.AudioCapabilityInfo> getAndroidAudioCapabilityInfo() async {
     if (!Platform.isAndroid) {
-      return false;
+      return const rust_audio.AudioCapabilityInfo(
+        capabilities: [rust_audio.AudioCapabilityType.standard],
+        routeType: 'unknown',
+        routeLabel: null,
+        maxSampleRate: null,
+      );
     }
 
     final resolvedPreferredDevice = await _resolvePreferredAndroidDevice(null);
-    final routeStatus = await _getAndroidRouteStatus(
-      preferredDevice: resolvedPreferredDevice,
-    );
-    return _routeTypeFromString(routeStatus?['routeType'] as String?) ==
-        Uac2RouteType.externalUsb;
+    try {
+      final raw = await _channel
+          .invokeMapMethod<dynamic, dynamic>('getAudioCapabilities', {
+            'deviceName': resolvedPreferredDevice?.deviceName,
+            'productName': resolvedPreferredDevice?.productName,
+            'vendorId': resolvedPreferredDevice?.vendorId,
+            'productId': resolvedPreferredDevice?.productId,
+            'serial': resolvedPreferredDevice?.serial,
+          });
+
+      if (raw == null) {
+        return const rust_audio.AudioCapabilityInfo(
+          capabilities: [rust_audio.AudioCapabilityType.standard],
+          routeType: 'unknown',
+          routeLabel: null,
+          maxSampleRate: null,
+        );
+      }
+
+      final map = raw.map((key, value) => MapEntry(key.toString(), value));
+      final rawCapabilities =
+          (map['capabilities'] as List<dynamic>? ?? const <dynamic>[])
+              .whereType<String>()
+              .toList();
+      final capabilities = rawCapabilities.isEmpty
+          ? const [rust_audio.AudioCapabilityType.standard]
+          : rawCapabilities
+                .map(_audioCapabilityTypeFromString)
+                .toSet()
+                .toList();
+
+      return rust_audio.AudioCapabilityInfo(
+        capabilities: capabilities,
+        routeType: map['routeType'] as String? ?? 'unknown',
+        routeLabel: map['routeLabel'] as String?,
+        maxSampleRate: (map['maxSupportedSampleRate'] as num?)?.toInt(),
+      );
+    } catch (e) {
+      debugPrint('Uac2Service.getAndroidAudioCapabilityInfo failed: $e');
+      return const rust_audio.AudioCapabilityInfo(
+        capabilities: [rust_audio.AudioCapabilityType.standard],
+        routeType: 'unknown',
+        routeLabel: null,
+        maxSampleRate: null,
+      );
+    }
   }
 
   Future<Uac2DeviceInfo?> _resolvePreferredAndroidDevice(
@@ -1161,6 +1228,17 @@ String _defaultProductNameForRoute(Uac2RouteType routeType) {
       return 'Dock Audio';
     case Uac2RouteType.unknown:
       return 'Audio Output';
+  }
+}
+
+rust_audio.AudioCapabilityType _audioCapabilityTypeFromString(String value) {
+  switch (value) {
+    case 'usbDac':
+      return rust_audio.AudioCapabilityType.usbDac;
+    case 'hiResInternal':
+      return rust_audio.AudioCapabilityType.hiResInternal;
+    default:
+      return rust_audio.AudioCapabilityType.standard;
   }
 }
 

@@ -5,50 +5,26 @@
 
 use crate::audio::commands::{AudioEvent, PlaybackState};
 use crate::audio::decoder::probe_file;
-use crate::audio::engine::{create_audio_engine, desired_output_signature, AudioEngineHandle};
+use crate::audio::manager::{AudioCapability, AudioCapabilitySnapshot, AudioEngine, EngineManager};
 use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use std::path::PathBuf;
 
-// Global audio engine handle
-static AUDIO_ENGINE: Lazy<Mutex<Option<AudioEngineHandle>>> = Lazy::new(|| Mutex::new(None));
+static ENGINE_MANAGER: Lazy<EngineManager> = Lazy::new(EngineManager::new);
 
 fn with_audio_engine<T>(
-    f: impl FnOnce(&AudioEngineHandle) -> Result<T, String>,
+    f: impl FnOnce(&crate::audio::engine::AudioEngineHandle) -> Result<T, String>,
 ) -> Result<T, String> {
-    let guard = AUDIO_ENGINE.lock();
-    let handle = guard
-        .as_ref()
-        .ok_or_else(|| "Audio engine not initialized".to_string())?;
-    f(handle)
+    ENGINE_MANAGER.with_rust_handle(f)
 }
 
-fn read_audio_engine<T>(f: impl FnOnce(&AudioEngineHandle) -> T) -> Option<T> {
-    let guard = AUDIO_ENGINE.lock();
-    guard.as_ref().map(f)
+fn read_audio_engine<T>(
+    f: impl FnOnce(&crate::audio::engine::AudioEngineHandle) -> T,
+) -> Option<T> {
+    ENGINE_MANAGER.read_rust_handle(f)
 }
 
 fn ensure_audio_engine(preferred_sample_rate: Option<u32>) -> Result<(), String> {
-    let mut guard = AUDIO_ENGINE.lock();
-    let desired_signature = desired_output_signature(preferred_sample_rate);
-    let needs_recreate = match (guard.as_ref(), preferred_sample_rate) {
-        (None, _) => true,
-        (Some(handle), Some(rate)) => {
-            handle.sample_rate() != rate || handle.output_signature() != desired_signature
-        }
-        (Some(handle), None) => handle.output_signature() != desired_signature,
-    };
-
-    if !needs_recreate {
-        return Ok(());
-    }
-
-    if let Some(handle) = guard.take() {
-        let _ = handle.shutdown();
-    }
-
-    *guard = Some(create_audio_engine(preferred_sample_rate)?);
-    Ok(())
+    ENGINE_MANAGER.ensure_rust_engine(preferred_sample_rate)
 }
 
 fn probe_output_sample_rate(path: &PathBuf) -> Option<u32> {
@@ -107,6 +83,65 @@ pub enum CrossfadeCurveType {
     SCurve,
 }
 
+/// The currently available output capability classes for engine selection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AudioCapabilityType {
+    UsbDac,
+    HiResInternal,
+    Standard,
+}
+
+impl From<AudioCapability> for AudioCapabilityType {
+    fn from(value: AudioCapability) -> Self {
+        match value {
+            AudioCapability::UsbDac => Self::UsbDac,
+            AudioCapability::HiResInternal => Self::HiResInternal,
+            AudioCapability::Standard => Self::Standard,
+        }
+    }
+}
+
+impl From<AudioCapabilityType> for AudioCapability {
+    fn from(value: AudioCapabilityType) -> Self {
+        match value {
+            AudioCapabilityType::UsbDac => Self::UsbDac,
+            AudioCapabilityType::HiResInternal => Self::HiResInternal,
+            AudioCapabilityType::Standard => Self::Standard,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct AudioCapabilityInfo {
+    pub capabilities: Vec<AudioCapabilityType>,
+    pub route_type: String,
+    pub route_label: Option<String>,
+    pub max_sample_rate: Option<u32>,
+}
+
+impl From<AudioCapabilitySnapshot> for AudioCapabilityInfo {
+    fn from(value: AudioCapabilitySnapshot) -> Self {
+        Self {
+            capabilities: value.capabilities.into_iter().map(Into::into).collect(),
+            route_type: value.route_type,
+            route_label: value.route_label,
+            max_sample_rate: value.max_sample_rate,
+        }
+    }
+}
+
+impl From<AudioCapabilityInfo> for AudioCapabilitySnapshot {
+    fn from(value: AudioCapabilityInfo) -> Self {
+        AudioCapabilitySnapshot {
+            capabilities: value.capabilities.into_iter().map(Into::into).collect(),
+            route_type: value.route_type,
+            route_label: value.route_label,
+            max_sample_rate: value.max_sample_rate,
+        }
+        .normalize()
+    }
+}
+
 // ============================================================================
 // API FUNCTIONS
 // ============================================================================
@@ -121,13 +156,51 @@ pub fn audio_is_native_available() -> bool {
 /// Initialize the audio engine.
 #[flutter_rust_bridge::frb(sync)]
 pub fn audio_init() -> Result<(), String> {
-    ensure_audio_engine(None)
+    ENGINE_MANAGER.init();
+    Ok(())
 }
 
 /// Check if the audio engine is initialized.
 #[flutter_rust_bridge::frb(sync)]
 pub fn audio_is_initialized() -> bool {
-    AUDIO_ENGINE.lock().is_some()
+    ENGINE_MANAGER.is_rust_initialized()
+}
+
+/// Enable or disable high-res mode. When enabled, the Rust engine is allowed
+/// to initialize even if a DAC is not currently detected.
+#[flutter_rust_bridge::frb(sync)]
+pub fn audio_set_high_res_mode(enabled: bool) {
+    ENGINE_MANAGER.set_high_res_mode(enabled);
+}
+
+/// Update the current platform capability snapshot used for engine selection.
+#[flutter_rust_bridge::frb(sync)]
+pub fn audio_set_capability_info(info: AudioCapabilityInfo) {
+    ENGINE_MANAGER.set_capability_snapshot(info.into());
+}
+
+/// Inspect the current capability snapshot after native detection and platform hints are merged.
+pub fn audio_get_capability_info(
+    preferred_sample_rate: Option<u32>,
+) -> Result<AudioCapabilityInfo, String> {
+    ENGINE_MANAGER
+        .capability_snapshot(preferred_sample_rate)
+        .map(Into::into)
+}
+
+/// Return the currently selected engine.
+#[flutter_rust_bridge::frb(sync)]
+pub fn audio_get_active_engine() -> String {
+    match ENGINE_MANAGER.current_engine() {
+        Some(AudioEngine::Default) => "default".to_string(),
+        Some(AudioEngine::Rust) => "rust".to_string(),
+        None => "uninitialized".to_string(),
+    }
+}
+
+/// Detect whether a DAC is present before attempting Rust engine initialization.
+pub fn audio_is_dac_available(preferred_sample_rate: Option<u32>) -> Result<bool, String> {
+    ENGINE_MANAGER.is_dac_available(preferred_sample_rate)
 }
 
 /// Play an audio file.
@@ -317,9 +390,5 @@ pub fn audio_get_channels() -> Option<usize> {
 
 /// Shutdown the audio engine.
 pub fn audio_shutdown() -> Result<(), String> {
-    let handle = AUDIO_ENGINE.lock().take();
-    if let Some(handle) = handle {
-        handle.shutdown()?;
-    }
-    Ok(())
+    ENGINE_MANAGER.shutdown()
 }
