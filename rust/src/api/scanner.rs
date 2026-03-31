@@ -40,7 +40,17 @@ fn is_supported_audio_path(path: &Path) -> bool {
 
     matches!(
         ext.as_str(),
-        "mp3" | "flac" | "ogg" | "m4a" | "wav" | "aif" | "aiff" | "alac"
+        "mp3"
+            | "flac"
+            | "ogg"
+            | "oga"
+            | "ogx"
+            | "opus"
+            | "m4a"
+            | "wav"
+            | "aif"
+            | "aiff"
+            | "alac"
     )
 }
 

@@ -132,6 +132,11 @@ class LibraryScannerService {
             existing.albumArtPath == null ||
             (existing.albumArtPath != null &&
                 !File(existing.albumArtPath!).existsSync());
+        final currentFileType = file.extension.trim().toUpperCase();
+        final storedFileType = existing.fileType?.trim().toUpperCase();
+        final fileTypeMismatch =
+            currentFileType.isNotEmpty &&
+            (storedFileType == null || storedFileType != currentFileType);
         final missingMetadata =
             albumArtMissing ||
             existing.bitrate == null ||
@@ -139,7 +144,8 @@ class LibraryScannerService {
             existing.bitDepth == null ||
             existing.trackNumber == null ||
             existing.discNumber == null ||
-            existing.albumArtist == null;
+            existing.albumArtist == null ||
+            fileTypeMismatch;
 
         if (file.lastModified != existingTime || missingMetadata) {
           urisToProcess.add(file.uri);
@@ -178,24 +184,35 @@ class LibraryScannerService {
       }
 
       final batch = <SongEntity>[];
-      for (final meta in metadataList) {
-        // Merge with basic info
-        final basic = fastScanMap[meta.uri];
-        if (basic == null) continue; // Should not happen
+      final metadataByUri = <String, AudioFileInfo>{
+        for (final meta in metadataList) meta.uri: meta,
+      };
 
+      for (final uri in chunkUris) {
+        final basic = fastScanMap[uri];
+        if (basic == null) continue;
+
+        final meta = metadataByUri[uri];
+        final artist = (meta?.artist?.trim().isNotEmpty ?? false)
+            ? meta!.artist!.trim()
+            : 'Unknown Artist';
         final song = SongEntity()
           ..filePath = basic.uri
-          ..title = meta.title ?? basic.name
-          ..artist = meta.artist ?? 'Unknown Artist'
-          ..album = meta.album ?? 'Unknown Album'
-          ..albumArtist = (meta.albumArtist?.trim().isNotEmpty ?? false)
-              ? meta.albumArtist!.trim()
-              : (meta.artist ?? 'Unknown Artist')
+          ..title = (meta?.title?.trim().isNotEmpty ?? false)
+              ? meta!.title!.trim()
+              : _extractTitleFromFilename(basic.name)
+          ..artist = artist
+          ..album = (meta?.album?.trim().isNotEmpty ?? false)
+              ? meta!.album!.trim()
+              : 'Unknown Album'
+          ..albumArtist = (meta?.albumArtist?.trim().isNotEmpty ?? false)
+              ? meta!.albumArtist!.trim()
+              : artist
           // 0 is used as a persisted sentinel for "unknown track" so we can
           // migrate old rows once without forcing rescans forever.
-          ..trackNumber = meta.trackNumber ?? 0
-          ..discNumber = meta.discNumber ?? 1
-          ..durationMs = meta.duration ?? 0
+          ..trackNumber = meta?.trackNumber ?? 0
+          ..discNumber = meta?.discNumber ?? 1
+          ..durationMs = meta?.duration ?? 0
           ..fileType = basic.extension.toUpperCase()
           ..dateAdded = existingMap[basic.uri]?.dateAdded ?? DateTime.now()
           ..lastModified = DateTime.fromMillisecondsSinceEpoch(
@@ -203,14 +220,16 @@ class LibraryScannerService {
           )
           ..folderUri = folderUri
           ..fileSize = basic.size
-          ..albumArtPath = meta.albumArtPath
-          ..bitrate = meta.bitrate != null ? int.tryParse(meta.bitrate!) : null
-          ..bitDepth = meta.bitDepth
-          ..sampleRate = meta.sampleRate;
+          ..albumArtPath = meta?.albumArtPath
+          ..bitrate = meta?.bitrate != null
+              ? int.tryParse(meta!.bitrate!)
+              : null
+          ..bitDepth = meta?.bitDepth
+          ..sampleRate = meta?.sampleRate;
 
-        // Restore ID if updating
-        if (existingMap.containsKey(basic.uri)) {
-          song.id = existingMap[basic.uri]!.id;
+        final existing = existingMap[basic.uri];
+        if (existing != null) {
+          song.id = existing.id;
         }
 
         batch.add(song);

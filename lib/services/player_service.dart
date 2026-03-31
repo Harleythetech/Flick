@@ -61,6 +61,76 @@ List<Song> restorePlaybackOrder({
   return restored;
 }
 
+@visibleForTesting
+String canonicalPlaybackFileType({required String fileType, String? filePath}) {
+  final pathExtension = extractPlaybackPathExtension(filePath);
+  final candidates = <String>[
+    if (pathExtension.isNotEmpty) pathExtension,
+    if (fileType.trim().isNotEmpty) fileType,
+  ];
+
+  for (final candidate in candidates) {
+    final normalized = _normalizePlaybackFileTypeCandidate(candidate);
+    if (normalized.isNotEmpty) {
+      return normalized;
+    }
+  }
+
+  return '';
+}
+
+@visibleForTesting
+String extractPlaybackPathExtension(String? path) {
+  if (path == null || path.isEmpty) return '';
+
+  final withoutQuery = path.split('?').first.split('#').first;
+  final dotIndex = withoutQuery.lastIndexOf('.');
+  if (dotIndex < 0 || dotIndex >= withoutQuery.length - 1) return '';
+  return withoutQuery.substring(dotIndex + 1).toLowerCase();
+}
+
+String _normalizePlaybackFileTypeCandidate(String rawValue) {
+  var token = rawValue.trim().toLowerCase();
+  if (token.isEmpty) return '';
+
+  final separatorIndex = token.indexOf(';');
+  if (separatorIndex >= 0) {
+    token = token.substring(0, separatorIndex);
+  }
+
+  final slashIndex = token.lastIndexOf('/');
+  if (slashIndex >= 0 && slashIndex < token.length - 1) {
+    token = token.substring(slashIndex + 1);
+  }
+
+  token = token.replaceFirst(RegExp(r'^\.+'), '');
+  token = token.trim();
+
+  switch (token) {
+    case 'aif':
+    case 'aiff':
+    case 'x-aiff':
+      return 'aiff';
+    case 'alac':
+    case 'm4a':
+    case 'mp4':
+    case 'x-m4a':
+      return 'm4a';
+    case 'ogg':
+    case 'oga':
+    case 'vorbis':
+      return 'ogg';
+    case 'ogx':
+      return 'ogx';
+    case 'opus':
+      return 'opus';
+    case 'wave':
+      return 'wav';
+    default:
+      return token;
+  }
+}
+
 /// Singleton service to manage global audio playback state.
 ///
 /// Uses just_audio for playback with gapless playback support.
@@ -948,14 +1018,22 @@ class PlayerService {
   }
 
   Future<Uri> _resolvePlaybackUri(Song song) async {
-    final filePath = song.filePath;
-    if (filePath == null || filePath.isEmpty) {
+    final resolvedPath = await _resolvePreparedPlaybackPath(song);
+    if (resolvedPath == null || resolvedPath.isEmpty) {
       return Uri.parse('');
     }
 
-    final sourceKey = filePath;
-    String resolvedPath = filePath;
+    return _toPlaybackUri(resolvedPath);
+  }
 
+  Future<String?> _resolvePreparedPlaybackPath(Song song) async {
+    final filePath = song.filePath;
+    if (filePath == null || filePath.isEmpty) {
+      return null;
+    }
+
+    final sourceKey = filePath;
+    var resolvedPath = filePath;
     final parsed = Uri.tryParse(filePath);
     final isAndroidContentUri =
         !kIsWeb &&
@@ -980,27 +1058,16 @@ class PlayerService {
         sourcePath: resolvedPath,
       );
       if (convertedPath != null) {
-        return Uri.file(convertedPath);
+        resolvedPath = convertedPath;
       }
     }
 
-    return _toPlaybackUri(resolvedPath);
+    return resolvedPath;
   }
 
   bool _shouldStageForPlayback(Song song) {
-    final normalized = song.fileType.replaceAll('.', '').trim().toUpperCase();
-    if (normalized == 'ALAC' || normalized == 'AIFF' || normalized == 'AIF') {
-      return true;
-    }
-
-    // M4A can be either AAC (usually fine) or ALAC. Use resolution metadata as
-    // a proxy to avoid staging every AAC M4A in large playlists.
-    if (normalized == 'M4A') {
-      final resolution = song.resolution?.toLowerCase() ?? '';
-      return resolution.contains('-bit');
-    }
-
-    return false;
+    final normalized = _playbackFileType(song);
+    return normalized == 'm4a' || normalized == 'aiff';
   }
 
   Future<String?> _stageContentUriForPlayback(
@@ -1028,28 +1095,20 @@ class PlayerService {
   }
 
   String _preferredExtension(Song song) {
-    final fileType = song.fileType.replaceAll('.', '').trim().toLowerCase();
-    if (fileType == 'aiff' || fileType == 'aif') return 'aiff';
-    if (fileType == 'alac' || fileType == 'm4a') return 'm4a';
+    final fileType = _playbackFileType(song);
+    if (fileType == 'aiff' || fileType == 'm4a') return fileType;
     if (RegExp(r'^[a-z0-9]+$').hasMatch(fileType) && fileType.isNotEmpty) {
       return fileType;
     }
 
     final filePath = song.filePath;
     if (filePath != null) {
-      final extension = _extractExtension(filePath);
+      final extension = extractPlaybackPathExtension(filePath);
       if (extension.isNotEmpty) {
         return extension;
       }
     }
     return 'm4a';
-  }
-
-  String _extractExtension(String path) {
-    final withoutQuery = path.split('?').first;
-    final dotIndex = withoutQuery.lastIndexOf('.');
-    if (dotIndex < 0 || dotIndex >= withoutQuery.length - 1) return '';
-    return withoutQuery.substring(dotIndex + 1).toLowerCase();
   }
 
   Uri _toPlaybackUri(String rawPath) {
@@ -1068,8 +1127,8 @@ class PlayerService {
   }
 
   bool _shouldConvertToWav(Song song) {
-    final normalized = song.fileType.replaceAll('.', '').trim().toUpperCase();
-    return normalized == 'AIFF' || normalized == 'AIF';
+    final normalized = _playbackFileType(song);
+    return normalized == 'm4a' || normalized == 'aiff';
   }
 
   Future<String?> _convertPlaybackPathToWav({
@@ -1103,8 +1162,14 @@ class PlayerService {
   }
 
   bool _requiresRustFormatFallback(Song song) {
-    final normalized = song.fileType.replaceAll('.', '').trim().toUpperCase();
-    return normalized == 'ALAC' || normalized == 'M4A';
+    return _playbackFileType(song) == 'm4a';
+  }
+
+  String _playbackFileType(Song song) {
+    return canonicalPlaybackFileType(
+      fileType: song.fileType,
+      filePath: song.filePath,
+    );
   }
 
   Future<bool> _shouldPreferRustBackend(Song song) async {
@@ -1120,27 +1185,27 @@ class PlayerService {
   }
 
   Future<String?> _resolveRustPath(Song song) async {
-    final filePath = song.filePath;
-    if (filePath == null || filePath.isEmpty) return null;
+    final resolvedPath = await _resolvePreparedPlaybackPath(song);
+    if (resolvedPath == null || resolvedPath.isEmpty) return null;
 
-    final parsed = Uri.tryParse(filePath);
-    if (parsed?.scheme == 'content') {
-      return _stageContentUriForPlayback(
-        filePath,
-        extensionHint: _preferredExtension(song),
-      );
-    }
-
-    final uri = _toPlaybackUri(filePath);
+    final uri = _toPlaybackUri(resolvedPath);
     if (uri.scheme == 'file') {
       return uri.toFilePath();
     }
 
     if (uri.scheme.isEmpty) {
-      return filePath;
+      return resolvedPath;
     }
 
     return null;
+  }
+
+  Future<void> _prepareImmediatePlaybackAsset(Song song) async {
+    if (!_shouldStageForPlayback(song) && !_shouldConvertToWav(song)) {
+      return;
+    }
+
+    await _resolvePreparedPlaybackPath(song);
   }
 
   Future<bool> _tryRustFallbackPlayback(Song song, {bool force = false}) async {
@@ -1250,6 +1315,8 @@ class PlayerService {
         unawaited(_savePosition());
 
         if (song.filePath != null) {
+          await _prepareImmediatePlaybackAsset(song);
+
           // Prefer the native backend for USB DAC playback and for formats that
           // are unreliable on the platform decoder stack.
           if (await _shouldPreferRustBackend(song)) {
