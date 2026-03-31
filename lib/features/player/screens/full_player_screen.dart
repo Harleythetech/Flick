@@ -22,7 +22,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flick/widgets/common/cached_image_widget.dart';
 import 'package:flick/widgets/common/display_mode_wrapper.dart';
 import 'package:flick/widgets/common/marquee_widget.dart';
-import 'package:flick/widgets/uac2/uac2_player_status.dart';
 import 'package:flick/widgets/uac2/uac2_error_notification.dart';
 
 class FullPlayerScreen extends StatefulWidget {
@@ -1429,7 +1428,6 @@ class _AnimatedSongScene extends StatelessWidget {
                   const Uac2ErrorNotification(),
                   _buildTopChrome(context),
                   SizedBox(height: context.responsive(8.0, 10.0, 12.0)),
-                  const Uac2PlayerStatus(compact: true),
                   Expanded(
                     child: playerScreenMode == PlayerScreenMode.artworkCard
                         ? _buildArtworkCardLayout(context)
