@@ -12,7 +12,7 @@ EqualizerState _lastRequestedState = EqualizerState.initial();
 
 /// Applies EQ and dynamics state to the active audio backend.
 /// Rust engine: graphic EQ, compressor, and limiter are applied natively.
-/// Android: uses the native AudioEffect API for EQ only.
+/// just_audio on Android: uses the native AudioEffect API for EQ only.
 Future<void> applyEqualizer(EqualizerState state) async {
   _lastRequestedState = _snapshotState(state);
 
@@ -23,9 +23,15 @@ Future<void> applyEqualizer(EqualizerState state) async {
 
   if (gains.length != 10) return;
 
-  // Android: use native AudioEffect API with session ID from just_audio
-  if (Platform.isAndroid) {
-    final sessionId = PlayerService().androidAudioSessionId;
+  final playerService = PlayerService();
+  final useRustBackend =
+      playerService.isUsingRustBackend &&
+      rust_audio.audioIsNativeAvailable() &&
+      rust_audio.audioIsInitialized();
+
+  // Android + just_audio: use native AudioEffect API with session ID.
+  if (Platform.isAndroid && !useRustBackend) {
+    final sessionId = playerService.androidAudioSessionId;
     if (sessionId == null && state.enabled) return;
     try {
       await _androidEqualizerChannel.invokeMethod('setEqualizer', {
@@ -37,7 +43,7 @@ Future<void> applyEqualizer(EqualizerState state) async {
     return;
   }
 
-  // Desktop: use Rust audio engine
+  // Rust backend: apply EQ + compressor + limiter to the active native engine.
   if (!rust_audio.audioIsNativeAvailable() ||
       !rust_audio.audioIsInitialized()) {
     return;

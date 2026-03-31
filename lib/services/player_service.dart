@@ -151,6 +151,7 @@ class PlayerService {
   List<Song> get queue =>
       List.unmodifiable(_queuedEntries.map((entry) => entry.song));
   int get currentIndex => _currentIndex;
+  bool get isUsingRustBackend => _usingRustBackend;
   List<Song> get upNext {
     if (_playlist.isEmpty) return const [];
     final startIndex = (_currentIndex + 1).clamp(0, _playlist.length);
