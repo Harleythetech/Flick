@@ -1814,6 +1814,9 @@ class MainActivity: FlutterActivity() {
             }
 
             val existingConnection = directUsbConnections[deviceName]
+            if (activeDirectUsbDeviceName == deviceName && existingConnection != null) {
+                return true
+            }
             val connection = existingConnection ?: usbManager.openDevice(device)
             if (connection == null) {
                 Log.e("UAC2", "Failed to open USB device for direct playback: $deviceName")

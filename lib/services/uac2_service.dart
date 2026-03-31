@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -137,6 +138,7 @@ class Uac2Service {
   Uac2AudioFormat? _lastKnownFormat;
   bool _lastKnownIsPlaying = false;
   bool _lastKnownHasSong = false;
+  Timer? _androidRouteRefreshDebounceTimer;
 
   Uac2DeviceStatus? get currentDeviceStatus => _currentDeviceStatus;
 
@@ -193,13 +195,27 @@ class Uac2Service {
         case 'onDeviceAttached':
         case 'onDeviceDetached':
           if (_currentDeviceStatus != null || _lastKnownHasSong) {
-            await _refreshAndroidRouteStatus();
+            _scheduleAndroidRouteRefresh();
           }
           return;
         default:
           return;
       }
     });
+  }
+
+  void _scheduleAndroidRouteRefresh() {
+    _androidRouteRefreshDebounceTimer?.cancel();
+    _androidRouteRefreshDebounceTimer = Timer(
+      const Duration(milliseconds: 250),
+      () => unawaited(
+        _refreshAndroidRouteStatus(
+          formatOverride: _lastKnownFormat,
+          isPlaying: _lastKnownIsPlaying,
+          hasActiveSong: _lastKnownHasSong,
+        ),
+      ),
+    );
   }
 
   Future<List<Uac2DeviceInfo>> listDevices() async {
