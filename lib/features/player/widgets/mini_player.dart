@@ -149,19 +149,24 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                               topLeft: Radius.circular(16),
                               bottomLeft: Radius.circular(16),
                             ),
-                            child: song.albumArt != null
-                                ? CachedImageWidget(
-                                    imagePath: song.albumArt!,
-                                    fit: BoxFit.cover,
-                                    useThumbnail: true,
-                                    thumbnailWidth: 128,
-                                    thumbnailHeight: 128,
-                                  )
-                                : const Icon(
-                                    LucideIcons.music,
-                                    size: 24,
-                                    color: AppColors.textTertiary,
-                                  ),
+                            child: CachedImageWidget(
+                              imagePath: song.albumArt,
+                              audioSourcePath: song.filePath,
+                              fit: BoxFit.cover,
+                              useThumbnail: true,
+                              thumbnailWidth: 128,
+                              thumbnailHeight: 128,
+                              placeholder: const Icon(
+                                LucideIcons.music,
+                                size: 24,
+                                color: AppColors.textTertiary,
+                              ),
+                              errorWidget: const Icon(
+                                LucideIcons.music,
+                                size: 24,
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
                           ),
                         ),
                       ),

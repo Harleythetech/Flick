@@ -78,8 +78,9 @@ class QueueScreen extends ConsumerWidget {
                             sliver: SliverReorderableList(
                               itemCount: queue.length,
                               onReorder: (oldIndex, newIndex) async {
-                                final targetIndex =
-                                    newIndex > oldIndex ? newIndex - 1 : newIndex;
+                                final targetIndex = newIndex > oldIndex
+                                    ? newIndex - 1
+                                    : newIndex;
                                 await ref
                                     .read(playerProvider.notifier)
                                     .moveQueueItem(oldIndex, targetIndex);
@@ -177,10 +178,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           if (canClear)
-            TextButton(
-              onPressed: onClear,
-              child: const Text('Clear'),
-            ),
+            TextButton(onPressed: onClear, child: const Text('Clear')),
         ],
       ),
     );
@@ -360,7 +358,9 @@ class _QueueTile extends StatelessWidget {
             color: Colors.redAccent.withValues(alpha: 0.18),
             border: Border.all(color: Colors.redAccent.withValues(alpha: 0.35)),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingLg),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppConstants.spacingLg,
+          ),
           alignment: Alignment.centerRight,
           child: const Icon(LucideIcons.trash2, color: Colors.redAccent),
         ),
@@ -392,7 +392,9 @@ class _QueueTile extends StatelessWidget {
                   ReorderableDragStartListener(
                     index: index,
                     child: Padding(
-                      padding: const EdgeInsets.only(right: AppConstants.spacingSm),
+                      padding: const EdgeInsets.only(
+                        right: AppConstants.spacingSm,
+                      ),
                       child: Icon(
                         LucideIcons.gripVertical,
                         color: context.adaptiveTextTertiary,
@@ -410,19 +412,19 @@ class _QueueTile extends StatelessWidget {
                           song.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: context.adaptiveTextPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: context.adaptiveTextPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           song.artist,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: context.adaptiveTextSecondary,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: context.adaptiveTextSecondary),
                         ),
                       ],
                     ),
@@ -476,22 +478,30 @@ class _Artwork extends StatelessWidget {
       child: SizedBox(
         width: 48,
         height: 48,
-        child: song.albumArt != null
-            ? CachedImageWidget(
-                imagePath: song.albumArt!,
-                fit: BoxFit.cover,
-                useThumbnail: true,
-                thumbnailWidth: 96,
-                thumbnailHeight: 96,
-              )
-            : const ColoredBox(
-                color: AppColors.surface,
-                child: Icon(
-                  LucideIcons.music,
-                  color: AppColors.textTertiary,
-                  size: 18,
-                ),
-              ),
+        child: CachedImageWidget(
+          imagePath: song.albumArt,
+          audioSourcePath: song.filePath,
+          fit: BoxFit.cover,
+          useThumbnail: true,
+          thumbnailWidth: 96,
+          thumbnailHeight: 96,
+          placeholder: const ColoredBox(
+            color: AppColors.surface,
+            child: Icon(
+              LucideIcons.music,
+              color: AppColors.textTertiary,
+              size: 18,
+            ),
+          ),
+          errorWidget: const ColoredBox(
+            color: AppColors.surface,
+            child: Icon(
+              LucideIcons.music,
+              color: AppColors.textTertiary,
+              size: 18,
+            ),
+          ),
+        ),
       ),
     );
   }
