@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flick/features/player/screens/full_player_screen.dart';
+import 'package:flick/features/queue/screens/queue_screen.dart';
 
 /// Helper class to prevent duplicate navigation to FullPlayerScreen
 class NavigationHelper {
@@ -104,5 +105,29 @@ class NavigationHelper {
       _navigationTimer = null;
       rethrow;
     }
+  }
+
+  static Future<T?> navigateToQueue<T>(BuildContext context) {
+    return Navigator.of(context).push<T>(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const QueueScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curvedAnimation = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
+
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.12, 0.0),
+              end: Offset.zero,
+            ).animate(curvedAnimation),
+            child: FadeTransition(opacity: curvedAnimation, child: child),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 260),
+      ),
+    );
   }
 }

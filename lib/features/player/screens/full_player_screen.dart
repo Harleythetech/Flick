@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flick/core/theme/app_colors.dart';
 import 'package:flick/core/theme/adaptive_color_provider.dart';
+import 'package:flick/core/utils/navigation_helper.dart';
 import 'package:flick/core/utils/responsive.dart';
 import 'package:flick/data/repositories/song_repository.dart';
 import 'package:flick/features/albums/screens/albums_screen.dart';
@@ -633,9 +634,21 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
   Future<void> _queueSong(BuildContext context, Song song) async {
     await _playerService.addToQueue(song);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Queued "${song.title}"')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Queued "${song.title}"'),
+        action: SnackBarAction(
+          label: 'View queue',
+          onPressed: () {
+            NavigationHelper.navigateToQueue(context);
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openQueue(BuildContext context) async {
+    await NavigationHelper.navigateToQueue(context);
   }
 
   void _showSongActionsBottomSheet(BuildContext context, Song song) {
@@ -1304,6 +1317,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen>
                   throttledPositionNotifier: _throttledPositionNotifier,
                   formatDuration: _formatDuration,
                   onClose: () => Navigator.of(context).pop(),
+                  onOpenQueue: () => _openQueue(context),
                   onQueueSwipe: () => _queueSong(context, song),
                   onShowSongActions: () =>
                       _showSongActionsBottomSheet(context, song),
@@ -1336,6 +1350,7 @@ class _AnimatedSongScene extends StatelessWidget {
   final ValueNotifier<Duration> throttledPositionNotifier;
   final String Function(Duration) formatDuration;
   final VoidCallback onClose;
+  final VoidCallback onOpenQueue;
   final Future<void> Function() onQueueSwipe;
   final VoidCallback onShowSongActions;
   final Future<void> Function() onPrevious;
@@ -1357,6 +1372,7 @@ class _AnimatedSongScene extends StatelessWidget {
     required this.throttledPositionNotifier,
     required this.formatDuration,
     required this.onClose,
+    required this.onOpenQueue,
     required this.onQueueSwipe,
     required this.onShowSongActions,
     required this.onPrevious,
@@ -1514,83 +1530,156 @@ class _AnimatedSongScene extends StatelessWidget {
         vertical: context.responsive(4.0, 6.0, 8.0),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildChromeButton(
             context,
             icon: LucideIcons.chevronDown,
             onTap: onClose,
           ),
-          GestureDetector(
-            onHorizontalDragEnd: (details) async {
-              if (details.primaryVelocity != null &&
-                  details.primaryVelocity! < -400) {
-                await onQueueSwipe();
-              }
-            },
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: context.responsive(16.0, 18.0, 20.0),
-                vertical: context.responsive(8.0, 9.0, 10.0),
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFF121212).withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Now Playing',
-                    style: TextStyle(
-                      fontFamily: 'ProductSans',
-                      fontSize: context.responsive(12.0, 13.0, 14.0),
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white.withValues(alpha: 0.9),
-                      letterSpacing: 0.8,
+          SizedBox(width: context.responsive(8.0, 10.0, 12.0)),
+          Expanded(
+            child: GestureDetector(
+              onTap: onOpenQueue,
+              onHorizontalDragEnd: (details) async {
+                if (details.primaryVelocity != null &&
+                    details.primaryVelocity! < -400) {
+                  await onQueueSwipe();
+                }
+              },
+              child: ValueListenableBuilder<List<Song>>(
+                valueListenable: playerService.queueNotifier,
+                builder: (context, queue, _) {
+                  final hasQueue = queue.isNotEmpty;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.responsive(16.0, 18.0, 20.0),
+                      vertical: context.responsive(8.0, 9.0, 10.0),
                     ),
-                  ),
-                  SizedBox(height: context.responsive(6.0, 7.0, 8.0)),
-                  SizedBox(
-                    width: context.responsive(120.0, 140.0, 160.0),
-                    height: context.responsive(20.0, 22.0, 24.0),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final text = '${song.title} - ${song.artist}';
-                        final textStyle = TextStyle(
-                          fontFamily: topBarTextFontFamily,
-                          fontSize: context.responsiveText(
-                            context.responsive(13.0, 14.0, 15.0),
-                          ),
-                          fontWeight: topBarTextFontWeight,
-                          color: Colors.white.withValues(alpha: 0.85),
-                        );
-
-                        if (cachedTopBarTextWidth <= constraints.maxWidth) {
-                          return Center(
-                            child: Text(
-                              text,
-                              style: textStyle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF121212).withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: hasQueue
+                            ? Colors.white.withValues(alpha: 0.18)
+                            : Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Now Playing',
+                              style: TextStyle(
+                                fontFamily: 'ProductSans',
+                                fontSize: context.responsive(12.0, 13.0, 14.0),
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withValues(alpha: 0.9),
+                                letterSpacing: 0.8,
+                              ),
                             ),
-                          );
-                        }
+                            SizedBox(width: context.responsive(6.0, 7.0, 8.0)),
+                            _buildQueueSummaryBadge(
+                              context,
+                              count: queue.length,
+                              highlighted: hasQueue,
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: context.responsive(6.0, 7.0, 8.0)),
+                        SizedBox(
+                          width: double.infinity,
+                          height: context.responsive(20.0, 22.0, 24.0),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final text = '${song.title} - ${song.artist}';
+                              final textStyle = TextStyle(
+                                fontFamily: topBarTextFontFamily,
+                                fontSize: context.responsiveText(
+                                  context.responsive(13.0, 14.0, 15.0),
+                                ),
+                                fontWeight: topBarTextFontWeight,
+                                color: Colors.white.withValues(alpha: 0.85),
+                              );
 
-                        return MarqueeWidget(
-                          child: Text(text, style: textStyle),
-                        );
-                      },
+                              if (cachedTopBarTextWidth <=
+                                  constraints.maxWidth) {
+                                return Center(
+                                  child: Text(
+                                    text,
+                                    style: textStyle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }
+
+                              return MarqueeWidget(
+                                child: Text(text, style: textStyle),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ),
+          SizedBox(width: context.responsive(8.0, 10.0, 12.0)),
           _buildChromeButton(
             context,
             icon: Icons.more_vert,
             onTap: onShowSongActions,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQueueSummaryBadge(
+    BuildContext context, {
+    required int count,
+    required bool highlighted,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsive(8.0, 9.0, 10.0),
+        vertical: context.responsive(3.0, 4.0, 5.0),
+      ),
+      decoration: BoxDecoration(
+        color: highlighted
+            ? Colors.white.withValues(alpha: 0.16)
+            : Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: highlighted
+              ? Colors.white.withValues(alpha: 0.24)
+              : Colors.white.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            LucideIcons.listMusic,
+            size: context.responsive(12.0, 13.0, 14.0),
+            color: Colors.white.withValues(alpha: highlighted ? 0.96 : 0.7),
+          ),
+          SizedBox(width: context.responsive(4.0, 5.0, 6.0)),
+          Text(
+            count > 0 ? 'Queue $count' : 'Queue',
+            style: TextStyle(
+              fontFamily: 'ProductSans',
+              fontSize: context.responsive(10.0, 11.0, 12.0),
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: highlighted ? 0.96 : 0.8),
+            ),
           ),
         ],
       ),

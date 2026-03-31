@@ -18,6 +18,58 @@ class MiniPlayer extends ConsumerStatefulWidget {
 class _MiniPlayerState extends ConsumerState<MiniPlayer> {
   final PlayerService _playerService = PlayerService();
 
+  Future<void> _openQueue(BuildContext context) async {
+    await NavigationHelper.navigateToQueue(context);
+  }
+
+  Widget _buildQueueButton(BuildContext context, int queueCount) {
+    final hasQueue = queueCount > 0;
+
+    return GestureDetector(
+      onTap: () => _openQueue(context),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(
+          horizontal: hasQueue ? 10 : 8,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: hasQueue
+              ? AppColors.accent.withValues(alpha: 0.14)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasQueue
+                ? AppColors.accent.withValues(alpha: 0.26)
+                : AppColors.glassBorder.withValues(alpha: 0.14),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              LucideIcons.listMusic,
+              size: 17,
+              color: hasQueue ? AppColors.accentLight : AppColors.textSecondary,
+            ),
+            if (hasQueue) ...[
+              const SizedBox(width: 6),
+              Text(
+                '$queueCount',
+                style: const TextStyle(
+                  fontFamily: 'ProductSans',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Song?>(
@@ -160,6 +212,15 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                       ),
 
                       // Controls
+                      ValueListenableBuilder<List<Song>>(
+                        valueListenable: _playerService.queueNotifier,
+                        builder: (context, queue, _) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: _buildQueueButton(context, queue.length),
+                          );
+                        },
+                      ),
                       ValueListenableBuilder<bool>(
                         valueListenable: _playerService.isPlayingNotifier,
                         builder: (context, isPlaying, _) {
