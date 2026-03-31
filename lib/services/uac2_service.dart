@@ -135,6 +135,7 @@ class Uac2Service {
   Uac2DeviceStatus? _currentDeviceStatus;
   final List<ValueChanged<Uac2DeviceStatus?>> _statusListeners = [];
   bool _androidChannelConfigured = false;
+  Future<void>? _initializeInFlight;
   Uac2AudioFormat? _lastKnownFormat;
   bool _lastKnownIsPlaying = false;
   bool _lastKnownHasSong = false;
@@ -167,8 +168,29 @@ class Uac2Service {
   }
 
   Future<void> initialize() async {
+    final inFlight = _initializeInFlight;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final future = _initializeInternal();
+    _initializeInFlight = future;
+    try {
+      await future;
+    } finally {
+      _initializeInFlight = null;
+    }
+  }
+
+  Future<void> _initializeInternal() async {
     if (Platform.isAndroid) {
       _configureAndroidChannel();
+      await _refreshAndroidRouteStatus(
+        formatOverride: _lastKnownFormat,
+        isPlaying: _lastKnownIsPlaying,
+        hasActiveSong: _lastKnownHasSong,
+      );
     }
 
     final autoConnect = await _preferencesService.getAutoConnect();
@@ -194,9 +216,7 @@ class Uac2Service {
       switch (call.method) {
         case 'onDeviceAttached':
         case 'onDeviceDetached':
-          if (_currentDeviceStatus != null || _lastKnownHasSong) {
-            _scheduleAndroidRouteRefresh();
-          }
+          _scheduleAndroidRouteRefresh();
           return;
         default:
           return;

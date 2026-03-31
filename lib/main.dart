@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -9,7 +8,6 @@ import 'package:flick/app/app.dart';
 import 'package:flick/data/database.dart';
 import 'package:flick/services/permission_service.dart';
 import 'package:flick/services/player_service.dart';
-import 'package:flick/services/rust_audio_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,47 +21,14 @@ Future<void> main() async {
   runApp(const ProviderScope(child: FlickPlayerApp()));
 
   unawaited(
-    PlayerService().initAudio().catchError(
-      (Object e) => debugPrint('Eager audio warm-up failed: $e'),
+    PlayerService().prepareForAppLaunch().catchError(
+      (Object e) => debugPrint('Launch playback bootstrap failed: $e'),
     ),
   );
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(_bootstrapAppAfterFirstFrame());
   });
-}
-
-/// Initialize both audio engines (just_audio for Android, Rust engine for desktop).
-Future<void> _initAudioEngines() async {
-  // Initialize just_audio (used on Android)
-  try {
-    final playerService = PlayerService();
-    await playerService.initAudio();
-    debugPrint('just_audio engine initialized successfully');
-  } catch (e) {
-    debugPrint('Failed to initialize just_audio engine: $e');
-    // Continue anyway - the app can still function with degraded audio
-  }
-
-  // Initialize Rust audio engine only on desktop platforms.
-  try {
-    if (Platform.isAndroid || Platform.isIOS) {
-      debugPrint('Skipping eager Rust audio engine init on mobile');
-      return;
-    }
-    final rustAudioService = RustAudioService();
-    final initialized = await rustAudioService.init();
-    if (initialized) {
-      debugPrint('Rust audio engine initialized successfully');
-    } else {
-      debugPrint(
-        'Rust audio engine not available (expected on mobile platforms)',
-      );
-    }
-  } catch (e) {
-    debugPrint('Failed to initialize Rust audio engine: $e');
-    // Continue anyway - Rust engine is only for desktop platforms
-  }
 }
 
 Future<void> _bootstrapAppAfterFirstFrame() async {
@@ -75,7 +40,7 @@ Future<void> _bootstrapAppAfterFirstFrame() async {
   );
 
   try {
-    await _initAudioEngines();
+    await PlayerService().prepareForAppLaunch();
     await _restoreLastPlayedSong();
   } catch (e) {
     debugPrint('Deferred audio bootstrap failed: $e');

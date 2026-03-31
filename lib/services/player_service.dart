@@ -174,6 +174,7 @@ class PlayerService {
   bool _uac2RouteListenerAttached = false;
   bool _audioInitialized = false;
   Future<void>? _audioInitInFlight;
+  Future<void>? _appLaunchPreparationInFlight;
   Future<void>? _playStartupInFlight;
   Future<bool>? _rustInitInFlight;
   Future<void>? _backendHandoffInFlight;
@@ -339,6 +340,31 @@ class PlayerService {
     await future;
   }
 
+  Future<void> prepareForAppLaunch() async {
+    final inFlight = _appLaunchPreparationInFlight;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final future = () async {
+      await initAudio();
+
+      if (!kIsWeb && !Platform.isIOS) {
+        await _ensureRustBackendAvailable();
+      }
+
+      await _uac2Service.initialize();
+    }();
+
+    _appLaunchPreparationInFlight = future;
+    try {
+      await future;
+    } finally {
+      _appLaunchPreparationInFlight = null;
+    }
+  }
+
   Future<void> _initializeAudio() async {
     debugPrint('Initializing just_audio with gapless playback support');
 
@@ -349,12 +375,6 @@ class PlayerService {
       await _justAudioPlayer.setVolume(_currentVolume);
       await _updateLoopMode();
       _audioInitialized = true;
-
-      unawaited(
-        _uac2Service.initialize().catchError(
-          (Object e) => debugPrint('UAC2 init failed: $e'),
-        ),
-      );
     } finally {
       _audioInitInFlight = null;
     }
