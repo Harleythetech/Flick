@@ -31,10 +31,10 @@ class _CompactPlayerInfoLayoutState extends State<CompactPlayerInfoLayout> {
   @override
   Widget build(BuildContext context) {
     final isVeryCompact = context.isCompact || context.screenHeight < 600;
-    final albumArtSize = isVeryCompact 
+    final albumArtSize = isVeryCompact
         ? (MediaQuery.sizeOf(context).height * 0.20).clamp(120.0, 160.0)
         : (MediaQuery.sizeOf(context).height * 0.25).clamp(140.0, 200.0);
-    
+
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: context.responsive(12.0, 16.0, 20.0),
@@ -66,19 +66,27 @@ class _CompactPlayerInfoLayoutState extends State<CompactPlayerInfoLayout> {
                     borderRadius: BorderRadius.circular(
                       context.responsive(14.0, 18.0, 22.0),
                     ),
-                    child: widget.song.albumArt != null
-                        ? CachedImageWidget(
-                            imagePath: widget.song.albumArt!,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            color: AppColors.glassBackgroundStrong,
-                            child: Icon(
-                              LucideIcons.music,
-                              size: context.responsive(28.0, 32.0, 36.0),
-                              color: AppColors.textTertiary,
-                            ),
-                          ),
+                    child: CachedImageWidget(
+                      imagePath: widget.song.albumArt,
+                      audioSourcePath: widget.song.filePath,
+                      fit: BoxFit.cover,
+                      placeholder: Container(
+                        color: AppColors.glassBackgroundStrong,
+                        child: Icon(
+                          LucideIcons.music,
+                          size: context.responsive(28.0, 32.0, 36.0),
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                      errorWidget: Container(
+                        color: AppColors.glassBackgroundStrong,
+                        child: Icon(
+                          LucideIcons.music,
+                          size: context.responsive(28.0, 32.0, 36.0),
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -199,8 +207,8 @@ class _CompactPlayerInfoLayoutState extends State<CompactPlayerInfoLayout> {
                     padding: EdgeInsets.all(context.responsive(6.0, 8.0, 10.0)),
                     constraints: const BoxConstraints(),
                     icon: Icon(
-                      icon, 
-                      color: color, 
+                      icon,
+                      color: color,
                       size: context.responsive(18.0, 20.0, 22.0),
                     ),
                   );
