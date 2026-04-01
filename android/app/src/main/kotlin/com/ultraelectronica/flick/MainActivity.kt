@@ -51,6 +51,7 @@ class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.ultraelectronica.flick/storage"
     private val PLAYER_CHANNEL = "com.ultraelectronica.flick/player"
     private val UAC2_CHANNEL = "com.ultraelectronica.flick/uac2"
+    private val AUDIO_DEVICE_CHANNEL = "com.ultraelectronica.flick/audio_device"
     private val EQUALIZER_CHANNEL = "com.ultraelectronica.flick/equalizer"
     // private val CONVERTER_CHANNEL = "com.ultraelectronica.flick/converter"
     private val REQUEST_OPEN_DOCUMENT_TREE = 1001
@@ -66,6 +67,7 @@ class MainActivity: FlutterActivity() {
     private var usbHotplugReceiver: BroadcastReceiver? = null
     private var uac2DeviceCache: List<Map<String, Any?>>? = null
     private var uac2Channel: MethodChannel? = null
+    private var audioDeviceChannel: MethodChannel? = null
     private val directUsbConnections = mutableMapOf<String, UsbDeviceConnection>()
     private var activeDirectUsbDeviceName: String? = null
     private var cachedMusicVolumeBeforeMute: Int? = null
@@ -100,7 +102,7 @@ class MainActivity: FlutterActivity() {
         var engine = FlutterEngineCache.getInstance().get("main_engine")
         if (engine == null) {
             engine = FlutterEngine(context.applicationContext)
-            GeneratedPluginRegistrant.registerWith(engine)
+            ensurePluginsRegistered(engine)
             engine.dartExecutor.executeDartEntrypoint(
                 DartExecutor.DartEntrypoint.createDefault()
             )
@@ -572,6 +574,17 @@ class MainActivity: FlutterActivity() {
                 "deactivateDirectUsb" -> {
                     result.success(deactivateDirectUsb())
                 }
+                else -> result.notImplemented()
+            }
+        }
+
+        audioDeviceChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            AUDIO_DEVICE_CHANNEL,
+        )
+        audioDeviceChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getPlaybackDeviceInfo" -> result.success(getPlaybackDeviceInfo())
                 else -> result.notImplemented()
             }
         }
@@ -1822,6 +1835,16 @@ class MainActivity: FlutterActivity() {
         return digest.joinToString("") { "%02x".format(it) }
     }
 
+    private fun ensurePluginsRegistered(engine: FlutterEngine) {
+        val engineIdentity = System.identityHashCode(engine)
+        if (registeredMainEngineIdentity == engineIdentity) {
+            return
+        }
+
+        GeneratedPluginRegistrant.registerWith(engine)
+        registeredMainEngineIdentity = engineIdentity
+    }
+
     // ========== UAC 2.0 USB Host (Android) ==========
 
     private fun listUac2Devices(refresh: Boolean = false): List<Map<String, Any?>> {
@@ -2145,6 +2168,28 @@ class MainActivity: FlutterActivity() {
         )
     }
 
+    private fun getPlaybackDeviceInfo(): Map<String, Any?> {
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val outputs = if (audioManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
+        } else {
+            emptyList()
+        }
+        val hasUsbDac = outputs.any { device ->
+            device.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+                device.type == AudioDeviceInfo.TYPE_USB_HEADSET
+        }
+        val route = describeCurrentOutputRoute(audioManager)
+
+        return mapOf(
+            "hasUsbDac" to hasUsbDac,
+            "manufacturer" to Build.MANUFACTURER,
+            "model" to Build.MODEL,
+            "routeType" to route["routeType"],
+            "routeLabel" to route["routeLabel"],
+        )
+    }
+
     private fun buildUsbRouteMap(device: UsbDevice): Map<String, Any?> {
         val productName = device.productName?.takeIf { it.isNotBlank() } ?: "USB DAC"
         val manufacturer = device.manufacturerName?.takeIf { it.isNotBlank() } ?: "USB Audio"
@@ -2428,6 +2473,7 @@ class MainActivity: FlutterActivity() {
                         uac2DeviceCache = null
                         // Notify Flutter if channel is available
                         uac2Channel?.invokeMethod("onDeviceAttached", null)
+                        audioDeviceChannel?.invokeMethod("onPlaybackDevicesChanged", null)
                     }
                     UsbManager.ACTION_USB_DEVICE_DETACHED -> {
                         // Invalidate cache on device detach
@@ -2443,6 +2489,7 @@ class MainActivity: FlutterActivity() {
                         }
                         // Notify Flutter if channel is available
                         uac2Channel?.invokeMethod("onDeviceDetached", null)
+                        audioDeviceChannel?.invokeMethod("onPlaybackDevicesChanged", null)
                     }
                 }
             }
@@ -2472,6 +2519,7 @@ class MainActivity: FlutterActivity() {
 
     companion object {
         private const val ACTION_USB_PERMISSION = "com.ultraelectronica.flick.USB_PERMISSION"
+        private var registeredMainEngineIdentity: Int? = null
     }
 
     private external fun nativeInitRustAndroidContext(context: Context): Boolean

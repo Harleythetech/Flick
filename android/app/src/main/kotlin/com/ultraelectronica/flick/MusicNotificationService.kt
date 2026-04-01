@@ -11,8 +11,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.media.AudioAttributes
-import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
@@ -43,11 +41,8 @@ class MusicNotificationService : Service() {
 
     private lateinit var mediaSession: MediaSessionCompat
     private lateinit var notificationManager: NotificationManager
-    private lateinit var audioManager: AudioManager
     private var methodChannel: MethodChannel? = null
     private var isForegroundServiceStarted = false
-    private var hasAudioFocus = false
-    private var audioFocusRequest: AudioFocusRequest? = null
 
     private var currentTitle: String = "Unknown"
     private var currentArtist: String = "Unknown Artist"
@@ -103,34 +98,13 @@ class MusicNotificationService : Service() {
         }
     }
 
-    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
-        when (focusChange) {
-            AudioManager.AUDIOFOCUS_LOSS,
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                if (isPlaying) {
-                    android.util.Log.d("MusicNotification", "Audio focus lost ($focusChange), pausing playback")
-                    isPlaying = false
-                    updatePlaybackState()
-                    notificationManager.notify(NOTIFICATION_ID, buildNotification())
-                    sendCommandToFlutter("pause")
-                }
-                hasAudioFocus = false
-            }
-            AudioManager.AUDIOFOCUS_GAIN -> {
-                hasAudioFocus = true
-            }
-        }
-    }
-
     private val noisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY && isPlaying) {
-                android.util.Log.d("MusicNotification", "Audio becoming noisy, pausing playback")
-                isPlaying = false
-                updatePlaybackState()
-                notificationManager.notify(NOTIFICATION_ID, buildNotification())
-                sendCommandToFlutter("pause")
+            if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                android.util.Log.d(
+                    "MusicNotification",
+                    "[AudioFocus] ACTION_AUDIO_BECOMING_NOISY observed; active engine handles pause"
+                )
             }
         }
     }
@@ -138,7 +112,6 @@ class MusicNotificationService : Service() {
     override fun onCreate() {
         super.onCreate()
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         createNotificationChannel()
         setupMediaSession()
 
@@ -224,7 +197,6 @@ class MusicNotificationService : Service() {
         } catch (e: Exception) {
             // Receiver was not registered
         }
-        abandonAudioFocusIfNeeded()
         mediaSession.release()
         isForegroundServiceStarted = false
     }
@@ -390,56 +362,10 @@ class MusicNotificationService : Service() {
     }
 
     private fun syncAudioFocusState() {
-        if (isPlaying) {
-            requestAudioFocusIfNeeded()
-        } else {
-            abandonAudioFocusIfNeeded()
-        }
-    }
-
-    private fun requestAudioFocusIfNeeded() {
-        if (hasAudioFocus) {
-            return
-        }
-
-        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val request = audioFocusRequest ?: AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
-                )
-                .setAcceptsDelayedFocusGain(false)
-                .setWillPauseWhenDucked(true)
-                .setOnAudioFocusChangeListener(audioFocusChangeListener)
-                .build()
-                .also { audioFocusRequest = it }
-            audioManager.requestAudioFocus(request)
-        } else {
-            @Suppress("DEPRECATION")
-            audioManager.requestAudioFocus(
-                audioFocusChangeListener,
-                AudioManager.STREAM_MUSIC,
-                AudioManager.AUDIOFOCUS_GAIN
-            )
-        }
-
-        hasAudioFocus = granted == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-    }
-
-    private fun abandonAudioFocusIfNeeded() {
-        if (!hasAudioFocus && audioFocusRequest == null) {
-            return
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
-        } else {
-            @Suppress("DEPRECATION")
-            audioManager.abandonAudioFocus(audioFocusChangeListener)
-        }
-        hasAudioFocus = false
+        android.util.Log.d(
+            "MusicNotification",
+            "[AudioFocus] Notification service defers focus ownership to the active playback engine (isPlaying=$isPlaying)"
+        )
     }
 
     private fun buildNotification(): Notification {

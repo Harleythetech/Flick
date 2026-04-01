@@ -20,12 +20,6 @@ Future<void> main() async {
 
   runApp(const ProviderScope(child: FlickPlayerApp()));
 
-  unawaited(
-    PlayerService().prepareForAppLaunch().catchError(
-      (Object e) => debugPrint('Launch playback bootstrap failed: $e'),
-    ),
-  );
-
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(_bootstrapAppAfterFirstFrame());
   });
@@ -40,7 +34,6 @@ Future<void> _bootstrapAppAfterFirstFrame() async {
   );
 
   try {
-    await PlayerService().prepareForAppLaunch();
     await _restoreLastPlayedSong();
   } catch (e) {
     debugPrint('Deferred audio bootstrap failed: $e');

@@ -25,6 +25,7 @@ class _Uac2PreferencesScreenState extends ConsumerState<Uac2PreferencesScreen> {
     final autoSelectAsync = ref.watch(uac2AutoSelectDeviceProvider);
     final formatPrefAsync = ref.watch(uac2FormatPreferenceProvider);
     final preferredFormatAsync = ref.watch(uac2PreferredFormatProvider);
+    final hiFiModeAsync = ref.watch(uac2HiFiModeProvider);
 
     return DisplayModeWrapper(
       child: Scaffold(
@@ -61,7 +62,11 @@ class _Uac2PreferencesScreenState extends ConsumerState<Uac2PreferencesScreen> {
                       ),
                       const SizedBox(height: AppConstants.spacingLg),
                       _buildSectionHeader(context, 'Advanced'),
-                      _buildAdvancedOptions(context, preferencesService),
+                      _buildAdvancedOptions(
+                        context,
+                        preferencesService,
+                        hiFiModeAsync,
+                      ),
                       const SizedBox(height: AppConstants.navBarHeight + 120),
                     ],
                   ),
@@ -215,6 +220,7 @@ class _Uac2PreferencesScreenState extends ConsumerState<Uac2PreferencesScreen> {
   Widget _buildAdvancedOptions(
     BuildContext context,
     Uac2PreferencesService service,
+    AsyncValue<bool> hiFiModeAsync,
   ) {
     return Container(
       decoration: BoxDecoration(
@@ -222,13 +228,34 @@ class _Uac2PreferencesScreenState extends ConsumerState<Uac2PreferencesScreen> {
         borderRadius: BorderRadius.circular(AppConstants.radiusLg),
         border: Border.all(color: AppColors.glassBorder),
       ),
-      child: _buildNavigationTile(
-        context,
-        icon: LucideIcons.trash2,
-        title: 'Reset Preferences',
-        subtitle: 'Clear all UAC2 settings',
-        onTap: () => _showResetConfirmation(context, service),
-        isDestructive: true,
+      child: Column(
+        children: [
+          hiFiModeAsync.when(
+            data: (enabled) => _buildSwitchTile(
+              context,
+              icon: LucideIcons.zap,
+              title: 'HiFi Mode',
+              subtitle:
+                  'Experimental override for DAP/internal routes. Android internal playback still commonly stops at 48kHz.',
+              value: enabled,
+              onChanged: (value) async {
+                await ref.read(playerServiceProvider).setHiFiModeEnabled(value);
+                ref.invalidate(uac2HiFiModeProvider);
+              },
+            ),
+            loading: () => _buildLoadingTile(context),
+            error: (_, _) => _buildErrorTile(context),
+          ),
+          _buildDivider(),
+          _buildNavigationTile(
+            context,
+            icon: LucideIcons.trash2,
+            title: 'Reset Preferences',
+            subtitle: 'Clear all UAC2 settings',
+            onTap: () => _showResetConfirmation(context, service),
+            isDestructive: true,
+          ),
+        ],
       ),
     );
   }
@@ -664,6 +691,7 @@ class _Uac2PreferencesScreenState extends ConsumerState<Uac2PreferencesScreen> {
               ref.invalidate(uac2AutoSelectDeviceProvider);
               ref.invalidate(uac2FormatPreferenceProvider);
               ref.invalidate(uac2PreferredFormatProvider);
+              ref.invalidate(uac2HiFiModeProvider);
               if (context.mounted) {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
