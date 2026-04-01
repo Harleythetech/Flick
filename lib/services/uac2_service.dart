@@ -219,6 +219,21 @@ class Uac2Service {
         case 'onDeviceDetached':
           _scheduleAndroidRouteRefresh();
           return;
+        case 'onVolumeChanged':
+          final args = call.arguments as Map<dynamic, dynamic>?;
+          if (args == null) return;
+          final volume = (args['volume'] as num?)?.toDouble();
+          final muted = args['muted'] as bool?;
+          if (_currentDeviceStatus != null &&
+              (volume != null || muted != null)) {
+            _updateStatus(
+              _currentDeviceStatus!.copyWith(
+                volume: volume ?? _currentDeviceStatus!.volume,
+                muted: muted ?? _currentDeviceStatus!.muted,
+              ),
+            );
+          }
+          return;
         default:
           return;
       }
@@ -537,7 +552,6 @@ class Uac2Service {
         });
         if (result == true) {
           _updateStatus(_currentDeviceStatus!.copyWith(volume: volume));
-          await _refreshAndroidRouteStatus();
         }
         return result ?? false;
       }
@@ -580,7 +594,6 @@ class Uac2Service {
         });
         if (result == true) {
           _updateStatus(_currentDeviceStatus!.copyWith(muted: muted));
-          await _refreshAndroidRouteStatus();
         }
         return result ?? false;
       }

@@ -167,7 +167,9 @@ class PlayerService {
   final Map<String, String> _stagedPlaybackPathCache = {};
   final Map<String, String> _convertedPlaybackPathCache = {};
   final Set<String> _unsupportedWavConversionSources = <String>{};
-  bool _usingRustBackend = false;
+  final ValueNotifier<bool> usingRustBackendNotifier = ValueNotifier(false);
+  bool get _usingRustBackend => usingRustBackendNotifier.value;
+  set _usingRustBackend(bool value) => usingRustBackendNotifier.value = value;
   bool _rustBackendAvailable = false;
   bool _justAudioListenersAttached = false;
   bool _rustListenersAttached = false;
@@ -235,7 +237,7 @@ class PlayerService {
   List<Song> get queue =>
       List.unmodifiable(_queuedEntries.map((entry) => entry.song));
   int get currentIndex => _currentIndex;
-  bool get isUsingRustBackend => _usingRustBackend;
+  bool get isUsingRustBackend => usingRustBackendNotifier.value;
   List<Song> get upNext {
     if (_playlist.isEmpty) return const [];
     final startIndex = (_currentIndex + 1).clamp(0, _playlist.length);
