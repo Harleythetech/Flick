@@ -145,7 +145,13 @@ pub fn discover_playlist_files(root_path: String, scan_options: ScanOptions) -> 
 
 pub fn extract_embedded_artwork(path: String) -> Option<Vec<u8>> {
     let parse_options = ParseOptions::new().read_properties(false);
-    let tagged_file = Probe::open(path).ok()?.options(parse_options).read().ok()?;
+    let tagged_file = Probe::open(path)
+        .ok()?
+        .options(parse_options)
+        .guess_file_type()
+        .ok()?
+        .read()
+        .ok()?;
     let tag = tagged_file
         .primary_tag()
         .or_else(|| tagged_file.first_tag())?;
@@ -300,6 +306,8 @@ fn extract_text_metadata_only(entry: &FileScanEntry) -> Option<AudioFileMetadata
     let tagged_file = Probe::open(&path)
         .ok()?
         .options(parse_options)
+        .guess_file_type()
+        .ok()?
         .read()
         .ok()?;
     let tag = tagged_file
@@ -323,4 +331,73 @@ fn extract_text_metadata_only(entry: &FileScanEntry) -> Option<AudioFileMetadata
         disc_number: tag.and_then(|t| t.disk()),
         file_size: entry.file_size,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lofty::file::FileType;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    struct TestDir {
+        path: PathBuf,
+    }
+
+    impl TestDir {
+        fn new(label: &str) -> Self {
+            let unique_suffix = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "flick-player-scanner-{label}-{}-{unique_suffix}",
+                std::process::id()
+            ));
+            fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+
+        fn path(&self) -> &Path {
+            &self.path
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn write_bytes(path: &Path, contents: &[u8]) {
+        fs::write(path, contents).unwrap();
+    }
+
+    #[test]
+    fn guess_file_type_detects_vorbis_for_oga_extension() {
+        let dir = TestDir::new("oga");
+        let path = dir.path().join("sample.oga");
+        let mut bytes = [0_u8; 36];
+        bytes[..4].copy_from_slice(b"OggS");
+        bytes[29..35].copy_from_slice(b"vorbis");
+        write_bytes(&path, &bytes);
+
+        let probe = Probe::open(&path).unwrap().guess_file_type().unwrap();
+
+        assert_eq!(probe.file_type(), Some(FileType::Vorbis));
+    }
+
+    #[test]
+    fn guess_file_type_detects_opus_for_ogx_extension() {
+        let dir = TestDir::new("ogx");
+        let path = dir.path().join("sample.ogx");
+        let mut bytes = [0_u8; 36];
+        bytes[..4].copy_from_slice(b"OggS");
+        bytes[28..36].copy_from_slice(b"OpusHead");
+        write_bytes(&path, &bytes);
+
+        let probe = Probe::open(&path).unwrap().guess_file_type().unwrap();
+
+        assert_eq!(probe.file_type(), Some(FileType::Opus));
+    }
 }
