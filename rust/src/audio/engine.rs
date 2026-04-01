@@ -354,7 +354,8 @@ fn device_supports_sample_rate(device: &cpal::Device, channels: u16, sample_rate
 
 #[cfg(not(target_os = "android"))]
 pub fn desired_output_signature(preferred_sample_rate: Option<u32>) -> String {
-    format!("native-shared:{}", preferred_sample_rate.unwrap_or(0))
+    let _ = preferred_sample_rate;
+    "native-shared".to_string()
 }
 
 /// Initialize the audio engine and return a handle.

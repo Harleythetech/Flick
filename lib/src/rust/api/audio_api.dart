@@ -48,6 +48,12 @@ Future<bool> audioIsDacAvailable({int? preferredSampleRate}) =>
       preferredSampleRate: preferredSampleRate,
     );
 
+/// Prepare the Rust audio engine for the requested output rate before playback starts.
+Future<void> audioPrepareEngine({int? preferredSampleRate}) =>
+    RustLib.instance.api.crateApiAudioApiAudioPrepareEngine(
+      preferredSampleRate: preferredSampleRate,
+    );
+
 /// Play an audio file.
 Future<void> audioPlay({required String path}) =>
     RustLib.instance.api.crateApiAudioApiAudioPlay(path: path);

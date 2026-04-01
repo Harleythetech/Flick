@@ -222,6 +222,11 @@ pub fn audio_is_dac_available(preferred_sample_rate: Option<u32>) -> Result<bool
     ENGINE_MANAGER.is_dac_available(preferred_sample_rate)
 }
 
+/// Prepare the Rust audio engine for the requested output rate before playback starts.
+pub fn audio_prepare_engine(preferred_sample_rate: Option<u32>) -> Result<(), String> {
+    ensure_audio_engine(preferred_sample_rate)
+}
+
 /// Play an audio file.
 pub fn audio_play(path: String) -> Result<(), String> {
     let path = PathBuf::from(path);
