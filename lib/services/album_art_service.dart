@@ -28,14 +28,14 @@ class AlbumArtService {
       return null;
     }
 
-    if (_isUsableImagePath(existingPath)) {
+    if (await _isUsableImagePath(existingPath)) {
       return existingPath;
     }
 
     final cacheKey = _cacheKey(audioSourcePath);
     final cached = await _cacheManager.getFileFromCache(cacheKey);
     final cachedPath = cached?.file.path;
-    if (_isUsableImagePath(cachedPath)) {
+    if (await _isUsableImagePath(cachedPath)) {
       unawaited(_persistArtworkPath(audioSourcePath, cachedPath));
       return cachedPath;
     }
@@ -66,7 +66,7 @@ class AlbumArtService {
     }
   }
 
-  bool _isUsableImagePath(String? path) {
+  Future<bool> _isUsableImagePath(String? path) async {
     if (path == null || path.isEmpty) {
       return false;
     }
@@ -75,7 +75,7 @@ class AlbumArtService {
       return true;
     }
 
-    return File(path).existsSync();
+    return File(path).exists();
   }
 
   Future<Uint8List?> _loadArtworkBytes(String audioSourcePath) async {
