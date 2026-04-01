@@ -166,3 +166,8 @@ final uac2PreferredFormatProvider = FutureProvider<Uac2AudioFormat?>((
   final service = ref.watch(uac2PreferencesServiceProvider);
   return service.loadPreferredFormat();
 });
+
+final uac2HiFiModeProvider = FutureProvider<bool>((ref) async {
+  final service = ref.watch(uac2PreferencesServiceProvider);
+  return service.getHiFiModeEnabled();
+});

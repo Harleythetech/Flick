@@ -10,6 +10,7 @@ class LastPlayedService {
   static const String _lastPositionKey = 'last_played_position_ms';
   static const String _lastPlaylistSongIdsKey = 'last_played_playlist_song_ids';
   static const String _lastPlaylistIndexKey = 'last_played_playlist_index';
+  static const String _lastWasPlayingKey = 'last_played_was_playing';
 
   final SongRepository _songRepository;
 
@@ -25,10 +26,12 @@ class LastPlayedService {
     Duration position, {
     List<String>? playlistSongIds,
     int? currentIndex,
+    bool wasPlaying = false,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_lastSongIdKey, songId);
     await prefs.setInt(_lastPositionKey, position.inMilliseconds);
+    await prefs.setBool(_lastWasPlayingKey, wasPlaying);
 
     if (playlistSongIds != null && playlistSongIds.isNotEmpty) {
       await prefs.setString(
@@ -48,7 +51,13 @@ class LastPlayedService {
   /// Get the last played song and position.
   /// Returns null if no song was previously played.
   Future<
-    ({Song song, Duration position, List<Song>? playlist, int? playlistIndex})?
+    ({
+      Song song,
+      Duration position,
+      List<Song>? playlist,
+      int? playlistIndex,
+      bool wasPlaying,
+    })?
   >
   getLastPlayed() async {
     final prefs = await SharedPreferences.getInstance();
@@ -100,11 +109,13 @@ class LastPlayedService {
     }
 
     final positionMs = prefs.getInt(_lastPositionKey) ?? 0;
+    final wasPlaying = prefs.getBool(_lastWasPlayingKey) ?? false;
     return (
       song: song,
       position: Duration(milliseconds: positionMs),
       playlist: restoredPlaylist,
       playlistIndex: restoredPlaylistIndex,
+      wasPlaying: wasPlaying,
     );
   }
 
@@ -115,5 +126,6 @@ class LastPlayedService {
     await prefs.remove(_lastPositionKey);
     await prefs.remove(_lastPlaylistSongIdsKey);
     await prefs.remove(_lastPlaylistIndexKey);
+    await prefs.remove(_lastWasPlayingKey);
   }
 }
