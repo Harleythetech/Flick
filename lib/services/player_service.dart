@@ -177,10 +177,12 @@ class PlayerService {
   Future<void>? _appLaunchPreparationInFlight;
   Future<void>? _playStartupInFlight;
   Future<bool>? _rustInitInFlight;
+  Future<void>? _rustCapabilityRefreshInFlight;
   Future<void>? _backendHandoffInFlight;
   bool _suppressSequenceStateUpdates = false;
   bool _backendHandoffRecheckRequested = false;
   bool _routeRecheckAfterPlayStartup = false;
+  bool _rustCapabilityInfoPrimed = false;
   DateTime? _autoSyncGuardUntil;
   String? _autoSyncGuardSongId;
   double _currentVolume = 1.0;
@@ -350,6 +352,7 @@ class PlayerService {
     final future = () async {
       await initAudio();
       await _uac2Service.initialize();
+      await _refreshRustCapabilityInfo();
     }();
 
     _appLaunchPreparationInFlight = future;
@@ -369,6 +372,7 @@ class PlayerService {
       _setupUac2RouteListener();
       await _justAudioPlayer.setVolume(_currentVolume);
       await _updateLoopMode();
+      unawaited(_ensureRustBackendAvailable());
       _audioInitialized = true;
     } finally {
       _audioInitInFlight = null;
@@ -412,6 +416,34 @@ class PlayerService {
       await Future.delayed(const Duration(milliseconds: 50));
     }
     return false;
+  }
+
+  Future<void> _refreshRustCapabilityInfo() async {
+    if (!Platform.isAndroid) return;
+
+    final inFlight = _rustCapabilityRefreshInFlight;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final future = () async {
+      final rustAvailable = await _ensureRustBackendAvailable();
+      if (!rustAvailable) return;
+
+      final capabilityInfo = await _uac2Service.getAndroidAudioCapabilityInfo();
+      await _rustAudioService.setCapabilityInfo(capabilityInfo);
+      _rustCapabilityInfoPrimed = true;
+    }();
+
+    _rustCapabilityRefreshInFlight = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_rustCapabilityRefreshInFlight, future)) {
+        _rustCapabilityRefreshInFlight = null;
+      }
+    }
   }
 
   bool _isRustStatePlaying(RustPlaybackState state) {
@@ -714,18 +746,24 @@ class PlayerService {
 
   void _handleUac2StatusChanged(Uac2DeviceStatus? status) {
     if (!Platform.isAndroid) return;
+    _rustCapabilityInfoPrimed = false;
+
     final song = currentSongNotifier.value;
-    if (song?.filePath == null) return;
+    if (song?.filePath == null) {
+      unawaited(_refreshRustCapabilityInfo());
+      return;
+    }
 
     _backendHandoffDebounceTimer?.cancel();
     _backendHandoffDebounceTimer = Timer(
       const Duration(milliseconds: 350),
-      () => unawaited(
-        _reconcileBackendWithPreferredRoute(
+      () => unawaited(() async {
+        await _refreshRustCapabilityInfo();
+        await _reconcileBackendWithPreferredRoute(
           reason:
               'UAC2 route update (${status?.routeType.name ?? 'unavailable'})',
-        ),
-      ),
+        );
+      }()),
     );
   }
 
@@ -1211,9 +1249,8 @@ class PlayerService {
 
     final preferredSampleRate = _deriveUac2FormatFromSong(song)?.sampleRate;
 
-    if (Platform.isAndroid) {
-      final capabilityInfo = await _uac2Service.getAndroidAudioCapabilityInfo();
-      await _rustAudioService.setCapabilityInfo(capabilityInfo);
+    if (Platform.isAndroid && !_rustCapabilityInfoPrimed) {
+      await _refreshRustCapabilityInfo();
     }
 
     return _rustAudioService.shouldPreferRustEngine(

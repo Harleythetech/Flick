@@ -3,15 +3,25 @@
 //! Commands are sent from Dart through lock-free channels to avoid
 //! blocking the audio thread.
 
+use crate::audio::{decoder::DecoderThread, source::AudioSource};
 use std::path::PathBuf;
 
 /// Commands that can be sent to the audio engine.
-#[derive(Debug, Clone)]
 pub enum AudioCommand {
     /// Load and play a track immediately
     Play { path: PathBuf },
+    /// Load and play a track using a pre-probed decoder/source pair.
+    PlayPrepared {
+        source: AudioSource,
+        decoder_thread: DecoderThread,
+    },
     /// Queue a track for gapless playback (starts when current ends)
     QueueNext { path: PathBuf },
+    /// Queue a track using a pre-probed decoder/source pair.
+    QueueNextPrepared {
+        source: AudioSource,
+        decoder_thread: DecoderThread,
+    },
     /// Pause playback (maintains position)
     Pause,
     /// Resume playback from paused position
