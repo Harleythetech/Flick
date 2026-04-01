@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../core/utils/audio_metadata_utils.dart';
 import '../data/database.dart';
 import '../data/repositories/song_repository.dart';
 import '../data/repositories/folder_repository.dart';
@@ -279,7 +280,9 @@ class LibraryScannerService {
           ..fileSize = basic.size
           ..albumArtPath = existingMap[basic.uri]?.albumArtPath
           ..bitrate = meta?.bitrate != null
-              ? int.tryParse(meta!.bitrate!)
+              ? AudioMetadataUtils.bitrateFromBitsPerSecond(
+                  int.tryParse(meta!.bitrate!),
+                )
               : null
           ..bitDepth = meta?.bitDepth
           ..sampleRate = meta?.sampleRate;
@@ -449,7 +452,11 @@ class LibraryScannerService {
             ..folderUri = folderUri
             ..fileSize = metadata.fileSize.toInt()
             ..albumArtPath = existing?.albumArtPath
-            ..bitrate = metadata.bitrate
+            ..bitrate = AudioMetadataUtils.normalizeStoredBitrateKbps(
+              metadata.bitrate,
+              sampleRate: metadata.sampleRate,
+              bitDepth: metadata.bitDepth,
+            )
             ..bitDepth = metadata.bitDepth
             ..sampleRate = metadata.sampleRate;
 

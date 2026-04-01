@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flick/core/theme/app_colors.dart';
 import 'package:flick/core/theme/adaptive_color_provider.dart';
 import 'package:flick/core/constants/app_constants.dart';
+import 'package:flick/core/utils/audio_metadata_utils.dart';
 import 'package:flick/core/utils/responsive.dart';
 import 'package:flick/providers/providers.dart';
 
@@ -93,9 +94,7 @@ class _DuplicateCleanerScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(
-            color: AppColors.textPrimary,
-          ),
+          const CircularProgressIndicator(color: AppColors.textPrimary),
           const SizedBox(height: AppConstants.spacingLg),
           Text(
             'Scanning for duplicates...',
@@ -168,11 +167,7 @@ class _DuplicateCleanerScreenState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.check_circle_outline,
-              size: 64,
-              color: Colors.green,
-            ),
+            Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
             const SizedBox(height: AppConstants.spacingLg),
             Text(
               'No Duplicates Found',
@@ -249,7 +244,9 @@ class _DuplicateCleanerScreenState
                       vertical: AppConstants.spacingMd,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.radiusMd,
+                      ),
                     ),
                   ),
                   child: scanState.isRemoving
@@ -300,11 +297,7 @@ class _DuplicateCleanerScreenState
   ) {
     return Column(
       children: [
-        Icon(
-          icon,
-          size: 32,
-          color: context.adaptiveTextSecondary,
-        ),
+        Icon(icon, size: 32, color: context.adaptiveTextSecondary),
         const SizedBox(height: AppConstants.spacingSm),
         Text(
           value,
@@ -327,10 +320,7 @@ class _DuplicateCleanerScreenState
     );
   }
 
-  Widget _buildDuplicateGroupCard(
-    BuildContext context,
-    dynamic group,
-  ) {
+  Widget _buildDuplicateGroupCard(BuildContext context, dynamic group) {
     final songToKeep = group.songToKeep;
     final songsToRemove = group.songsToRemove;
 
@@ -384,7 +374,7 @@ class _DuplicateCleanerScreenState
           // Song to keep
           _buildSongItem(context, songToKeep, isKeeping: true),
           const SizedBox(height: AppConstants.spacingSm),
-          
+
           // Songs to remove
           ...songsToRemove.map((song) => _buildSongItem(context, song)),
         ],
@@ -435,7 +425,7 @@ class _DuplicateCleanerScreenState
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${song.fileType ?? 'Unknown'} • ${song.bitrate != null ? '${(song.bitrate! / 1000).round()}kbps' : 'Unknown bitrate'}',
+                  '${song.fileType ?? 'Unknown'} • ${AudioMetadataUtils.formatBitrateLabel(song.bitrate, sampleRate: song.sampleRate, bitDepth: song.bitDepth) ?? 'Unknown bitrate'}',
                   style: TextStyle(
                     fontFamily: 'ProductSans',
                     fontSize: 11,
@@ -461,7 +451,7 @@ class _DuplicateCleanerScreenState
 
   void _showRemoveAllConfirmation(BuildContext context) {
     final result = ref.read(duplicateScanProvider).result!;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
