@@ -40,4 +40,54 @@ void main() {
       expect(shouldOptimisticallySyncSkipForLoopMode(LoopMode.one), isFalse);
     });
   });
+
+  group('shouldHandleManualCompletion', () {
+    test('keeps manual completion handling for the Rust backend', () {
+      expect(
+        shouldHandleManualCompletion(
+          usingRustBackend: true,
+          loopMode: LoopMode.off,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldHandleManualCompletion(
+          usingRustBackend: true,
+          loopMode: LoopMode.one,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldHandleManualCompletion(
+          usingRustBackend: true,
+          loopMode: LoopMode.all,
+        ),
+        isTrue,
+      );
+    });
+
+    test('lets just_audio own repeat-one and repeat-all completion', () {
+      expect(
+        shouldHandleManualCompletion(
+          usingRustBackend: false,
+          loopMode: LoopMode.off,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldHandleManualCompletion(
+          usingRustBackend: false,
+          loopMode: LoopMode.one,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldHandleManualCompletion(
+          usingRustBackend: false,
+          loopMode: LoopMode.all,
+        ),
+        isFalse,
+      );
+    });
+  });
 }

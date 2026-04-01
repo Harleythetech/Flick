@@ -138,6 +138,18 @@ bool shouldOptimisticallySyncSkipForLoopMode(LoopMode loopMode) {
   return loopMode != LoopMode.one;
 }
 
+@visibleForTesting
+bool shouldHandleManualCompletion({
+  required bool usingRustBackend,
+  required LoopMode loopMode,
+}) {
+  if (usingRustBackend) {
+    return true;
+  }
+
+  return loopMode == LoopMode.off;
+}
+
 /// Singleton service to manage global audio playback state.
 ///
 /// Uses just_audio for playback with gapless playback support.
@@ -604,7 +616,11 @@ class PlayerService {
       }
 
       if (!_suppressSequenceStateUpdates &&
-          state.processingState == just_audio.ProcessingState.completed) {
+          state.processingState == just_audio.ProcessingState.completed &&
+          shouldHandleManualCompletion(
+            usingRustBackend: false,
+            loopMode: loopModeNotifier.value,
+          )) {
         _onSongFinished();
       }
     }));
